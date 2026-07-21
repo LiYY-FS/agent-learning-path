@@ -1,0 +1,789 @@
+{
+  "id": "ch5",
+  "number": 5,
+  "title": "行业应用与最佳实践",
+  "subtitle": "通过企业级实战项目巩固所学，掌握部署与工程化",
+  "estimatedHours": 25,
+  "difficulty": 4,
+  "sections": [
+    {
+      "id": "5.1",
+      "title": "智能客服系统",
+      "subtitle": "设计生产级客服 Agent",
+      "estimatedMinutes": 35,
+      "difficulty": 3,
+      "objectives": [
+        "掌握多轮对话管理",
+        "实现知识库集成",
+        "设计人工转接策略"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "智能客服架构",
+          "content": [
+            {
+              "type": "mermaid",
+              "data": {
+                "title": "智能客服系统架构",
+                "code": "flowchart TB\n  U[用户消息] --> R[意图识别 Router]\n  R -->|售前咨询| A1[商品知识库 RAG]\n  R -->|售后问题| A2[订单系统查询]\n  R -->|物流查询| A3[物流 API]\n  R -->|投诉/复杂| A4[转人工]\n  A1 --> G[回答生成]\n  A2 --> G\n  A3 --> G\n  G --> U2[回复用户]\n  A4 --> H[人工客服]"
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "customer_service.py",
+                "language": "python",
+                "title": "智能客服 Agent 完整架构",
+                "highlightLines": [
+                  20,
+                  21,
+                  22,
+                  23,
+                  24,
+                  25,
+                  26,
+                  27,
+                  28,
+                  29,
+                  30,
+                  31
+                ],
+                "code": "from openai import OpenAI\nfrom typing import Literal\nfrom pydantic import BaseModel\n\nclient = OpenAI()\n\nclass Intent(BaseModel):\n    \"\"\"意图分类\"\"\"\n    category: Literal[\"presale\", \"aftersale\", \"logistics\", \"complaint\", \"other\"]\n    confidence: float\n\ndef route_intent(message: str) -> str:\n    \"\"\"意图识别路由\"\"\"\n    resp = client.chat.completions.create(\n        model=\"gpt-5-mini\",  # 意图分类用便宜模型\n        messages=[{\"role\": \"user\", \"content\": f\"分类用户意图: {message}\"}],\n        tools=[{\"type\": \"function\", \"function\": {\n            \"name\": \"classify\",\n            \"parameters\": Intent.model_json_schema()\n        }}],\n        tool_choice={\"type\": \"function\", \"function\": {\"name\": \"classify\"}}\n    )\n    intent = Intent.model_validate_json(\n        resp.choices[0].message.tool_calls[0].function.arguments\n    )\n    \n    if intent.confidence < 0.7 or intent.category == \"complaint\":\n        return \"transfer_human\"\n    return intent.category\n\ndef customer_service(user_id: str, message: str, history: list) -> str:\n    \"\"\"客服 Agent 主入口\"\"\"\n    # 1. 意图路由\n    route = route_intent(message)\n    \n    if route == \"transfer_human\":\n        return \"正在为您转接人工客服...\"\n    \n    # 2. 根据意图选择处理方式\n    if route == \"presale\":\n        context = rag_search(message)  # RAG 检索商品知识\n    elif route == \"aftersale\":\n        context = query_order(user_id)  # 查询订单\n    elif route == \"logistics\":\n        context = query_logistics(user_id)  # 查询物流\n    \n    # 3. 生成回答\n    system = f\"\"\"你是电商客服。基于以下信息回答:\n    上下文: {context}\n    规则: 不确定时转人工，不承诺未标注的优惠\"\"\"\n    \n    messages = [{\"role\": \"system\", \"content\": system}] + history + [{\"role\": \"user\", \"content\": message}]\n    resp = client.chat.completions.create(model=\"gpt-5\", messages=messages, temperature=0.3)\n    return resp.choices[0].message.content",
+                "output": "用户: 我的订单什么时候到？\n→ 意图: logistics (conf=0.95)\n→ 查询物流 API\n→ 回答: 您的订单正在派送中，预计今天下午送达。"
+              }
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "电商客服 Agent 完整架构",
+        "background": "某电商平台日均 10 万咨询量，人工客服 200 人。",
+        "architecture": "意图路由 + RAG 知识库 + 订单/物流系统集成 + 情感识别转人工。",
+        "outcome": "自动回复率 78%，人工减少 60%，满意度 4.6/5。",
+        "lessons": "1) 意图路由是客服系统的核心；2) 情感识别比关键词更准确判断是否转人工；3) RAG 知识库要持续更新。"
+      },
+      "exercises": [
+        {
+          "title": "实现客服 Agent",
+          "description": "实现带意图路由和知识库的客服 Agent。",
+          "hints": "先实现意图分类，再加 RAG"
+        }
+      ],
+      "resources": [
+        {
+          "type": "course",
+          "title": "DeepLearning.AI 客服课程",
+          "url": "https://www.deeplearning.ai/"
+        }
+      ],
+      "quiz": [
+        "ch5-5.1-q1"
+      ]
+    },
+    {
+      "id": "5.2",
+      "title": "代码助手与代码审查",
+      "subtitle": "开发代码相关 Agent",
+      "estimatedMinutes": 30,
+      "difficulty": 4,
+      "objectives": [
+        "掌握代码理解与 AST 解析",
+        "实现 PR Review 自动化",
+        "生成测试代码"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "代码审查 Agent",
+          "content": [
+            {
+              "type": "code",
+              "data": {
+                "filename": "code_review_agent.py",
+                "language": "python",
+                "title": "GitHub PR 自动审查 Agent",
+                "highlightLines": [
+                  15,
+                  16,
+                  17,
+                  18,
+                  19,
+                  20,
+                  21,
+                  22,
+                  23,
+                  24,
+                  25,
+                  26,
+                  27
+                ],
+                "code": "import ast\nfrom openai import OpenAI\n\nclient = OpenAI()\n\ndef review_pr(diff: str, file_path: str) -> dict:\n    \"\"\"审查 PR 代码变更\"\"\"\n    # 1. 基础静态分析\n    issues = []\n    try:\n        tree = ast.parse(diff)\n        for node in ast.walk(tree):\n            if isinstance(node, ast.FunctionDef):\n                if not node.returns:  # 缺少返回类型\n                    issues.append(f\"{node.name}: 建议添加返回类型注解\")\n                if len(node.args.args) > 5:  # 参数过多\n                    issues.append(f\"{node.name}: 参数过多({len(node.args.args)})\")\n    except SyntaxError:\n        issues.append(\"语法错误\")\n    \n    # 2. LLM 深度审查\n    review_prompt = f\"\"\"审查以下代码变更，关注:\n    1. 安全漏洞（SQL注入/XSS/命令注入）\n    2. 性能问题（N+1查询/内存泄漏）\n    3. 代码质量（命名/复杂度/重复）\n    4. 最佳实践\n    \n    文件: {file_path}\n    代码: {diff}\n    \n    输出 JSON: {{\"issues\": [...], \"score\": 0-10, \"summary\": \"...\"}}\"\"\"\n    \n    resp = client.chat.completions.create(\n        model=\"gpt-5\",\n        messages=[{\"role\": \"user\", \"content\": review_prompt}],\n        response_format={\"type\": \"json_object\"},\n        temperature=0\n    )\n    \n    import json\n    result = json.loads(resp.choices[0].message.content)\n    result[\"static_issues\"] = issues\n    return result",
+                "output": "审查结果:\n  静态分析: 2 个问题\n  LLM 审查: 安全1个, 性能1个, 质量2个\n  评分: 7/10\n  摘要: 代码整体可接受，建议修复安全问题..."
+              }
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "GitHub PR 自动审查",
+        "background": "某团队每天 50+ PR 需要审查，人工审查耗时且标准不一。",
+        "architecture": "GitHub Webhook 触发 Agent → AST + LLM 双重审查 → 评论到 PR。",
+        "outcome": "PR 审查时间从 2 小时降至 5 分钟，缺陷发现率提升 35%。",
+        "lessons": "1) 静态分析 + LLM 结合比纯 LLM 更可靠；2) 审查结果要可操作（给出修复建议）；3) 避免过度审查引起开发者反感。"
+      },
+      "exercises": [
+        {
+          "title": "实现代码审查 Agent",
+          "description": "实现一个能审查 Python 代码安全和质量的 Agent。",
+          "hints": "用 AST 做静态分析 + LLM 做深度审查"
+        }
+      ],
+      "resources": [
+        {
+          "type": "tool",
+          "title": "CodeRabbit",
+          "url": "https://coderabbit.ai/",
+          "note": "AI 代码审查工具参考"
+        }
+      ],
+      "quiz": []
+    },
+    {
+      "id": "5.3",
+      "title": "数据分析 Agent",
+      "subtitle": "自然语言数据查询",
+      "estimatedMinutes": 30,
+      "difficulty": 3,
+      "objectives": [
+        "掌握 NL2SQL 技术",
+        "实现 Pandas 集成",
+        "生成数据可视化"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "NL2SQL 实现",
+          "content": [
+            {
+              "type": "code",
+              "data": {
+                "filename": "data_analysis_agent.py",
+                "language": "python",
+                "title": "数据分析 Agent (NL2SQL)",
+                "highlightLines": [
+                  18,
+                  19,
+                  20,
+                  21,
+                  22,
+                  23,
+                  24,
+                  25,
+                  26,
+                  27
+                ],
+                "code": "import pandas as pd\nimport sqlite3\nfrom openai import OpenAI\n\nclient = OpenAI()\n\nclass DataAgent:\n    def __init__(self, db_path: str):\n        self.conn = sqlite3.connect(db_path)\n        # 获取 schema 供 LLM 参考\n        self.schema = self._get_schema()\n    \n    def _get_schema(self) -> str:\n        \"\"\"获取数据库 schema\"\"\"\n        cursor = self.conn.cursor()\n        cursor.execute(\"SELECT sql FROM sqlite_master WHERE type='table'\")\n        return \"\\n\".join([row[0] for row in cursor.fetchall()])\n    \n    def ask(self, question: str) -> dict:\n        \"\"\"自然语言查询数据\"\"\"\n        # 1. NL2SQL: 自然语言转 SQL\n        sql = self._nl_to_sql(question)\n        # 2. 执行 SQL（只读，安全限制）\n        df = pd.read_sql(sql, self.conn)\n        # 3. 用 LLM 分析结果\n        analysis = self._analyze(question, df)\n        # 4. 生成可视化建议\n        viz = self._suggest_viz(df)\n        return {\"sql\": sql, \"data\": df.to_dict(), \"analysis\": analysis, \"viz\": viz}\n    \n    def _nl_to_sql(self, question: str) -> str:\n        prompt = f\"\"\"数据库 schema: {self.schema}\n        将以下问题转为 SQL（仅 SELECT，禁止修改数据）:\n        问题: {question}\n        SQL:\"\"\"\n        resp = client.chat.completions.create(\n            model=\"gpt-5\", messages=[{\"role\": \"user\", \"content\": prompt}], temperature=0\n        )\n        return resp.choices[0].message.content.strip('```sql').strip('```').strip()",
+                "output": "问题: 上个月销量最高的5个商品\nSQL: SELECT product_name, SUM(quantity) as total FROM orders WHERE date >= date('now', '-1 month') GROUP BY product_name ORDER BY total DESC LIMIT 5\n\n分析: 上月销量最高的是商品A(1200件)，其次是商品B(980件)...\n可视化建议: 柱状图"
+              }
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "NL2SQL 安全",
+          "text": "NL2SQL 必须限制为只读（仅 SELECT），禁止 DROP/DELETE/UPDATE。建议：1) 用只读数据库账号；2) SQL 白名单校验；3) 限制查询行数和超时。"
+        }
+      ],
+      "enterpriseCase": {
+        "title": "BI 数据分析 Agent",
+        "background": "某公司业务人员需要查询数据但不会 SQL。",
+        "architecture": "NL2SQL + Pandas 分析 + 自动可视化 + LLM 洞察生成。",
+        "outcome": "业务人员自助查询率 80%，分析师从取数工作中解放。",
+        "lessons": "1) schema 描述质量决定 NL2SQL 准确率；2) 只读安全限制必须严格；3) 自动可视化大幅提升体验。"
+      },
+      "exercises": [
+        {
+          "title": "实现 NL2SQL Agent",
+          "description": "实现一个能将自然语言转 SQL 并查询的 Agent。",
+          "hints": "先获取 schema，再让 LLM 生成 SQL"
+        }
+      ],
+      "resources": [
+        {
+          "type": "tool",
+          "title": "Vanna.ai",
+          "url": "https://vanna.ai/",
+          "note": "开源 NL2SQL"
+        },
+        {
+          "type": "tool",
+          "title": "PandasAI",
+          "url": "https://pandas-ai.com/"
+        }
+      ],
+      "quiz": [
+        "ch5-5.3-q1"
+      ]
+    },
+    {
+      "id": "5.4",
+      "title": "自动化运营 Agent",
+      "subtitle": "运营自动化",
+      "estimatedMinutes": 25,
+      "difficulty": 3,
+      "objectives": [
+        "设计工作流自动化",
+        "实现定时任务与触发器",
+        "多渠道通知"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "自动化运营架构",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "自动化运营 Agent 结合定时触发、数据监控、内容生成、多渠道通知，实现运营流程自动化。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "ops_agent.py",
+                "language": "python",
+                "title": "定时报告生成 Agent",
+                "code": "import schedule\nimport time\nfrom openai import OpenAI\n\nclient = OpenAI()\n\ndef daily_report_agent():\n    \"\"\"每日自动生成运营报告\"\"\"\n    # 1. 收集数据\n    metrics = {\n        \"DAU\": query_dau(),\n        \"revenue\": query_revenue(),\n        \"churn\": query_churn_rate()\n    }\n    \n    # 2. LLM 分析并生成报告\n    report = client.chat.completions.create(\n        model=\"gpt-5\",\n        messages=[{\"role\": \"user\", \"content\": f\"\"\"\n        基于以下数据生成运营日报:\n        DAU: {metrics['DAU']}\n        收入: {metrics['revenue']}\n        流失率: {metrics['churn']}\n        \n        输出: 关键指标+趋势分析+建议\"\"\"}],\n        temperature=0.3\n    ).choices[0].message.content\n    \n    # 3. 多渠道发送\n    send_email(\"team@company.com\", \"运营日报\", report)\n    send_slack(\"#ops-channel\", report)\n    \n    # 4. 异常告警\n    if metrics['churn'] > 0.05:\n        send_alert(f\"⚠️ 流失率异常: {metrics['churn']:.1%}\")\n\n# 每天早上 9 点执行\nschedule.every().day.at(\"09:00\").do(daily_report_agent)\nwhile True:\n    schedule.run_pending()\n    time.sleep(60)",
+                "output": "每日 09:00 自动执行:\n→ 收集 DAU/收入/流失率\n→ LLM 生成分析报告\n→ 邮件 + Slack 发送\n→ 异常时触发告警"
+              }
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "内容运营自动化",
+        "background": "某媒体公司需要自动生成和发布内容。",
+        "architecture": "Agent 定时生成内容 → 人工审核 → 自动发布到多平台。",
+        "outcome": "内容产出提升 3 倍，编辑聚焦审核而非创作。",
+        "lessons": "自动化必须保留人工审核环节，内容质量是底线。"
+      },
+      "exercises": [
+        {
+          "title": "实现定时报告 Agent",
+          "description": "实现一个每天定时生成并发送报告的 Agent。",
+          "hints": "用 schedule 库定时执行"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "n8n 自动化",
+          "url": "https://docs.n8n.io/"
+        }
+      ],
+      "quiz": []
+    },
+    {
+      "id": "5.5",
+      "title": "企业知识库问答",
+      "subtitle": "大规模企业 RAG 系统",
+      "estimatedMinutes": 35,
+      "difficulty": 4,
+      "objectives": [
+        "处理大规模文档",
+        "实现权限控制",
+        "增量索引更新"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "企业知识库架构",
+          "content": [
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "挑战",
+                  "解决方案"
+                ],
+                "rows": [
+                  [
+                    "数万+文档",
+                    "分批索引 + 增量更新"
+                  ],
+                  [
+                    "权限控制",
+                    "文档级 ACL + 查询时过滤"
+                  ],
+                  [
+                    "多格式支持",
+                    "统一 Loader（PDF/Word/Confluence）"
+                  ],
+                  [
+                    "引用来源",
+                    "检索时保留文档元数据"
+                  ],
+                  [
+                    "实时更新",
+                    "Webhook 触发增量索引"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "权限控制关键",
+              "text": "企业知识库必须实现文档级权限控制：用户只能检索到有权限的文档。方案：1) 向量库存 ACL 元数据；2) 检索后按权限过滤；3) 或按部门分库索引。"
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "企业内部知识库",
+        "background": "某 5000 人企业，内部文档 2 万+，分布在 Confluence/SharePoint/本地。",
+        "architecture": "统一 Loader + 增量索引 + 文档级 ACL + 混合检索 + Reranker。",
+        "outcome": "员工找文档时间从 15 分钟降至 30 秒，知识复用率提升 50%。",
+        "lessons": "1) 权限控制是企业 RAG 的硬需求；2) 增量索引避免全量重建；3) 引用来源提升可信度。"
+      },
+      "exercises": [
+        {
+          "title": "搭建带权限的 RAG",
+          "description": "实现一个带文档级权限控制的 RAG 系统。",
+          "hints": "在向量元数据中存储 ACL，检索后过滤"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "LlamaIndex 企业级 RAG",
+          "url": "https://docs.llamaindex.ai/"
+        }
+      ],
+      "quiz": []
+    },
+    {
+      "id": "5.6",
+      "title": "多 Agent 协作开发系统",
+      "subtitle": "多 Agent 软件开发",
+      "estimatedMinutes": 35,
+      "difficulty": 5,
+      "objectives": [
+        "设计软件开发多 Agent",
+        "实现角色协作",
+        "管理代码版本"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "多 Agent 开发架构",
+          "content": [
+            {
+              "type": "mermaid",
+              "data": {
+                "title": "多 Agent 软件开发系统",
+                "code": "flowchart LR\n  P[PM Agent\n需求分析] --> D[Designer Agent\n架构设计]\n  D --> C1[Coder Agent 1\n后端开发]\n  D --> C2[Coder Agent 2\n前端开发]\n  C1 --> T[Tester Agent\n测试验证]\n  C2 --> T\n  T --> R[Reviewer Agent\n代码审查]\n  R -->|通过| DEPLOY[部署]\n  R -->|不通过| C1"
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "multi_agent_dev.py",
+                "language": "python",
+                "title": "CrewAI 多 Agent 协作开发",
+                "code": "from crewai import Agent, Task, Crew, Process\n\npm = Agent(role='产品经理', goal='分析需求并制定开发计划',\n           backstory='资深 PM，擅长需求分解', llm='gpt-5')\ncoder = Agent(role='全栈开发者', goal='编写高质量代码',\n             backstory='10年经验全栈工程师', llm='gpt-5')\ntester = Agent(role='测试工程师', goal='验证代码质量',\n               backstory='严谨的测试专家', llm='gpt-5')\n\nplan = Task(description='分析需求: {req}，输出开发计划', agent=pm)\ncode = Task(description='根据计划编写代码', agent=coder, context=[plan])\ntest = Task(description='测试代码功能和质量', agent=tester, context=[code])\n\ncrew = Crew(agents=[pm, coder, tester], tasks=[plan, code, test],\n            process=Process.sequential)\nresult = crew.kickoff(inputs={'req': '开发一个 TODO API'})",
+                "output": "PM: 需求分解为5个API端点\nCoder: 编写 FastAPI 代码\ntester: 测试通过，覆盖率85%"
+              }
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "多 Agent 协作开发系统",
+        "background": "某创业公司用多 Agent 自动开发小型项目。",
+        "architecture": "PM/Designer/Coder/Tester/Reviewer 5 Agent 流水线。",
+        "outcome": "小型项目自动开发率 70%，开发周期缩短 60%。",
+        "lessons": "1) 复杂项目仍需人工参与；2) Agent 间代码交接是难点；3) 适合 MVP 和原型开发。"
+      },
+      "exercises": [
+        {
+          "title": "用 CrewAI 实现 3 Agent 协作",
+          "description": "实现 PM/Coder/Tester 三个 Agent 的协作开发流程。",
+          "hints": "用 Process.sequential 顺序执行"
+        }
+      ],
+      "resources": [
+        {
+          "type": "tool",
+          "title": "ChatDev",
+          "url": "https://github.com/OpenBMB/ChatDev"
+        },
+        {
+          "type": "tool",
+          "title": "MetaGPT",
+          "url": "https://github.com/FoundationAgents/MetaGPT"
+        }
+      ],
+      "quiz": []
+    },
+    {
+      "id": "5.7",
+      "title": "全栈开发 Agent",
+      "subtitle": "端到端开发能力",
+      "estimatedMinutes": 30,
+      "difficulty": 5,
+      "objectives": [
+        "设计全栈 Agent 架构",
+        "理解服务化部署",
+        "端到端测试"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "全栈 Agent 架构",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "全栈开发 Agent 能独立完成从需求分析到部署的完整流程：后端 API（FastAPI）+ 数据库（SQL）+ 前端 + 测试 + 部署。"
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "参考：Devin",
+              "text": "Devin 是 Cognition 推出的首个 AI 软件工程师，能独立完成完整开发任务。开源替代有 OpenDevin。当前能力适合中小型项目，大型项目仍需人类主导。"
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "全栈开发 Agent 系统",
+        "background": "用 Agent 自动开发一个 CRUD API 服务。",
+        "architecture": "Agent 自主完成：数据库设计 → API 开发 → 单元测试 → Docker 部署。",
+        "outcome": "简单 CRUD 项目 30 分钟内完成开发和部署。",
+        "lessons": "1) 适合标准化项目；2) 复杂业务逻辑需人工指导；3) 自动测试是质量保障关键。"
+      },
+      "exercises": [
+        {
+          "title": "设计全栈 Agent 架构",
+          "description": "设计一个能开发 FastAPI + SQLite + 前端的 Agent 系统架构。",
+          "hints": "参考 Devin 的架构设计"
+        }
+      ],
+      "resources": [
+        {
+          "type": "tool",
+          "title": "OpenDevin",
+          "url": "https://github.com/OpenDevin/OpenDevin"
+        }
+      ],
+      "quiz": []
+    },
+    {
+      "id": "5.8",
+      "title": "部署与性能优化",
+      "subtitle": "生产级部署与优化",
+      "estimatedMinutes": 30,
+      "difficulty": 4,
+      "objectives": [
+        "掌握 FastAPI 服务化",
+        "Docker 容器化部署",
+        "性能优化策略"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "FastAPI 服务化",
+          "content": [
+            {
+              "type": "code",
+              "data": {
+                "filename": "fastapi_agent.py",
+                "language": "python",
+                "title": "FastAPI Agent 服务",
+                "highlightLines": [
+                  8,
+                  9,
+                  10,
+                  11,
+                  12,
+                  13,
+                  14,
+                  15
+                ],
+                "code": "from fastapi import FastAPI\nfrom pydantic import BaseModel\nimport uvicorn\n\napp = FastAPI(title=\"Agent API\")\n\nclass Query(BaseModel):\n    message: str\n    session_id: str = None\n\n@app.post(\"/chat\")\nasync def chat(query: Query):\n    \"\"\"Agent 对话接口\"\"\"\n    result = await agent.run(query.message, query.session_id)\n    return {\"response\": result}\n\n@app.get(\"/health\")\nasync def health():\n    return {\"status\": \"ok\"}\n\nif __name__ == \"__main__\":\n    uvicorn.run(app, host=\"0.0.0.0\", port=8000)",
+                "output": "API 文档: http://localhost:8000/docs\n对话接口: POST /chat\n健康检查: GET /health"
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "Dockerfile",
+                "language": "text",
+                "title": "Docker 部署",
+                "code": "FROM python:3.12-slim\n\nWORKDIR /app\nCOPY requirements.txt .\nRUN pip install --no-cache-dir -r requirements.txt\n\nCOPY . .\nEXPOSE 8000\nCMD [\"uvicorn\", \"main:app\", \"--host\", \"0.0.0.0\", \"--port\", \"8000\"]",
+                "output": ""
+              }
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "性能优化策略",
+          "content": [
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "策略",
+                  "效果",
+                  "实现"
+                ],
+                "rows": [
+                  [
+                    "**Embedding 缓存**",
+                    "减少 90% 向量化成本",
+                    "缓存 query→embedding 映射"
+                  ],
+                  [
+                    "**响应缓存**",
+                    "重复问题零延迟",
+                    "缓存 query→answer"
+                  ],
+                  [
+                    "**模型分级**",
+                    "降低 60% 成本",
+                    "简单任务用 mini 模型"
+                  ],
+                  [
+                    "**流式输出**",
+                    "首字延迟降 80%",
+                    "stream=True"
+                  ],
+                  [
+                    "**并发处理**",
+                    "吞吐量提升 5 倍",
+                    "asyncio.gather"
+                  ],
+                  [
+                    "**限流降级**",
+                    "保护系统稳定",
+                    "令牌桶 + 熔断"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "成本控制",
+              "text": "生产 Agent 成本控制核心：1) 简单任务用 GPT-5-mini（成本 1/16）；2) 缓存 Embedding 和高频问答；3) 限制 max_steps 和 max_tokens；4) 监控每日 Token 消耗设上限。"
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "Agent 服务高可用部署",
+        "background": "某公司 Agent 需支撑日均 10 万次调用。",
+        "architecture": "FastAPI + Docker + Nginx 负载均衡 + Redis 缓存 + 多实例水平扩展。",
+        "outcome": "QPS 500+，P99 延迟 <5s，可用性 99.9%。",
+        "lessons": "1) 状态外置（Redis）才能水平扩展；2) 缓存是成本和性能的关键；3) 限流降级保护系统稳定。"
+      },
+      "exercises": [
+        {
+          "title": "设计部署方案",
+          "description": "为一个 Agent 服务设计高可用部署方案。",
+          "hints": "考虑负载均衡、缓存、监控"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "FastAPI 部署",
+          "url": "https://fastapi.tiangolo.com/deployment/"
+        },
+        {
+          "type": "doc",
+          "title": "Docker 文档",
+          "url": "https://docs.docker.com/"
+        }
+      ],
+      "quiz": [
+        "ch5-5.8-q1"
+      ]
+    },
+    {
+      "id": "5.9",
+      "title": "安全与合规",
+      "subtitle": "设计安全的 Agent 系统",
+      "estimatedMinutes": 25,
+      "difficulty": 4,
+      "objectives": [
+        "设计 Guardrail",
+        "实现工具权限最小化",
+        "理解数据隐私合规"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "Agent 安全防护体系",
+          "content": [
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "层面",
+                  "措施",
+                  "实现"
+                ],
+                "rows": [
+                  [
+                    "**输入安全**",
+                    "Prompt 注入防护",
+                    "输入过滤 + 边界标注"
+                  ],
+                  [
+                    "**工具安全**",
+                    "权限最小化",
+                    "只授予必要工具 + HITL"
+                  ],
+                  [
+                    "**输出安全**",
+                    "内容审查",
+                    "敏感信息脱敏 + 违规检测"
+                  ],
+                  [
+                    "**数据安全**",
+                    "隐私保护",
+                    "数据加密 + GDPR/PIPL 合规"
+                  ],
+                  [
+                    "**审计安全**",
+                    "可追溯",
+                    "全链路日志 + 审计追踪"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "合规要点",
+              "text": "**GDPR（欧盟）**：数据可删除权、数据可携带权。**PIPL（中国个人信息保护法）**：告知同意、最小必要。**金融**：交易审计、风险提示。**医疗**：数据脱敏、诊断不替代医生。"
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "金融 Agent 合规设计",
+        "background": "某银行 Agent 需通过银监会安全审查。",
+        "architecture": "五层安全：输入过滤 + Guardrail + HITL + 审计日志 + 数据脱敏。",
+        "outcome": "通过安全审查，零合规事故。",
+        "lessons": "金融/医疗/法律场景安全合规是第一优先级。"
+      },
+      "exercises": [
+        {
+          "title": "设计安全方案",
+          "description": "为客服 Agent 设计完整的安全防护方案。",
+          "hints": "覆盖输入/工具/输出/数据/审计五层"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "OWASP LLM Top 10",
+          "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/"
+        }
+      ],
+      "quiz": [
+        "ch5-5.9-q1"
+      ]
+    },
+    {
+      "id": "5.10",
+      "title": "避坑指南与常见难点",
+      "subtitle": "避免常见陷阱",
+      "estimatedMinutes": 30,
+      "difficulty": 3,
+      "objectives": [
+        "避免异步编程陷阱",
+        "解决 Pydantic 校验问题",
+        "防止 Agent 循环失控"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "五大常见难点",
+          "content": [
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "难点",
+                  "表现",
+                  "解决方案"
+                ],
+                "rows": [
+                  [
+                    "**异步编程**",
+                    "async/sync 混用报错",
+                    "统一用 async，同步库用 run_in_executor"
+                  ],
+                  [
+                    "**Pydantic 校验**",
+                    "LLM 输出不稳定导致校验失败",
+                    "重试机制 + 错误反馈给 LLM 修正"
+                  ],
+                  [
+                    "**依赖冲突**",
+                    "包版本不兼容",
+                    "用 uv/poetry 管理依赖，锁定版本"
+                  ],
+                  [
+                    "**循环失控**",
+                    "Agent 无限循环 Token 爆炸",
+                    "max_steps + 超时 + 费用上限"
+                  ],
+                  [
+                    "**类型系统**",
+                    "动态类型导致运行时错误",
+                    "强制类型注解 + mypy 检查"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "note",
+              "title": "9 条避坑原则",
+              "text": "1) 先跑通再优化；2) 生成用 4o-mini，推理用 4o；3) 永远设 max_steps；4) 工具调用必须错误处理；5) 缓存 Embedding；6) 异步统一；7) Prompt 与代码分离；8) 接入可观测性；9) 安全多层防御。"
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "生产事故复盘",
+        "background": "某公司 Agent 因未设 max_steps 导致 Token 爆炸，单次请求消耗 $50。",
+        "architecture": "增加 max_steps=15 + Token 上限 50K + 费用上限 $1 + 告警。",
+        "outcome": "后续零类似事故。",
+        "lessons": "防护措施必须上线前就位，不能事后补救。"
+      },
+      "exercises": [
+        {
+          "title": "编写最佳实践 Checklist",
+          "description": "为 Agent 项目编写一份上线前最佳实践 checklist。",
+          "hints": "覆盖安全、性能、成本、可观测性"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "Python 异步编程",
+          "url": "https://docs.python.org/3/library/asyncio.html"
+        }
+      ],
+      "quiz": [
+        "ch5-5.10-q1"
+      ]
+    }
+  ]
+}

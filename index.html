@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="系统化的 AI Agent 开发学习路线 - 从基础概念到前沿趋势，覆盖 LLM、ReAct、RAG、多 Agent 协作、行业实战的完整知识体系">
+  <meta name="keywords" content="AI Agent,学习路线,LLM,ReAct,RAG,LangChain,多Agent,Python">
+  <meta name="author" content="AI Agent Learning Roadmap">
+  <meta property="og:title" content="AI Agent 开发学习路线">
+  <meta property="og:description" content="系统化、可追踪、可交互的 Agent 开发学习路线网站">
+  <meta property="og:type" content="website">
+  <title>AI Agent 开发学习路线</title>
+
+  <!-- 字体 -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+SC:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- 样式 -->
+  <link rel="stylesheet" href="assets/css/variables.css">
+  <link rel="stylesheet" href="assets/css/base.css">
+  <link rel="stylesheet" href="assets/css/layout.css">
+  <link rel="stylesheet" href="assets/css/components.css">
+  <link rel="stylesheet" href="assets/css/syntax.css">
+  <link rel="stylesheet" href="assets/css/animations.css">
+
+  <!-- highlight.js 主题 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+
+  <!-- Favicon (内嵌 SVG) -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+</head>
+<body>
+  <div class="app">
+    <!-- 顶部工具栏 -->
+    <header class="topbar">
+      <button class="topbar__btn topbar__menu-toggle" id="menuToggle" aria-label="切换菜单">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="3" y1="6" x2="21" y2="6"/>
+          <line x1="3" y1="12" x2="21" y2="12"/>
+          <line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+
+      <div class="topbar__logo" id="logoLink">
+        <div class="topbar__logo-icon">🤖</div>
+        <span class="topbar__logo-text">Agent 学习路线</span>
+      </div>
+
+      <div class="topbar__spacer"></div>
+
+      <div class="topbar__progress">
+        <span>进度</span>
+        <div class="topbar__progress-bar">
+          <div class="topbar__progress-fill" id="globalProgressFill" style="width: 0%"></div>
+        </div>
+        <span class="topbar__progress-text" id="globalProgressText">0%</span>
+      </div>
+
+      <button class="topbar__btn" id="resetBtn" title="重置进度" aria-label="重置进度">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="1 4 1 10 7 10"/>
+          <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+        </svg>
+      </button>
+    </header>
+
+    <!-- 侧边栏 -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar__section">
+        <div class="sidebar__section-title">学习路线</div>
+        <nav class="sidebar__nav" id="chapterNav">
+          <!-- 章节导航由 JS 动态生成 -->
+        </nav>
+      </div>
+
+      <div class="sidebar__section">
+        <div class="sidebar__section-title">资源</div>
+        <nav class="sidebar__nav">
+          <div class="sidebar__link" data-route="#/appendix">
+            <span>📎</span>
+            <span>附录：Python 基础</span>
+          </div>
+          <div class="sidebar__link" data-route="#/glossary">
+            <span>📖</span>
+            <span>术语速查表</span>
+          </div>
+          <div class="sidebar__link" data-route="#/progress">
+            <span>📊</span>
+            <span>学习进度</span>
+          </div>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- 遮罩层（移动端） -->
+    <div class="overlay" id="overlay"></div>
+
+    <!-- 主内容区 -->
+    <main class="main">
+      <div class="main__inner" id="content">
+        <!-- 内容由 JS 动态渲染 -->
+        <div style="text-align: center; padding: 100px 0;">
+          <div class="spinner" style="margin: 0 auto 20px;"></div>
+          <p style="color: var(--text-secondary);">正在加载学习路线...</p>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- 第三方库 -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.0/dist/mermaid.min.js"></script>
+
+  <!-- 应用脚本 -->
+  <script src="assets/js/utils.js"></script>
+  <script src="assets/js/progress.js"></script>
+  <script src="assets/js/codeblock.js"></script>
+  <script src="assets/js/quiz.js"></script>
+  <script src="assets/js/renderer.js"></script>
+  <script src="assets/js/mermaid-init.js"></script>
+  <script src="assets/js/router.js"></script>
+  <script src="assets/js/app.js"></script>
+</body>
+</html>

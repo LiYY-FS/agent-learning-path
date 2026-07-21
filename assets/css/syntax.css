@@ -1,0 +1,80 @@
+/* ============================================
+   语法高亮主题覆盖 (基于 GitHub Dark 微调)
+   ============================================ */
+
+.hljs {
+  color: var(--text-primary);
+  background: transparent;
+}
+
+.hljs-comment,
+.hljs-quote {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.hljs-keyword,
+.hljs-selector-tag,
+.hljs-literal,
+.hljs-type,
+.hljs-addition {
+  color: #ff7b72;
+}
+
+.hljs-string,
+.hljs-meta .hljs-string,
+.hljs-doctag {
+  color: #a5d6ff;
+}
+
+.hljs-function .hljs-title,
+.hljs-title.function_,
+.hljs-section,
+.hljs-name {
+  color: #d2a8ff;
+}
+
+.hljs-number,
+.hljs-symbol,
+.hljs-bullet,
+.hljs-link,
+.hljs-meta,
+.hljs-selector-id,
+.hljs-selector-class {
+  color: #79c0ff;
+}
+
+.hljs-built_in,
+.hljs-title.class_,
+.hljs-class .hljs-title {
+  color: var(--accent-cyan);
+}
+
+.hljs-variable,
+.hljs-template-variable,
+.hljs-attr,
+.hljs-property,
+.hljs-attribute {
+  color: var(--accent-orange);
+}
+
+.hljs-regexp,
+.hljs-deletion {
+  color: var(--accent-red);
+}
+
+.hljs-emphasis {
+  font-style: italic;
+}
+
+.hljs-strong {
+  font-weight: bold;
+}
+
+.hljs-params {
+  color: var(--text-primary);
+}
+
+.hljs-meta .hljs-keyword {
+  color: var(--accent-pink);
+}

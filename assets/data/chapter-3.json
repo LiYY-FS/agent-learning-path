@@ -1,0 +1,826 @@
+{
+  "id": "ch3",
+  "number": 3,
+  "title": "框架与工具实战",
+  "subtitle": "掌握主流框架，能独立搭建生产级 Agent",
+  "estimatedHours": 18,
+  "difficulty": 3,
+  "sections": [
+    {
+      "id": "3.1",
+      "title": "框架选型与对比",
+      "subtitle": "了解 8 大主流框架，能根据场景选择",
+      "estimatedMinutes": 20,
+      "difficulty": 2,
+      "objectives": [
+        "了解 8 大主流 Agent 框架",
+        "能根据场景选择合适框架",
+        "建立框架选型决策能力"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "8 大主流框架对比",
+          "content": [
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "框架",
+                  "定位",
+                  "学习难度",
+                  "适用场景",
+                  "推荐优先级"
+                ],
+                "rows": [
+                  [
+                    "**LangChain**",
+                    "通用 LLM 应用框架",
+                    "中",
+                    "快速原型、RAG、Chain",
+                    "⭐⭐⭐⭐⭐"
+                  ],
+                  [
+                    "**LangGraph**",
+                    "有状态图编排",
+                    "中高",
+                    "复杂工作流、多Agent、HITL",
+                    "⭐⭐⭐⭐⭐"
+                  ],
+                  [
+                    "**OpenAI Agents SDK**",
+                    "轻量级 Agent",
+                    "低",
+                    "OpenAI 深度用户、快速原型",
+                    "⭐⭐⭐⭐"
+                  ],
+                  [
+                    "**LlamaIndex**",
+                    "数据索引与 RAG",
+                    "中",
+                    "企业 RAG、文档问答",
+                    "⭐⭐⭐⭐"
+                  ],
+                  [
+                    "**CrewAI**",
+                    "多 Agent 角色协作",
+                    "低中",
+                    "角色分工明确的多 Agent",
+                    "⭐⭐⭐⭐"
+                  ],
+                  [
+                    "**AutoGen**",
+                    "多 Agent 对话",
+                    "中",
+                    "群聊模式、Agent 间对话",
+                    "⭐⭐⭐"
+                  ],
+                  [
+                    "**DSPy**",
+                    "声明式 Prompt 编程",
+                    "高",
+                    "Prompt 自动优化",
+                    "⭐⭐⭐"
+                  ],
+                  [
+                    "**MCP SDK**",
+                    "工具标准化协议",
+                    "中",
+                    "工具解耦、跨 Agent 复用",
+                    "⭐⭐⭐⭐"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "mermaid",
+              "data": {
+                "title": "框架选型决策树",
+                "code": "flowchart TD\n  A[开始选型] --> B{需要复杂状态管理?}\n  B -->|是| C[LangGraph]\n  B -->|否| D{需要多Agent协作?}\n  D -->|是| E{角色分工明确?}\n  E -->|是| F[CrewAI]\n  E -->|否| G[AutoGen]\n  D -->|否| H{重点是RAG?}\n  H -->|是| I[LlamaIndex]\n  H -->|否| J{需要快速原型?}\n  J -->|是| K[LangChain 或 OpenAI SDK]\n  J -->|否| L[LangChain]"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "学习路径建议",
+              "text": "先学 **LangChain**（基础概念）→ **LangGraph**（复杂场景）→ **CrewAI**（多 Agent）→ **MCP**（工具标准化）。不要一次学所有框架，根据项目需要逐步深入。"
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "不同业务场景的框架选型",
+        "background": "某公司有 4 个 Agent 项目：客服、文档问答、代码审查、多 Agent 协作开发。",
+        "architecture": "客服用 OpenAI SDK（快速原型）；文档问答用 LlamaIndex（RAG 专长）；代码审查用 LangGraph（需要审批流程）；多 Agent 开发用 CrewAI（角色分工）。",
+        "outcome": "各项目用最合适的框架，开发效率提升 40%。",
+        "lessons": "1) 没有万能框架，按需选择；2) 团队统一 1-2 个主力框架降低维护成本；3) 框架间可通过 API 互通。"
+      },
+      "exercises": [
+        {
+          "title": "框架选型分析",
+          "description": "为 3 个需求场景选择框架并说明理由：1) 企业知识库问答；2) 多步骤审批流程；3) 多角色软件开发。",
+          "hints": "参考决策树"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "LangChain 文档",
+          "url": "https://python.langchain.com/"
+        },
+        {
+          "type": "doc",
+          "title": "LangGraph 文档",
+          "url": "https://langchain-ai.github.io/langgraph/"
+        }
+      ],
+      "quiz": [
+        "ch3-3.1-q1",
+        "ch3-3.1-q2"
+      ]
+    },
+    {
+      "id": "3.2",
+      "title": "LangChain 实战",
+      "subtitle": "掌握 LangChain 核心 API，搭建 RAG Agent",
+      "estimatedMinutes": 35,
+      "difficulty": 3,
+      "objectives": [
+        "掌握 LangChain 核心抽象",
+        "能用 LCEL 搭建 Chain",
+        "实现 LangChain RAG Agent"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "LangChain 核心概念",
+          "content": [
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "概念",
+                  "说明",
+                  "示例"
+                ],
+                "rows": [
+                  [
+                    "**Chain**",
+                    "操作序列",
+                    "prompt | model | parser"
+                  ],
+                  [
+                    "**Agent**",
+                    "自主决策实体",
+                    "AgentExecutor"
+                  ],
+                  [
+                    "**Memory**",
+                    "对话记忆",
+                    "ConversationBufferMemory"
+                  ],
+                  [
+                    "**Tool**",
+                    "可调用工具",
+                    "@tool 装饰器"
+                  ],
+                  [
+                    "**LCEL**",
+                    "管道表达式语言",
+                    "chain = prompt | model"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "langchain_rag.py",
+                "language": "python",
+                "title": "LangChain RAG Agent 实现",
+                "highlightLines": [
+                  15,
+                  16,
+                  17,
+                  18,
+                  19,
+                  20,
+                  21
+                ],
+                "code": "from langchain_openai import ChatOpenAI\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_core.output_parsers import StrOutputParser\nfrom langchain_community.vectorstores import Chroma\nfrom langchain_openai import OpenAIEmbeddings\nfrom langchain_community.document_loaders import DirectoryLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n\n# 1. 加载并分块文档\nloader = DirectoryLoader(\"./docs\", glob=\"**/*.md\")\ndocs = loader.load()\nsplitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)\nchunks = splitter.split_documents(docs)\n\n# 2. 创建向量索引\nvectorstore = Chroma.from_documents(chunks, OpenAIEmbeddings())\nretriever = vectorstore.as_retriever(search_kwargs={\"k\": 5})\n\n# 3. LCEL 构建 RAG Chain\nllm = ChatOpenAI(model=\"gpt-5\", temperature=0)\nprompt = ChatPromptTemplate.from_template(\"\"\"\n基于以下上下文回答问题。如果上下文不包含答案，说\"我无法回答\"。\n\n上下文: {context}\n问题: {question}\n回答:\"\"\")\n\n# LCEL 管道语法\nrag_chain = (\n    {\"context\": retriever, \"question\": lambda x: x[\"question\"]}\n    | prompt\n    | llm\n    | StrOutputParser()\n)\n\n# 4. 查询\nresult = rag_chain.invoke({\"question\": \"公司的退货政策是什么？\"})\nprint(result)",
+                "output": "7天内无理由退货，15天内质量问题可换货。"
+              }
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "用 LangChain 搭建企业文档问答",
+        "background": "某公司有 500+ 内部文档需要构建问答系统。",
+        "architecture": "用 LangChain LCEL 构建 RAG Chain，ChromaDB 存向量，RecursiveCharacterTextSplitter 分块。",
+        "outcome": "问答准确率 85%，响应时间 <3s。",
+        "lessons": "LangChain LCEL 语法简洁，适合快速搭建 RAG 原型。"
+      },
+      "exercises": [
+        {
+          "title": "实现 LangChain RAG Agent",
+          "description": "用 LangChain 搭建一个带工具调用能力的 RAG Agent。",
+          "hints": "用 create_tool_calling_agent"
+        }
+      ],
+      "resources": [
+        {
+          "type": "course",
+          "title": "LangChain for LLM Application Development",
+          "url": "https://www.deeplearning.ai/short-courses/"
+        }
+      ],
+      "quiz": [
+        "ch3-3.2-q1"
+      ]
+    },
+    {
+      "id": "3.3",
+      "title": "LangGraph 实战",
+      "subtitle": "有状态图编排，实现可控 Agent",
+      "estimatedMinutes": 35,
+      "difficulty": 3,
+      "objectives": [
+        "掌握 StateGraph/Node/Edge",
+        "实现条件路由",
+        "理解 Checkpoint 与 HITL"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "LangGraph 核心概念",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "LangGraph 将 Agent 工作流建模为**状态图**：节点（Node）是处理函数，边（Edge）定义流转方向，状态（State）在节点间传递。支持条件路由、循环、检查点、HITL。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "langgraph_agent.py",
+                "language": "python",
+                "title": "LangGraph 条件路由 Agent",
+                "highlightLines": [
+                  25,
+                  26,
+                  27,
+                  28,
+                  29,
+                  30,
+                  31
+                ],
+                "code": "from langgraph.graph import StateGraph, END\nfrom typing import TypedDict, Annotated\nfrom langchain_openai import ChatOpenAI\n\n# 1. 定义状态\nclass AgentState(TypedDict):\n    messages: list\n    needs_tool: bool\n    tool_result: str\n\n# 2. 定义节点\ndef think(state: AgentState) -> AgentState:\n    llm = ChatOpenAI(model=\"gpt-5\", temperature=0)\n    # LLM 决策是否需要工具\n    response = llm.invoke(state[\"messages\"])\n    state[\"messages\"].append(response)\n    state[\"needs_tool\"] = bool(response.tool_calls)\n    return state\n\ndef execute_tool(state: AgentState) -> AgentState:\n    # 执行工具调用\n    state[\"tool_result\"] = \"工具执行结果\"\n    return state\n\ndef generate_answer(state: AgentState) -> AgentState:\n    # 生成最终回答\n    return state\n\n# 3. 条件路由\ndef should_use_tool(state: AgentState) -> str:\n    return \"execute_tool\" if state[\"needs_tool\"] else \"generate_answer\"\n\n# 4. 构建图\ngraph = StateGraph(AgentState)\ngraph.add_node(\"think\", think)\ngraph.add_node(\"execute_tool\", execute_tool)\ngraph.add_node(\"generate_answer\", generate_answer)\n\ngraph.set_entry_point(\"think\")\ngraph.add_conditional_edges(\"think\", should_use_tool)\ngraph.add_edge(\"execute_tool\", \"think\")  # 工具执行后回到思考\ngraph.add_edge(\"generate_answer\", END)\n\n# 5. 编译并运行\napp = graph.compile()\nresult = app.invoke({\"messages\": [{\"role\": \"user\", \"content\": \"北京天气\"}]})",
+                "output": "LangGraph 执行流程:\nthink → needs_tool=True → execute_tool → think → needs_tool=False → generate_answer → END"
+              }
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "info",
+          "title": "LangGraph 优势",
+          "text": "相比 LangChain AgentExecutor，LangGraph 提供更细粒度的控制：可视化流程、条件路由、状态检查点、HITL 中断。适合需要可控性和可审计性的生产环境。"
+        }
+      ],
+      "enterpriseCase": {
+        "title": "带人工审批的 Agent 工作流",
+        "background": "某公司需要 Agent 处理报销审批，金额>5000 需人工确认。",
+        "architecture": "用 LangGraph interrupt 实现 HITL，金额检查节点判断是否需要中断。",
+        "outcome": "小额自动审批率 80%，大额 100% 人工确认，合规无漏洞。",
+        "lessons": "LangGraph 的 HITL 是处理敏感操作的最佳方案。"
+      },
+      "exercises": [
+        {
+          "title": "实现 LangGraph Agent",
+          "description": "用 LangGraph 实现一个带条件路由和 HITL 的 Agent。",
+          "hints": "用 interrupt_before 参数实现 HITL"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "LangGraph 文档",
+          "url": "https://langchain-ai.github.io/langgraph/"
+        }
+      ],
+      "quiz": [
+        "ch3-3.3-q1"
+      ]
+    },
+    {
+      "id": "3.4",
+      "title": "OpenAI Agents SDK",
+      "subtitle": "轻量级 Agent 开发",
+      "estimatedMinutes": 25,
+      "difficulty": 2,
+      "objectives": [
+        "掌握 Agents SDK 核心 API",
+        "理解 Handoff 机制",
+        "能快速搭建 Agent"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "OpenAI Agents SDK 核心概念",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "OpenAI Agents SDK 是 OpenAI 官方的轻量级 Agent 框架，核心概念：**Agent**（定义角色和工具）、**Handoff**（Agent 间交接）、**Runner**（执行引擎）。它原生支持 MCP 工具调用、内置追踪（Tracing）与护栏（Guardrails），并可与 OpenAI 的 Agent Builder、ChatKit、Evals 等平台组件配合，适合 OpenAI 生态用户快速构建可投产的 Agent。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "openai_agents_sdk.py",
+                "language": "python",
+                "title": "Agents SDK 客服路由 Agent",
+                "code": "from agents import Agent, Runner, function_tool\n\n# 定义工具\n@function_tool\ndef query_order(order_id: str) -> str:\n    \"\"\"查询订单状态\"\"\"\n    return f\"订单 {order_id} 正在运输中\"\n\n# 定义 Agent\ncustomer_service = Agent(\n    name=\"客服助手\",\n    instructions=\"你是客服助手，可以查询订单状态。复杂问题转接主管。\",\n    tools=[query_order],\n)\n\n# 运行\nresult = Runner.run_sync(customer_service, \"查询订单 12345 的状态\")\nprint(result.final_output)",
+                "output": "订单 12345 正在运输中"
+              }
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "客服路由 Agent",
+        "background": "用 Agents SDK 快速搭建客服路由，根据问题类型转接不同 Agent。",
+        "architecture": "主 Agent 用 Handoff 转接到订单查询、退换货、技术支持等子 Agent。",
+        "outcome": "1 天完成原型，路由准确率 90%。",
+        "lessons": "Agents SDK 适合快速验证，生产环境可迁移到 LangGraph。"
+      },
+      "exercises": [
+        {
+          "title": "实现多 Agent 交接",
+          "description": "用 Agents SDK 实现主 Agent 转接到 2 个子 Agent。",
+          "hints": "用 handoffs 参数"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "OpenAI Agents SDK",
+          "url": "https://github.com/openai/openai-agents-python"
+        }
+      ],
+      "quiz": []
+    },
+    {
+      "id": "3.5",
+      "title": "LlamaIndex 与 RAG",
+      "subtitle": "数据索引与高级 RAG",
+      "estimatedMinutes": 30,
+      "difficulty": 3,
+      "objectives": [
+        "掌握 LlamaIndex 核心抽象",
+        "实现高级 RAG 技术",
+        "理解索引类型选择"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "LlamaIndex 核心抽象",
+          "content": [
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "概念",
+                  "说明"
+                ],
+                "rows": [
+                  [
+                    "**Index**",
+                    "数据索引（VectorStoreIndex/SummaryIndex/KnowledgeGraphIndex）"
+                  ],
+                  [
+                    "**Query Engine**",
+                    "查询引擎，配置检索和生成策略"
+                  ],
+                  [
+                    "**Retriever**",
+                    "检索器，控制检索方式和数量"
+                  ],
+                  [
+                    "**Node Parser**",
+                    "分块器，控制文档切分策略"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "LlamaIndex vs LangChain",
+              "text": "LlamaIndex 专注 RAG，数据索引能力更强（多索引类型、高级检索）；LangChain 更通用，Agent/Chain/Memory 生态更丰富。实际项目可混用：LlamaIndex 做 RAG 层，LangChain 做 Agent 层。"
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "多源数据 RAG",
+        "background": "某公司知识库包含 PDF、Confluence、数据库多种数据源。",
+        "architecture": "用 LlamaIndex 的多种 Loader 加载不同源，统一构建 VectorStoreIndex，支持子问题查询。",
+        "outcome": "多源数据问答准确率 88%。",
+        "lessons": "LlamaIndex 的数据集成能力是 RAG 项目的关键优势。"
+      },
+      "exercises": [
+        {
+          "title": "实现带引用来源的 RAG",
+          "description": "用 LlamaIndex 实现 RAG 并显示引用来源。",
+          "hints": "用 response.source_nodes"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "LlamaIndex 文档",
+          "url": "https://docs.llamaindex.ai/"
+        }
+      ],
+      "quiz": []
+    },
+    {
+      "id": "3.6",
+      "title": "MCP 协议与 Python SDK",
+      "subtitle": "工具标准化与解耦",
+      "estimatedMinutes": 30,
+      "difficulty": 3,
+      "objectives": [
+        "理解 MCP 协议",
+        "能开发 MCP Server",
+        "理解 Host/Server/Client 架构"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "MCP 协议概述",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**MCP（Model Context Protocol）** 是 Anthropic 于 2024 年推出、现由 Linux 基金会 Agentic AI Foundation 治理的开放标准协议，基于 JSON-RPC 2.0。核心价值：**工具与 Agent 解耦**——一次开发 MCP Server，所有支持 MCP 的 Agent 都能用。MCP 最新规范于 2025 年 11 月发布，2024 年 11 月开源后已成为 AI 时代的「USB-C 接口」，LangChain、LlamaIndex、AutoGen 等主流框架均已原生支持；2026 年路线图聚焦四大方向：传输层可扩展（无状态、横向扩展）、Tasks 异步原语成熟、治理形式化与企业级就绪（审计、SSO、网关）。"
+            },
+            {
+              "type": "mermaid",
+              "data": {
+                "title": "MCP 架构",
+                "code": "flowchart LR\n  H[Host\nClaude/其他Agent] -->|MCP协议| C[Client]\n  C -->|JSON-RPC| S1[Server: 文件系统]\n  C -->|JSON-RPC| S2[Server: 数据库]\n  C -->|JSON-RPC| S3[Server: 自定义工具]"
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "mcp_server.py",
+                "language": "python",
+                "title": "MCP Server 开发",
+                "highlightLines": [
+                  10,
+                  11,
+                  12,
+                  13,
+                  14,
+                  15,
+                  16,
+                  17
+                ],
+                "code": "from mcp.server import Server\nfrom mcp.types import Tool, TextContent\nimport mcp.server.stdio\nimport asyncio\n\nserver = Server(\"my-tools\")\n\n@server.list_tools()\nasync def list_tools() -> list[Tool]:\n    return [Tool(\n        name=\"search_docs\",\n        description=\"搜索文档库\",\n        inputSchema={\"type\": \"object\", \"properties\": {\"query\": {\"type\": \"string\"}}, \"required\": [\"query\"]}\n    )]\n\n@server.call_tool()\nasync def call_tool(name: str, arguments: dict) -> list[TextContent]:\n    if name == \"search_docs\":\n        result = search_database(arguments[\"query\"])\n        return [TextContent(type=\"text\", text=result)]\n    return [TextContent(type=\"text\", text=f\"未知工具: {name}\")]\n\nasync def main():\n    async with mcp.server.stdio.stdio_server() as (read, write):\n        await server.run(read, write, server.create_initialization_options())\n\nasyncio.run(main())",
+                "output": "MCP Server 启动后，Claude Desktop 等客户端可自动发现并使用 search_docs 工具"
+              }
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "企业工具 MCP 化改造",
+        "background": "某公司 20+ 内部工具需要被多个 Agent 框架调用。",
+        "architecture": "将每个工具封装为 MCP Server，Agent 框架通过 MCP Client 统一调用。",
+        "outcome": "工具开发一次，所有 Agent 框架通用，维护成本降低 70%。",
+        "lessons": "MCP 是 Agent 工具生态标准化的未来方向。"
+      },
+      "exercises": [
+        {
+          "title": "开发 MCP Server",
+          "description": "开发一个文件系统 MCP Server，支持读写文件。",
+          "hints": "参考 mcp.server 库"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "MCP 官方文档",
+          "url": "https://modelcontextprotocol.io/"
+        },
+        {
+          "type": "doc",
+          "title": "MCP Python SDK",
+          "url": "https://github.com/modelcontextprotocol/python-sdk"
+        }
+      ],
+      "quiz": [
+        "ch3-3.6-q1"
+      ]
+    },
+    {
+      "id": "3.7",
+      "title": "低代码平台对比",
+      "subtitle": "Dify、Coze、FastGPT 等平台",
+      "estimatedMinutes": 20,
+      "difficulty": 2,
+      "objectives": [
+        "了解主流低代码平台",
+        "知道何时选择低代码",
+        "能对比各平台优劣"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "低代码平台对比",
+          "content": [
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "平台",
+                  "定位",
+                  "开源",
+                  "优势",
+                  "适用场景"
+                ],
+                "rows": [
+                  [
+                    "**Dify**",
+                    "LLM 应用开发",
+                    "✅",
+                    "可视化编排、RAG、Agent",
+                    "企业内部应用"
+                  ],
+                  [
+                    "**Coze（扣子）**",
+                    "Agent 开发",
+                    "❌",
+                    "字节生态、插件丰富",
+                    "消费级 Bot"
+                  ],
+                  [
+                    "**FastGPT**",
+                    "知识库问答",
+                    "✅",
+                    "RAG 专精、工作流",
+                    "客服/知识库"
+                  ],
+                  [
+                    "**n8n+AI**",
+                    "自动化工作流",
+                    "✅",
+                    "集成能力强",
+                    "运营自动化"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "何时选择低代码",
+              "text": "1) 快速验证想法（POC）；2) 非复杂逻辑的标准应用；3) 团队编程能力有限；4) 需要快速上线。**何时选择代码开发**：1) 复杂自定义逻辑；2) 高性能要求；3) 需要深度定制；4) 长期维护的大型项目。"
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "Dify 搭建企业内部 Agent",
+        "background": "某公司需要快速搭建一个内部知识库问答。",
+        "architecture": "用 Dify 可视化编排，导入文档自动构建 RAG，2 天完成上线。",
+        "outcome": "比代码开发快 5 倍，但后续定制受限。",
+        "lessons": "低代码适合快速验证，复杂需求仍需代码开发。"
+      },
+      "exercises": [
+        {
+          "title": "Dify vs 代码对比",
+          "description": "在 Dify 中搭建一个简单 Agent，对比代码实现的差异。",
+          "hints": "关注开发效率与定制能力的平衡"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "Dify 文档",
+          "url": "https://docs.dify.ai/"
+        },
+        {
+          "type": "doc",
+          "title": "Coze 文档",
+          "url": "https://www.coze.com/"
+        }
+      ],
+      "quiz": []
+    },
+    {
+      "id": "3.8",
+      "title": "可观测性与监控",
+      "subtitle": "追踪 Agent 行为，定位问题",
+      "estimatedMinutes": 25,
+      "difficulty": 3,
+      "objectives": [
+        "掌握可观测性三大支柱",
+        "能集成 LangFuse/LangSmith",
+        "理解 Trace 链路追踪"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "可观测性概述",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 是黑盒——输入输出可见，中间推理过程不可见。可观测性让 Agent 变透明：**Logs**（日志）记录事件，**Metrics**（指标）量化性能，**Traces**（追踪）展示完整链路。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "平台",
+                  "类型",
+                  "特点",
+                  "推荐场景"
+                ],
+                "rows": [
+                  [
+                    "**LangFuse**",
+                    "开源",
+                    "自部署、免费、功能全",
+                    "数据敏感、需要私有化"
+                  ],
+                  [
+                    "**LangSmith**",
+                    "SaaS",
+                    "LangChain 深度集成、易用",
+                    "LangChain 用户、快速上手"
+                  ],
+                  [
+                    "**OpenTelemetry**",
+                    "标准",
+                    "通用可观测性标准",
+                    "已有 APM 体系"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "langfuse_integration.py",
+                "language": "python",
+                "title": "LangFuse 集成示例",
+                "code": "from langfuse import Langfuse\nfrom langfuse.decorators import observe\n\nlangfuse = Langfuse()\n\n@observe()  # 自动追踪函数调用\ndef agent_run(query: str) -> str:\n    # LangFuse 自动记录：输入、输出、耗时、Token、成本\n    thought = think(query)  # 被追踪\n    result = execute(thought)  # 被追踪\n    return result\n\n@observe()\ndef think(query):\n    return llm.invoke(query)\n\n@observe()\ndef execute(thought):\n    return tool.run(thought)",
+                "output": "LangFuse Dashboard 显示:\n- 总请求数: 1,234\n- 平均耗时: 3.2s\n- 总 Token: 2.3M\n- 总成本: $5.76\n- Trace 链路: agent_run → think → execute"
+              }
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "生产 Agent 监控告警体系",
+        "background": "某公司 Agent 上线后偶发质量下降，难以定位原因。",
+        "architecture": "接入 LangFuse，追踪每一步。设置告警：响应时间>10s、Token>5000、错误率>5%。",
+        "outcome": "问题定位时间从小时级降至分钟级。",
+        "lessons": "可观测性是生产 Agent 的必需品，不是可选项。"
+      },
+      "exercises": [
+        {
+          "title": "接入 LangFuse",
+          "description": "为你的 Agent 接入 LangFuse 并分析 Trace。",
+          "hints": "用 @observe 装饰器自动追踪"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "LangFuse 文档",
+          "url": "https://langfuse.com/"
+        },
+        {
+          "type": "doc",
+          "title": "LangSmith",
+          "url": "https://docs.smith.langchain.com/"
+        }
+      ],
+      "quiz": [
+        "ch3-3.8-q1"
+      ]
+    },
+    {
+      "id": "3.9",
+      "title": "代码沙箱与执行环境",
+      "subtitle": "安全执行 Agent 生成的代码",
+      "estimatedMinutes": 20,
+      "difficulty": 3,
+      "objectives": [
+        "理解代码执行安全风险",
+        "掌握沙箱方案",
+        "能实现安全代码执行"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "代码执行安全",
+          "content": [
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "安全风险",
+              "text": "Agent 生成的代码直接在服务器执行极其危险——可能删除文件、泄露数据、消耗资源。**必须**在沙箱中执行，隔离资源、限制权限。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "方案",
+                  "隔离级别",
+                  "易用性",
+                  "适用场景"
+                ],
+                "rows": [
+                  [
+                    "**Docker SDK**",
+                    "容器级",
+                    "中",
+                    "本地部署、完全控制"
+                  ],
+                  [
+                    "**E2B**",
+                    "云端沙箱",
+                    "高",
+                    "无需运维、按需使用"
+                  ],
+                  [
+                    "**subprocess + 限制**",
+                    "进程级",
+                    "低",
+                    "简单场景、风险低"
+                  ],
+                  [
+                    "**Pyodide（浏览器）**",
+                    "浏览器级",
+                    "高",
+                    "前端执行、无服务器"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "sandbox_execute.py",
+                "language": "python",
+                "title": "Docker 沙箱执行代码",
+                "highlightLines": [
+                  12,
+                  13,
+                  14,
+                  15,
+                  16,
+                  17,
+                  18,
+                  19
+                ],
+                "code": "import docker\nimport tempfile\nimport os\n\nclient = docker.from_env()\n\ndef execute_in_sandbox(code: str, timeout: int = 30) -> dict:\n    \"\"\"在 Docker 沙箱中安全执行代码\"\"\"\n    # 写入临时文件\n    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:\n        f.write(code)\n        script_path = f.name\n    \n    try:\n        # 在受限容器中执行\n        result = client.containers.run(\n            \"python:3.12-slim\",\n            command=f\"python /tmp/script.py\",\n            volumes={script_path: {\"bind\": \"/tmp/script.py\", \"mode\": \"ro\"}},\n            mem_limit=\"256m\",      # 内存限制\n            cpu_quota=50000,        # CPU 限制\n            network_mode=\"none\",   # 禁用网络\n            timeout=timeout,        # 超时\n            remove=True             # 执行后删除容器\n        )\n        return {\"success\": True, \"output\": result.decode()}\n    except Exception as e:\n        return {\"success\": False, \"error\": str(e)}\n    finally:\n        os.unlink(script_path)",
+                "output": "执行 print('Hello Agent')\n→ {\"success\": True, \"output\": \"Hello Agent\\n\"}"
+              }
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "代码执行 Agent 安全架构",
+        "background": "某数据分析 Agent 需要执行用户查询生成的 Python 代码。",
+        "architecture": "用 E2B 云端沙箱，每次执行创建独立环境，网络隔离+资源限制。",
+        "outcome": "零安全 incident，代码执行成功率 95%。",
+        "lessons": "代码执行必须沙箱化，E2B 免运维是生产首选。"
+      },
+      "exercises": [
+        {
+          "title": "搭建代码沙箱",
+          "description": "用 Docker SDK 搭建一个带资源限制的代码执行沙箱。",
+          "hints": "设置 mem_limit、network_mode、timeout"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "E2B 文档",
+          "url": "https://e2b.dev/"
+        },
+        {
+          "type": "doc",
+          "title": "Docker SDK for Python",
+          "url": "https://docker-py.readthedocs.io/"
+        }
+      ],
+      "quiz": []
+    }
+  ]
+}

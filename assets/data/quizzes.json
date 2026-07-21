@@ -1,0 +1,132 @@
+{
+  "quizzes": [
+    {"id":"ch1-1.1-q1","chapter":"ch1","section":"1.1","type":"single","difficulty":1,"question":"AI Agent 的三个核心要素是什么？","options":[{"key":"A","text":"LLM + 数据库 + 前端界面"},{"key":"B","text":"LLM + 工具 + 循环决策","correct":true},{"key":"C","text":"模型 + 训练数据 + 评估指标"},{"key":"D","text":"API + 服务器 + 客户端"}],"explanation":"Agent = LLM（大脑）+ 工具（手）+ 循环决策（自主性）。三者缺一不可，共同构成 Agent 的完整能力。"},
+    {"id":"ch1-1.1-q2","chapter":"ch1","section":"1.1","type":"single","difficulty":2,"question":"Agent 与 Workflow 的本质区别是什么？","options":[{"key":"A","text":"Agent 使用 LLM，Workflow 不使用"},{"key":"B","text":"Agent 路径动态，Workflow 路径固定","correct":true},{"key":"C","text":"Agent 可以调用 API，Workflow 不可以"},{"key":"D","text":"Agent 比 Workflow 更快"}],"explanation":"Agent 的本质特征是路径的动态性——同一个任务可能根据中间结果走完全不同的路径。而 Workflow 的路径是预先确定的。"},
+    {"id":"ch1-1.1-q3","chapter":"ch1","section":"1.1","type":"multiple","difficulty":2,"question":"以下哪些是 Agent 应具备的能力？（多选）","options":[{"key":"A","text":"感知能力（理解输入）","correct":true},{"key":"B","text":"推理能力（逻辑思考）","correct":true},{"key":"C","text":"行动能力（调用工具）","correct":true},{"key":"D","text":"自主决策（决定下一步）","correct":true}],"explanation":"真正的 Agent 应具备感知、推理、行动、记忆和自主决策五种核心能力。"},
+
+    {"id":"ch1-1.2-q1","chapter":"ch1","section":"1.2","type":"single","difficulty":1,"question":"GPT-5 的 Context Window 是多少？","options":[{"key":"A","text":"128K"},{"key":"B","text":"200K"},{"key":"C","text":"400K","correct":true},{"key":"D","text":"1M"}],"explanation":"GPT-5 的 Context Window 为 400K Token（输入 272K + 输出 128K），Claude Opus 4.8 为 1M，Gemini 3.5 可达 1M+。"},
+    {"id":"ch1-1.2-q2","chapter":"ch1","section":"1.2","type":"single","difficulty":1,"question":"在 Agent 开发中，代码生成场景应使用什么 Temperature？","options":[{"key":"A","text":"0（确定性）","correct":true},{"key":"B","text":"0.3"},{"key":"C","text":"0.7"},{"key":"D","text":"1.5"}],"explanation":"代码生成必须使用 Temperature=0 保证输出一致性。客服场景可用 0.3，创意场景可用 0.9。"},
+    {"id":"ch1-1.2-q3","chapter":"ch1","section":"1.2","type":"fill","difficulty":2,"question":"1000 字中文大约消耗多少 Token？","answer":"1000-2000","acceptAnswers":["1000-2000","1000","2000","1500"],"explanation":"中文约 1 个汉字 ≈ 1-2 Token，因此 1000 字中文约消耗 1000-2000 Token。英文约 1 单词 ≈ 1.3 Token。"},
+
+    {"id":"ch1-1.3-q1","chapter":"ch1","section":"1.3","type":"single","difficulty":1,"question":"Few-shot Prompting 是指什么？","options":[{"key":"A","text":"不给示例直接让模型回答"},{"key":"B","text":"在 Prompt 中给出几个示例引导输出","correct":true},{"key":"C","text":"使用很少的 Token"},{"key":"D","text":"只问很少的问题"}],"explanation":"Few-shot 是在 Prompt 中给出 2-5 个示例，引导模型理解期望的输出格式和风格。Zero-shot 则是不给示例。"},
+    {"id":"ch1-1.3-q2","chapter":"ch1","section":"1.3","type":"single","difficulty":2,"question":"Chain-of-Thought（CoT）的主要作用是？","options":[{"key":"A","text":"减少 Token 消耗"},{"key":"B","text":"提升推理任务的准确率","correct":true},{"key":"C","text":"加快响应速度"},{"key":"D","text":"降低 API 成本"}],"explanation":"CoT 让模型一步步思考，能显著提升数学推理、逻辑推理等复杂任务的准确率。"},
+    {"id":"ch1-1.3-q3","chapter":"ch1","section":"1.3","type":"multiple","difficulty":2,"question":"以下哪些是 Prompt Engineering 的核心原则？（多选）","options":[{"key":"A","text":"清晰（Clear）- 指令明确无歧义","correct":true},{"key":"B","text":"具体（Specific）- 给出充分上下文","correct":true},{"key":"C","text":"结构化（Structured）- 用格式组织","correct":true},{"key":"D","text":"越长越好"}],"explanation":"三大核心原则是清晰、具体、结构化。Prompt 不是越长越好，过度约束反而让模型难以遵守。"},
+
+    {"id":"ch1-1.4-q1","chapter":"ch1","section":"1.4","type":"single","difficulty":1,"question":"什么是 Hallucination（幻觉）？","options":[{"key":"A","text":"模型生成的图像看起来不真实"},{"key":"B","text":"模型生成看似合理但不正确的内容","correct":true},{"key":"C","text":"模型运行速度太慢"},{"key":"D","text":"模型无法理解中文"}],"explanation":"幻觉是指 LLM 生成看似合理但实际上不正确、不存在或误导性的内容。这是 Agent 开发中最危险的问题之一。"},
+    {"id":"ch1-1.4-q2","chapter":"ch1","section":"1.4","type":"single","difficulty":2,"question":"以下哪种方法最能有效缓解幻觉问题？","options":[{"key":"A","text":"使用更高的 Temperature"},{"key":"B","text":"增加 max_tokens"},{"key":"C","text":"使用 RAG 检索真实信息","correct":true},{"key":"D","text":"使用更短的 Prompt"}],"explanation":"RAG（检索增强生成）通过检索真实信息作为上下文，能有效减少幻觉。低 Temperature 也有帮助，但 RAG 是最根本的解决方案。"},
+    {"id":"ch1-1.4-q3","chapter":"ch1","section":"1.4","type":"fill","difficulty":2,"question":"LLM 的知识有截止日期，解决知识过时问题的技术叫 ___（缩写）。","answer":"RAG","acceptAnswers":["RAG","rag","检索增强生成"],"explanation":"RAG（Retrieval-Augmented Generation，检索增强生成）通过检索外部知识库来弥补 LLM 知识截止日期的限制。"},
+
+    {"id":"ch1-1.5-q1","chapter":"ch1","section":"1.5","type":"single","difficulty":2,"question":"ReAct 范式是哪两个能力的结合？","options":[{"key":"A","text":"Reading + Acting"},{"key":"B","text":"Reasoning + Acting","correct":true},{"key":"C","text":"Real-time + Action"},{"key":"D","text":"Recall + Adapt"}],"explanation":"ReAct = Reasoning（推理）+ Acting（行动），核心循环是 Thought → Action → Observation。"},
+    {"id":"ch1-1.5-q2","chapter":"ch1","section":"1.5","type":"single","difficulty":2,"question":"Agent 与传统软件的最本质区别是什么？","options":[{"key":"A","text":"Agent 使用 Python，传统软件使用 Java"},{"key":"B","text":"Agent 是概率性的，传统软件是确定性的","correct":true},{"key":"C","text":"Agent 运行在云端，传统软件运行在本地"},{"key":"D","text":"Agent 比传统软件更快"}],"explanation":"传统软件是确定性的（相同输入永远相同输出），而 Agent 是概率性的（LLM 推理引入不确定性）。"},
+
+    {"id":"ch1-1.6-q1","chapter":"ch1","section":"1.6","type":"single","difficulty":1,"question":"本学习路线共有几章？","options":[{"key":"A","text":"4 章"},{"key":"B","text":"5 章"},{"key":"C","text":"6 章","correct":true},{"key":"D","text":"7 章"}],"explanation":"本学习路线共 6 章：基础概念入门 → 核心原理深入 → 框架与工具实战 → 多Agent系统设计 → 行业应用与最佳实践 → 前沿趋势展望。"},
+    {"id":"ch1-1.6-q2","chapter":"ch1","section":"1.6","type":"single","difficulty":1,"question":"完成第 2 章后应达到哪个里程碑？","options":[{"key":"A","text":"M1 概念掌握"},{"key":"B","text":"M2 原理理解","correct":true},{"key":"C","text":"M3 框架实战"},{"key":"D","text":"M4 多Agent设计"}],"explanation":"第 2 章对应 M2 原理理解里程碑——能手写 Agent Loop，理解 RAG。"},
+
+    {"id":"ch2-2.1-q1","chapter":"ch2","section":"2.1","type":"single","difficulty":2,"question":"Agent 的三层架构是指什么？","options":[{"key":"A","text":"前端层 + 后端层 + 数据层"},{"key":"B","text":"决策层 + 工具层 + 记忆层","correct":true},{"key":"C","text":"输入层 + 处理层 + 输出层"},{"key":"D","text":"模型层 + 训练层 + 推理层"}],"explanation":"Agent 三层架构：决策层（LLM 负责推理决策）+ 工具层（API/函数调用）+ 记忆层（上下文管理）。"},
+    {"id":"ch2-2.1-q2","chapter":"ch2","section":"2.1","type":"single","difficulty":2,"question":"Agent Loop 的正确执行流程是什么？","options":[{"key":"A","text":"输入 → 输出"},{"key":"B","text":"输入 → 思考 → 工具调用 → 观察 → 再思考 → 输出","correct":true},{"key":"C","text":"输入 → 训练 → 推理 → 输出"},{"key":"D","text":"输入 → 缓存 → 输出"}],"explanation":"Agent Loop 流程：输入 → 思考 → 工具调用 → 观察结果 → 再思考（循环）→ 最终输出。这个循环是 Agent 自主性的体现。"},
+    {"id":"ch2-2.1-q3","chapter":"ch2","section":"2.1","type":"fill","difficulty":2,"question":"防止 Agent 无限循环的常见机制是设置 ___ 参数。","answer":"max_steps","acceptAnswers":["max_steps","maxsteps","max iteration","max_iterations"],"explanation":"max_steps 参数限制 Agent 的最大循环次数，防止 Agent 陷入无限循环导致 Token 爆炸。"},
+
+    {"id":"ch2-2.2-q1","chapter":"ch2","section":"2.2","type":"single","difficulty":2,"question":"ReAct 范式的核心循环是？","options":[{"key":"A","text":"思考 → 输出"},{"key":"B","text":"思考 → 行动 → 观察","correct":true},{"key":"C","text":"输入 → 输出"},{"key":"D","text":"规划 → 执行"}],"explanation":"ReAct = Reasoning + Acting，核心循环是 Thought → Action → Observation，模型在每一步先思考再行动，然后观察结果。"},
+    {"id":"ch2-2.2-q2","chapter":"ch2","section":"2.2","type":"single","difficulty":3,"question":"ReAct 相比纯 CoT 的主要优势是什么？","options":[{"key":"A","text":"速度更快"},{"key":"B","text":"可以调用外部工具获取实时信息","correct":true},{"key":"C","text":"Token 消耗更少"},{"key":"D","text":"不需要 LLM"}],"explanation":"纯 CoT 只能基于模型内部知识推理，而 ReAct 可以调用外部工具（搜索、计算、API）获取实时信息，能力大幅扩展。"},
+    {"id":"ch2-2.2-q3","chapter":"ch2","section":"2.2","type":"multiple","difficulty":3,"question":"ReAct 范式的局限性包括哪些？（多选）","options":[{"key":"A","text":"容易陷入循环，需要 max_steps 保护","correct":true},{"key":"B","text":"每一步都调用 LLM，Token 消耗大","correct":true},{"key":"C","text":"不能调用外部工具"},{"key":"D","text":"对简单任务可能过度设计","correct":true}],"explanation":"ReAct 的局限：容易循环失控、Token 消耗大、对简单任务过度设计。它不能调用外部工具是错误的——调用工具正是 ReAct 的核心能力。"},
+
+    {"id":"ch2-2.3-q1","chapter":"ch2","section":"2.3","type":"single","difficulty":3,"question":"Plan-Execute 范式与 ReAct 的主要区别是什么？","options":[{"key":"A","text":"Plan-Execute 先规划全部步骤再执行，ReAct 逐步决策","correct":true},{"key":"B","text":"Plan-Execute 速度更快"},{"key":"C","text":"ReAct 不能调用工具"},{"key":"D","text":"Plan-Execute 不需要 LLM"}],"explanation":"Plan-Execute 先由 Planner Agent 制定完整计划，再由 Executor 逐步执行。ReAct 则是每一步都重新决策。Plan-Execute 适合复杂任务，ReAct 适合动态任务。"},
+    {"id":"ch2-2.3-q2","chapter":"ch2","section":"2.3","type":"single","difficulty":3,"question":"Reflexion 机制的核心思想是什么？","options":[{"key":"A","text":"反射式快速响应"},{"key":"B","text":"从失败中反思并改进","correct":true},{"key":"C","text":"镜像复制行为"},{"key":"D","text":"减少 LLM 调用次数"}],"explanation":"Reflexion 是让 Agent 从失败的尝试中反思，总结经验教训，然后在下一次尝试中改进。这是一种自我提升机制。"},
+
+    {"id":"ch2-2.4-q1","chapter":"ch2","section":"2.4","type":"single","difficulty":2,"question":"Function Calling 中，工具参数使用什么格式描述？","options":[{"key":"A","text":"XML"},{"key":"B","text":"JSON Schema","correct":true},{"key":"C","text":"YAML"},{"key":"D","text":"Protobuf"}],"explanation":"OpenAI Function Calling 使用 JSON Schema 描述工具的参数类型、必填字段等，让 LLM 理解如何调用工具。"},
+    {"id":"ch2-2.4-q2","chapter":"ch2","section":"2.4","type":"single","difficulty":3,"question":"tool_choice 参数设为 'auto' 意味着什么？","options":[{"key":"A","text":"不调用任何工具"},{"key":"B","text":"让 LLM 自主决定是否调用工具","correct":true},{"key":"C","text":"必须调用所有工具"},{"key":"D","text":"随机选择工具"}],"explanation":"tool_choice='auto' 让 LLM 根据用户输入自主决定是否调用工具以及调用哪个工具。设为 'required' 则强制调用。"},
+    {"id":"ch2-2.4-q3","chapter":"ch2","section":"2.4","type":"multiple","difficulty":3,"question":"以下哪些是 Function Calling 的最佳实践？（多选）","options":[{"key":"A","text":"工具描述清晰具体","correct":true},{"key":"B","text":"参数尽量复杂以体现能力"},{"key":"C","text":"使用 Pydantic 自动生成 Schema","correct":true},{"key":"D","text":"为失败调用设计降级方案","correct":true}],"explanation":"最佳实践：描述清晰、参数最小化（不是复杂化）、用 Pydantic 生成 Schema、设计错误处理。参数应尽量简单。"},
+
+    {"id":"ch2-2.5-q1","chapter":"ch2","section":"2.5","type":"single","difficulty":3,"question":"Agent Loop 中消息列表的作用是什么？","options":[{"key":"A","text":"仅用于记录日志"},{"key":"B","text":"作为状态管理，传递上下文给 LLM","correct":true},{"key":"C","text":"用于性能监控"},{"key":"D","text":"用于错误追踪"}],"explanation":"消息列表是 Agent 的状态管理核心——包含 system prompt、用户输入、LLM 回复、工具调用和工具返回，每次都完整传给 LLM 作为上下文。"},
+    {"id":"ch2-2.5-q2","chapter":"ch2","section":"2.5","type":"single","difficulty":3,"question":"Agent 循环失控的最常见原因是什么？","options":[{"key":"A","text":"网络延迟"},{"key":"B","text":"工具持续返回错误，Agent 不断重试","correct":true},{"key":"C","text":"用户输入太短"},{"key":"D","text":"模型版本太旧"}],"explanation":"循环失控常因工具返回错误或不可用，Agent 不断尝试不同的工具调用但没有 max_steps 保护，导致 Token 爆炸。"},
+
+    {"id":"ch2-2.6-q1","chapter":"ch2","section":"2.6","type":"single","difficulty":2,"question":"Agent 的短期记忆通常指什么？","options":[{"key":"A","text":"向量数据库中的嵌入"},{"key":"B","text":"当前对话的消息历史","correct":true},{"key":"C","text":"用户配置文件"},{"key":"D","text":"系统日志"}],"explanation":"短期记忆是当前对话的消息历史（messages 列表），长期记忆是存储在向量数据库中的历史信息。"},
+    {"id":"ch2-2.6-q2","chapter":"ch2","section":"2.6","type":"single","difficulty":3,"question":"滑动窗口记忆策略的核心思想是什么？","options":[{"key":"A","text":"删除所有旧消息"},{"key":"B","text":"保留最近的 N 条消息，超出部分丢弃或摘要","correct":true},{"key":"C","text":"将所有消息存入数据库"},{"key":"D","text":"只保留第一条消息"}],"explanation":"滑动窗口策略保留最近 N 条消息在上下文中，超出窗口的旧消息要么丢弃，要么用摘要压缩后保留，以控制 Token 消耗。"},
+    {"id":"ch2-2.6-q3","chapter":"ch2","section":"2.6","type":"fill","difficulty":3,"question":"当对话历史超出 Context Window 时，将旧消息压缩为摘要的技术称为 ___。","answer":"摘要压缩","acceptAnswers":["摘要压缩","摘要","summarization","摘要化","压缩"],"explanation":"摘要压缩是将旧消息用 LLM 总结为简短摘要，减少 Token 消耗的同时保留关键信息。"},
+
+    {"id":"ch2-2.7-q1","chapter":"ch2","section":"2.7","type":"single","difficulty":2,"question":"强制 LLM 输出 JSON 格式的 OpenAI 参数是什么？","options":[{"key":"A","text":"temperature=0"},{"key":"B","text":"response_format={'type': 'json_object'}","correct":true},{"key":"C","text":"max_tokens=4096"},{"key":"D","text":"stream=True"}],"explanation":"response_format={'type': 'json_object'} 强制模型输出合法 JSON。也可用 tool_choice 强制调用特定工具来获得结构化输出。"},
+    {"id":"ch2-2.7-q2","chapter":"ch2","section":"2.7","type":"single","difficulty":3,"question":"Pydantic 在结构化输出中的主要作用是什么？","options":[{"key":"A","text":"加速 LLM 推理"},{"key":"B","text":"校验 LLM 输出是否符合预期格式","correct":true},{"key":"C","text":"减少 Token 消耗"},{"key":"D","text":"替代 LLM"}],"explanation":"Pydantic 定义数据模型，自动校验 LLM 输出的字段类型、必填性、值范围，校验失败可触发重试。"},
+
+    {"id":"ch2-2.8-q1","chapter":"ch2","section":"2.8","type":"single","difficulty":2,"question":"RAG 的全称是什么？","options":[{"key":"A","text":"Random Access Generator"},{"key":"B","text":"Retrieval-Augmented Generation","correct":true},{"key":"C","text":"Rapid Application Generation"},{"key":"D","text":"Recursive Algorithm Graph"}],"explanation":"RAG = Retrieval-Augmented Generation（检索增强生成），通过检索外部知识来增强 LLM 的生成质量。"},
+    {"id":"ch2-2.8-q2","chapter":"ch2","section":"2.8","type":"single","difficulty":3,"question":"RAG 全链路中，将文本转为向量的过程称为？","options":[{"key":"A","text":"Chunking"},{"key":"B","text":"Embedding","correct":true},{"key":"C","text":"Reranking"},{"key":"D","text":"Indexing"}],"explanation":"Embedding（嵌入）是将文本映射为高维向量，使语义相近的文本在向量空间中距离也近，是向量检索的基础。"},
+    {"id":"ch2-2.8-q3","chapter":"ch2","section":"2.8","type":"multiple","difficulty":3,"question":"以下哪些是常见的 RAG 分块（Chunking）策略？（多选）","options":[{"key":"A","text":"固定大小分块","correct":true},{"key":"B","text":"语义切分（按句子/段落）","correct":true},{"key":"C","text":"递归切分","correct":true},{"key":"D","text":"随机切分"}],"explanation":"常见分块策略：固定大小（按字符数）、语义切分（按句子/段落边界）、递归切分（多级分割）。随机切分会破坏语义完整性。"},
+
+    {"id":"ch2-2.9-q1","chapter":"ch2","section":"2.9","type":"single","difficulty":3,"question":"Prompt Injection（提示注入）攻击是指什么？","options":[{"key":"A","text":"注入恶意代码到服务器"},{"key":"B","text":"通过用户输入覆盖 System Prompt 指令","correct":true},{"key":"C","text":"攻击 API 接口"},{"key":"D","text":"破解模型权重"}],"explanation":"Prompt Injection 是攻击者通过用户输入注入恶意指令，试图覆盖或绕过 System Prompt 的安全限制，是 LLM 应用的主要安全威胁。"},
+    {"id":"ch2-2.9-q2","chapter":"ch2","section":"2.9","type":"single","difficulty":3,"question":"Guardrail（安全护栏）的主要作用是什么？","options":[{"key":"A","text":"提高模型推理速度"},{"key":"B","text":"限制 Agent 行为在安全范围内","correct":true},{"key":"C","text":"减少 Token 消耗"},{"key":"D","text":"美化输出格式"}],"explanation":"Guardrail 是安全防护机制，确保 Agent 不会执行危险操作、不输出有害内容、不超出能力边界。"},
+
+    {"id":"ch2-2.10-q1","chapter":"ch2","section":"2.10","type":"single","difficulty":2,"question":"Agent 评估的四个主要维度是什么？","options":[{"key":"A","text":"速度、内存、CPU、磁盘"},{"key":"B","text":"准确性、效率、成本、鲁棒性","correct":true},{"key":"C","text":"前端、后端、数据库、网络"},{"key":"D","text":"训练、验证、测试、部署"}],"explanation":"Agent 评估四维度：准确性（任务完成质量）、效率（步骤/时间）、成本（Token消耗）、鲁棒性（异常处理能力）。"},
+    {"id":"ch2-2.10-q2","chapter":"ch2","section":"2.10","type":"single","difficulty":3,"question":"以下哪个是专门用于 RAG 评估的框架？","options":[{"key":"A","text":"Pytest"},{"key":"B","text":"RAGAS","correct":true},{"key":"C","text":"Selenium"},{"key":"D","text":"Jest"}],"explanation":"RAGAS（RAG Assessment）是专门评估 RAG 系统质量的框架，评估检索准确率、生成质量、忠实度等指标。"},
+
+    {"id":"ch3-3.1-q1","chapter":"ch3","section":"3.1","type":"single","difficulty":2,"question":"以下哪个框架最适合构建有状态的多步骤 Agent 工作流？","options":[{"key":"A","text":"LangChain"},{"key":"B","text":"LangGraph","correct":true},{"key":"C","text":"OpenAI Agents SDK"},{"key":"D","text":"DSPy"}],"explanation":"LangGraph 专为有状态图编排设计，支持条件路由、循环控制、检查点恢复，最适合复杂多步骤工作流。"},
+    {"id":"ch3-3.1-q2","chapter":"ch3","section":"3.1","type":"single","difficulty":2,"question":"以下哪个框架是 Anthropic 推出的工具标准化协议？","options":[{"key":"A","text":"MCP（Model Context Protocol）","correct":true},{"key":"B","text":"LangChain"},{"key":"C","text":"CrewAI"},{"key":"D","text":"AutoGen"}],"explanation":"MCP（Model Context Protocol）是 Anthropic 推出的工具调用标准协议，实现 Agent 与工具的解耦。"},
+
+    {"id":"ch3-3.2-q1","chapter":"ch3","section":"3.2","type":"single","difficulty":2,"question":"LangChain 的 LCEL 是指什么？","options":[{"key":"A","text":"一种编程语言"},{"key":"B","text":"LangChain Expression Language，管道语法","correct":true},{"key":"C","text":"一种数据库"},{"key":"D","text":"一种模型架构"}],"explanation":"LCEL（LangChain Expression Language）是 LangChain 的管道语法，用 | 操作符串联组件，如 prompt | model | parser。"},
+
+    {"id":"ch3-3.3-q1","chapter":"ch3","section":"3.3","type":"single","difficulty":3,"question":"LangGraph 中实现条件路由的 API 是？","options":[{"key":"A","text":"add_edge()"},{"key":"B","text":"add_conditional_edges()","correct":true},{"key":"C","text":"add_node()"},{"key":"D","text":"add_route()"}],"explanation":"add_conditional_edges() 根据状态动态决定下一个节点，是 LangGraph 实现分支逻辑的核心 API。"},
+
+    {"id":"ch3-3.6-q1","chapter":"ch3","section":"3.6","type":"single","difficulty":3,"question":"MCP 协议基于哪种通信机制？","options":[{"key":"A","text":"HTTP REST"},{"key":"B","text":"JSON-RPC 2.0","correct":true},{"key":"C","text":"WebSocket"},{"key":"D","text":"gRPC"}],"explanation":"MCP 基于 JSON-RPC 2.0 协议进行通信，支持 stdio 和 SSE 两种传输方式。"},
+
+    {"id":"ch3-3.8-q1","chapter":"ch3","section":"3.8","type":"single","difficulty":3,"question":"可观测性的三大支柱是什么？","options":[{"key":"A","text":"前端、后端、数据库"},{"key":"B","text":"Logs、Metrics、Traces","correct":true},{"key":"C","text":"CPU、内存、磁盘"},{"key":"D","text":"输入、处理、输出"}],"explanation":"可观测性三大支柱：Logs（日志）、Metrics（指标）、Traces（链路追踪），帮助理解系统行为和定位问题。"},
+
+    {"id":"ch4-4.1-q1","chapter":"ch4","section":"4.1","type":"single","difficulty":3,"question":"多 Agent 层级式架构的核心模式是什么？","options":[{"key":"A","text":"所有 Agent 平等协作"},{"key":"B","text":"Manager-Worker 模式，管理者分配任务","correct":true},{"key":"C","text":"Agent 之间随机通信"},{"key":"D","text":"只有一个 Agent"}],"explanation":"层级式架构采用 Manager-Worker 模式：Manager Agent 负责任务分解和分配，Worker Agent 负责具体执行，结果汇总给 Manager。"},
+    {"id":"ch4-4.1-q2","chapter":"ch4","section":"4.1","type":"single","difficulty":3,"question":"黑板模式（Blackboard）的核心特征是什么？","options":[{"key":"A","text":"Agent 之间直接通信"},{"key":"B","text":"通过共享状态空间通信","correct":true},{"key":"C","text":"只有一个 Agent 工作"},{"key":"D","text":"使用数据库存储"}],"explanation":"黑板模式中所有 Agent 共享一个状态空间（黑板），Agent 向黑板写入结果，从黑板读取需要的信息，实现松耦合协作。"},
+
+    {"id":"ch4-4.4-q1","chapter":"ch4","section":"4.4","type":"single","difficulty":4,"question":"DAG 编排中 DAG 的全称是？","options":[{"key":"A","text":"Data Access Graph"},{"key":"B","text":"Directed Acyclic Graph（有向无环图）","correct":true},{"key":"C","text":"Dynamic Agent Group"},{"key":"D","text":"Distributed Architecture Grid"}],"explanation":"DAG = Directed Acyclic Graph（有向无环图），任务之间有明确依赖关系，无循环，是多 Agent 任务编排的基础模型。"},
+
+    {"id":"ch4-4.7-q1","chapter":"ch4","section":"4.7","type":"single","difficulty":3,"question":"Human-in-the-Loop（HITL）的主要价值是什么？","options":[{"key":"A","text":"提高系统速度"},{"key":"B","text":"在关键决策点引入人工判断，提高安全性","correct":true},{"key":"C","text":"减少开发工作量"},{"key":"D","text":"替代 LLM"}],"explanation":"HITL 在关键决策点（如金融交易、敏感操作）暂停 Agent 执行，等待人工审批后再继续，平衡自动化效率与安全可控。"},
+
+    {"id":"ch5-5.1-q1","chapter":"ch5","section":"5.1","type":"single","difficulty":2,"question":"智能客服 Agent 中，意图识别路由的主要作用是什么？","options":[{"key":"A","text":"加速响应"},{"key":"B","text":"根据用户意图分配到不同处理流程","correct":true},{"key":"C","text":"减少 Token"},{"key":"D","text":"美化界面"}],"explanation":"意图识别路由根据用户输入判断意图类型（咨询/投诉/查询），将对话分配到最合适的处理 Agent 或流程。"},
+
+    {"id":"ch5-5.3-q1","chapter":"ch5","section":"5.3","type":"single","difficulty":3,"question":"NL2SQL 是指什么？","options":[{"key":"A","text":"NoSQL 数据库"},{"key":"B","text":"自然语言转 SQL 查询","correct":true},{"key":"C","text":"SQL 性能优化"},{"key":"D","text":"SQL 注入防护"}],"explanation":"NL2SQL（Natural Language to SQL）让用户用自然语言提问，Agent 自动生成 SQL 查询数据库并返回结果，是数据分析 Agent 的核心技术。"},
+
+    {"id":"ch5-5.8-q1","chapter":"ch5","section":"5.8","type":"single","difficulty":3,"question":"生产级 Agent 服务常用的 Python Web 框架是？","options":[{"key":"A","text":"Django"},{"key":"B","text":"Flask"},{"key":"C","text":"FastAPI","correct":true},{"key":"D","text":"Bottle"}],"explanation":"FastAPI 原生支持异步、自动生成 API 文档、性能优秀，是 Agent 服务化的首选框架。"},
+
+    {"id":"ch5-5.9-q1","chapter":"ch5","section":"5.9","type":"single","difficulty":3,"question":"工具权限最小化原则是指什么？","options":[{"key":"A","text":"不给 Agent 任何工具"},{"key":"B","text":"只授予完成任务所需的最少工具权限","correct":true},{"key":"C","text":"只使用一个工具"},{"key":"D","text":"工具权限随机分配"}],"explanation":"最小化原则：Agent 只拥有完成任务所需的最少工具和权限，降低被 Prompt Injection 攻击后的危害范围。"},
+
+    {"id":"ch5-5.10-q1","chapter":"ch5","section":"5.10","type":"single","difficulty":2,"question":"Agent 循环失控导致的最直接后果是什么？","options":[{"key":"A","text":"服务器崩溃"},{"key":"B","text":"Token 消耗爆炸，API 费用飙升","correct":true},{"key":"C","text":"用户被锁定"},{"key":"D","text":"数据丢失"}],"explanation":"Agent 循环失控会不断调用 LLM API，导致 Token 消耗指数级增长，API 费用飙升。必须用 max_steps 和费用上限保护。"},
+
+    {"id":"ch6-6.1-q1","chapter":"ch6","section":"6.1","type":"single","difficulty":3,"question":"Agent OS 的愿景是什么？","options":[{"key":"A","text":"替代传统操作系统"},{"key":"B","text":"为 Agent 提供标准化运行环境与互操作能力","correct":true},{"key":"C","text":"加速模型训练"},{"key":"D","text":"替代 LLM"}],"explanation":"Agent OS 旨在为 AI Agent 提供标准化的运行环境、资源管理和互操作能力，类似传统 OS 对应用程序的作用。"},
+
+    {"id":"ch6-6.3-q1","chapter":"ch6","section":"6.3","type":"single","difficulty":3,"question":"AGI 的全称是什么？","options":[{"key":"A","text":"Automated General Interface"},{"key":"B","text":"Artificial General Intelligence","correct":true},{"key":"C","text":"Agent Generation Interface"},{"key":"D","text":"Advanced GPU Integration"}],"explanation":"AGI = Artificial General Intelligence（通用人工智能），指能像人类一样在各种任务中表现出智能的 AI 系统。"},
+
+    {"id":"ch6-6.5-q1","chapter":"ch6","section":"6.5","type":"single","difficulty":3,"question":"RLHF 是什么技术？","options":[{"key":"A","text":"一种数据库"},{"key":"B","text":"基于人类反馈的强化学习","correct":true},{"key":"C","text":"一种编程语言"},{"key":"D","text":"一种网络协议"}],"explanation":"RLHF = Reinforcement Learning from Human Feedback，通过人类反馈对模型进行强化学习，是 AI 对齐（Alignment）的核心技术。"}
+  ],
+  "chapterQuizzes": [
+    {
+      "id": "ch1-final",
+      "title": "第 1 章综合测验 - 基础概念入门",
+      "questions": ["ch1-1.1-q1","ch1-1.1-q2","ch1-1.2-q1","ch1-1.2-q2","ch1-1.3-q1","ch1-1.3-q2","ch1-1.4-q1","ch1-1.4-q2","ch1-1.5-q1","ch1-1.6-q1"],
+      "passingScore": 70
+    },
+    {
+      "id": "ch2-final",
+      "title": "第 2 章综合测验 - 核心原理深入",
+      "questions": ["ch2-2.1-q1","ch2-2.1-q2","ch2-2.2-q1","ch2-2.2-q2","ch2-2.3-q1","ch2-2.4-q1","ch2-2.4-q2","ch2-2.6-q1","ch2-2.8-q1","ch2-2.8-q2"],
+      "passingScore": 70
+    },
+    {
+      "id": "ch3-final",
+      "title": "第 3 章综合测验 - 框架与工具实战",
+      "questions": ["ch3-3.1-q1","ch3-3.1-q2","ch3-3.2-q1","ch3-3.3-q1","ch3-3.6-q1","ch3-3.8-q1"],
+      "passingScore": 70
+    },
+    {
+      "id": "ch4-final",
+      "title": "第 4 章综合测验 - 多 Agent 系统设计",
+      "questions": ["ch4-4.1-q1","ch4-4.1-q2","ch4-4.4-q1","ch4-4.7-q1"],
+      "passingScore": 70
+    },
+    {
+      "id": "ch5-final",
+      "title": "第 5 章综合测验 - 行业应用与最佳实践",
+      "questions": ["ch5-5.1-q1","ch5-5.3-q1","ch5-5.8-q1","ch5-5.9-q1","ch5-5.10-q1"],
+      "passingScore": 70
+    },
+    {
+      "id": "ch6-final",
+      "title": "第 6 章综合测验 - 前沿趋势展望",
+      "questions": ["ch6-6.1-q1","ch6-6.3-q1","ch6-6.5-q1"],
+      "passingScore": 70
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+{
+  "chapters": [
+    {
+      "id": "ch1",
+      "number": 1,
+      "title": "基础概念入门",
+      "subtitle": "建立对 AI Agent 的整体认知，理解 LLM 工作原理与 Agent 的演进",
+      "estimatedHours": 8,
+      "difficulty": 1,
+      "sections": [
+        { "id": "1.1", "title": "什么是 AI Agent", "estimatedMinutes": 15, "difficulty": 1 },
+        { "id": "1.2", "title": "LLM 工作原理基础", "estimatedMinutes": 20, "difficulty": 1 },
+        { "id": "1.3", "title": "Prompt Engineering 入门", "estimatedMinutes": 25, "difficulty": 2 },
+        { "id": "1.4", "title": "模型能力与局限", "estimatedMinutes": 20, "difficulty": 2 },
+        { "id": "1.5", "title": "从 LLM 到 Agent 的演进", "estimatedMinutes": 15, "difficulty": 2 },
+        { "id": "1.6", "title": "学习路线图与里程碑", "estimatedMinutes": 10, "difficulty": 1 }
+      ]
+    },
+    {
+      "id": "ch2",
+      "number": 2,
+      "title": "核心原理深入",
+      "subtitle": "深入 Agent 内部机制，理解 ReAct、Tool Calling、记忆、RAG 等核心原理",
+      "estimatedHours": 20,
+      "difficulty": 3,
+      "sections": [
+        { "id": "2.1", "title": "Agent 核心架构", "estimatedMinutes": 25, "difficulty": 2 },
+        { "id": "2.2", "title": "ReAct 范式详解", "estimatedMinutes": 30, "difficulty": 3 },
+        { "id": "2.3", "title": "Plan-Execute 与其他 Agent 范式", "estimatedMinutes": 25, "difficulty": 3 },
+        { "id": "2.4", "title": "Tool Calling 与 Function Calling", "estimatedMinutes": 30, "difficulty": 3 },
+        { "id": "2.5", "title": "Agent Loop 实现原理", "estimatedMinutes": 35, "difficulty": 3 },
+        { "id": "2.6", "title": "记忆与上下文管理", "estimatedMinutes": 30, "difficulty": 3 },
+        { "id": "2.7", "title": "结构化输出", "estimatedMinutes": 20, "difficulty": 2 },
+        { "id": "2.8", "title": "RAG 原理与实现", "estimatedMinutes": 40, "difficulty": 3 },
+        { "id": "2.9", "title": "Prompt Engineering 进阶", "estimatedMinutes": 25, "difficulty": 3 },
+        { "id": "2.10", "title": "Agent 评估方法", "estimatedMinutes": 20, "difficulty": 2 }
+      ]
+    },
+    {
+      "id": "ch3",
+      "number": 3,
+      "title": "框架与工具实战",
+      "subtitle": "掌握主流框架，能独立搭建生产级 Agent",
+      "estimatedHours": 18,
+      "difficulty": 3,
+      "sections": [
+        { "id": "3.1", "title": "框架选型与对比", "estimatedMinutes": 20, "difficulty": 2 },
+        { "id": "3.2", "title": "LangChain 实战", "estimatedMinutes": 35, "difficulty": 3 },
+        { "id": "3.3", "title": "LangGraph 实战", "estimatedMinutes": 35, "difficulty": 3 },
+        { "id": "3.4", "title": "OpenAI Agents SDK", "estimatedMinutes": 25, "difficulty": 2 },
+        { "id": "3.5", "title": "LlamaIndex 与 RAG", "estimatedMinutes": 30, "difficulty": 3 },
+        { "id": "3.6", "title": "MCP 协议与 Python SDK", "estimatedMinutes": 30, "difficulty": 3 },
+        { "id": "3.7", "title": "低代码平台对比", "estimatedMinutes": 20, "difficulty": 2 },
+        { "id": "3.8", "title": "可观测性与监控", "estimatedMinutes": 25, "difficulty": 3 },
+        { "id": "3.9", "title": "代码沙箱与执行环境", "estimatedMinutes": 20, "difficulty": 3 }
+      ]
+    },
+    {
+      "id": "ch4",
+      "number": 4,
+      "title": "多 Agent 系统设计",
+      "subtitle": "掌握多 Agent 协作架构，能设计复杂 Agent 系统",
+      "estimatedHours": 15,
+      "difficulty": 4,
+      "sections": [
+        { "id": "4.1", "title": "多 Agent 架构模式", "estimatedMinutes": 25, "difficulty": 3 },
+        { "id": "4.2", "title": "角色分工与设计", "estimatedMinutes": 20, "difficulty": 3 },
+        { "id": "4.3", "title": "Agent 间通信协议", "estimatedMinutes": 25, "difficulty": 3 },
+        { "id": "4.4", "title": "任务分解与编排", "estimatedMinutes": 30, "difficulty": 4 },
+        { "id": "4.5", "title": "结果聚合与冲突解决", "estimatedMinutes": 20, "difficulty": 3 },
+        { "id": "4.6", "title": "长任务编排与状态管理", "estimatedMinutes": 25, "difficulty": 4 },
+        { "id": "4.7", "title": "Human-in-the-Loop 设计", "estimatedMinutes": 20, "difficulty": 3 },
+        { "id": "4.8", "title": "Computer Use 与浏览器自动化", "estimatedMinutes": 25, "difficulty": 4 }
+      ]
+    },
+    {
+      "id": "ch5",
+      "number": 5,
+      "title": "行业应用与最佳实践",
+      "subtitle": "通过企业级实战项目巩固所学，掌握部署与工程化",
+      "estimatedHours": 25,
+      "difficulty": 4,
+      "sections": [
+        { "id": "5.1", "title": "智能客服系统", "estimatedMinutes": 35, "difficulty": 3 },
+        { "id": "5.2", "title": "代码助手与代码审查", "estimatedMinutes": 30, "difficulty": 4 },
+        { "id": "5.3", "title": "数据分析 Agent", "estimatedMinutes": 30, "difficulty": 3 },
+        { "id": "5.4", "title": "自动化运营 Agent", "estimatedMinutes": 25, "difficulty": 3 },
+        { "id": "5.5", "title": "企业知识库问答", "estimatedMinutes": 35, "difficulty": 4 },
+        { "id": "5.6", "title": "多 Agent 协作开发系统", "estimatedMinutes": 35, "difficulty": 5 },
+        { "id": "5.7", "title": "全栈开发 Agent", "estimatedMinutes": 30, "difficulty": 5 },
+        { "id": "5.8", "title": "部署与性能优化", "estimatedMinutes": 30, "difficulty": 4 },
+        { "id": "5.9", "title": "安全与合规", "estimatedMinutes": 25, "difficulty": 4 },
+        { "id": "5.10", "title": "避坑指南与常见难点", "estimatedMinutes": 30, "difficulty": 3 }
+      ]
+    },
+    {
+      "id": "ch6",
+      "number": 6,
+      "title": "前沿趋势展望",
+      "subtitle": "建立前瞻视角，把握 Agent 技术发展方向",
+      "estimatedHours": 10,
+      "difficulty": 2,
+      "sections": [
+        { "id": "6.1", "title": "Agent OS 与 Agent 操作系统", "estimatedMinutes": 15, "difficulty": 3 },
+        { "id": "6.2", "title": "具身智能与物理 Agent", "estimatedMinutes": 15, "difficulty": 2 },
+        { "id": "6.3", "title": "AGI 路线与 Agent 演进", "estimatedMinutes": 15, "difficulty": 3 },
+        { "id": "6.4", "title": "多模态 Agent", "estimatedMinutes": 15, "difficulty": 2 },
+        { "id": "6.5", "title": "Agent 安全与对齐", "estimatedMinutes": 15, "difficulty": 3 },
+        { "id": "6.6", "title": "Agent 经济与市场化", "estimatedMinutes": 15, "difficulty": 2 },
+        { "id": "6.7", "title": "开源生态动态", "estimatedMinutes": 15, "difficulty": 2 },
+        { "id": "6.8", "title": "学习资源与社区", "estimatedMinutes": 10, "difficulty": 1 }
+      ]
+    }
+  ]
+}
