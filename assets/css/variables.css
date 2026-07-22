@@ -127,7 +127,7 @@
   --bg-tertiary: #eef1f7;
   --bg-code: #f3f5f9;
   --bg-terminal: #1e2230;
-  --bg-overlay: rgba(255, 255, 255, 0.78);
+  --bg-overlay: rgba(26, 34, 51, 0.30);
 
   /* === 文字层级 === */
   --text-primary: #1a2233;
