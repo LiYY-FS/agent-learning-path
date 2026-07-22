@@ -82,9 +82,16 @@ const Router = {
     // 加载章节数据
     if (!window.CHAPTERS_META) {
       try {
-        const data = await Utils.fetchJSON('assets/data/chapters.json');
-        window.CHAPTERS_META = data.chapters || data;
-        await Quiz.loadData();
+        // 优先使用内联数据（GitHub Pages 兼容）
+        const inlineMeta = Utils.getData('CHAPTERS_META');
+        if (inlineMeta) {
+          window.CHAPTERS_META = inlineMeta.chapters || inlineMeta;
+          await Quiz.loadData();
+        } else {
+          const data = await Utils.fetchJSON('assets/data/chapters.json');
+          window.CHAPTERS_META = data.chapters || data;
+          await Quiz.loadData();
+        }
       } catch (e) {
         content.innerHTML = `<div class="card"><p style="color: var(--accent-red);">❌ 加载章节数据失败：${e.message}</p><p style="color: var(--text-secondary); margin-top: 12px;">请确保通过 HTTP 服务器访问（如 python3 -m http.server），而非直接打开文件。</p></div>`;
         return;
@@ -274,7 +281,7 @@ const Router = {
     await this._ensureData();
 
     try {
-      const data = await Utils.fetchJSON('assets/data/appendix.json');
+      const data = Utils.getData('APPENDIX_DATA') || await Utils.fetchJSON('assets/data/appendix.json');
       const content = document.getElementById('content');
       content.innerHTML = '';
 
@@ -311,7 +318,7 @@ const Router = {
     await this._ensureData();
 
     try {
-      const data = await Utils.fetchJSON('assets/data/glossary.json');
+      const data = Utils.getData('GLOSSARY_DATA') || await Utils.fetchJSON('assets/data/glossary.json');
       const content = document.getElementById('content');
       content.innerHTML = '';
 
@@ -453,8 +460,14 @@ const Router = {
   /* === 确保数据已加载 === */
   async _ensureData() {
     if (!window.CHAPTERS_META) {
-      const data = await Utils.fetchJSON('assets/data/chapters.json');
-      window.CHAPTERS_META = data.chapters || data;
+      // 优先内联数据
+      const inlineMeta = Utils.getData('CHAPTERS_META');
+      if (inlineMeta) {
+        window.CHAPTERS_META = inlineMeta.chapters || inlineMeta;
+      } else {
+        const data = await Utils.fetchJSON('assets/data/chapters.json');
+        window.CHAPTERS_META = data.chapters || data;
+      }
       await Quiz.loadData();
       Sidebar.build();
       Progress._updateGlobalUI();

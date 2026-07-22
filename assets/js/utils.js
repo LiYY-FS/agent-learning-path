@@ -6,11 +6,7 @@ const Utils = {
   /* === 基础路径（自动检测，兼容 GitHub Pages 子目录部署） === */
   get basePath() {
     if (!this._basePath) {
-      // 从当前页面 URL 提取路径前缀
-      // 例如 https://user.github.io/repo-name/#/ → /repo-name/
-      // 例如 http://localhost:8080/#/ → /
       const path = location.pathname;
-      // 如果路径不是根路径（即部署在子目录），则保留路径前缀
       this._basePath = (path === '/' || path.endsWith('/')) ? path : path + '/';
     }
     return this._basePath;
@@ -19,6 +15,19 @@ const Utils = {
   /* === 构建完整资源 URL === */
   assetUrl(relativePath) {
     return this.basePath + relativePath;
+  },
+
+  /* === 数据访问（优先内联数据，fallback 到 fetch）=== */
+  getData(varName) {
+    // 优先从内联 data.js 获取（GitHub Pages 兼容）
+    if (window.__DATA__ && window.__DATA__[varName]) {
+      return window.__DATA__[varName];
+    }
+    return null;
+  },
+
+  hasInlineData() {
+    return !!(window.__DATA__ && Object.keys(window.__DATA__).length > 0);
   },
 
   /* === DOM 操作 === */
@@ -90,8 +99,25 @@ const Utils = {
     },
   },
 
-  /* === 数据加载 === */
+  /* === 数据加载（优先内联数据，fallback fetch）=== */
   async fetchJSON(path) {
+    // 尝试从内联数据获取（避免 GitHub Pages HTTP/2 大文件协议错误）
+    const varMap = {
+      'assets/data/chapters.json': 'CHAPTERS_META',
+      'assets/data/chapter-1.json': 'CHAPTER_1_DATA',
+      'assets/data/chapter-2.json': 'CHAPTER_2_DATA',
+      'assets/data/chapter-3.json': 'CHAPTER_3_DATA',
+      'assets/data/chapter-4.json': 'CHAPTER_4_DATA',
+      'assets/data/chapter-5.json': 'CHAPTER_5_DATA',
+      'assets/data/chapter-6.json': 'CHAPTER_6_DATA',
+      'assets/data/quizzes.json': 'QUIZZES_DATA',
+      'assets/data/glossary.json': 'GLOSSARY_DATA',
+      'assets/data/appendix.json': 'APPENDIX_DATA',
+    };
+    const inline = this.getData(varMap[path]);
+    if (inline) return inline;
+
+    // Fallback: fetch（本地开发或无 data.js 时）
     try {
       const url = this.assetUrl(path);
       const response = await fetch(url);
@@ -113,6 +139,14 @@ const Utils = {
     if (Utils._dataCache.has(cacheKey)) {
       return Utils._dataCache.get(cacheKey);
     }
+    // 先尝试内联数据
+    const inlineVar = `CHAPTER_${chapterId}_DATA`;
+    const inline = this.getData(inlineVar);
+    if (inline) {
+      Utils._dataCache.set(cacheKey, inline);
+      return inline;
+    }
+    // Fallback
     const data = await Utils.fetchJSON(`assets/data/chapter-${chapterId}.json`);
     Utils._dataCache.set(cacheKey, data);
     return data;
