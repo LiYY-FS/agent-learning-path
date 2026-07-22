@@ -2,6 +2,8 @@
 
 > 最后更新：2026 年 7 月 · 已同步最新模型（GPT-5 / Claude Opus 4.8 / Gemini 3.5 / Llama 4）与框架生态（MCP 归 Linux 基金会治理并进入 Stable、Agentic 编码平台成熟）。
 
+**🌐 在线访问：https://18232751914.github.io/agent-learning-path/**
+
 一个系统化、可交互的 AI Agent 开发学习路线网站。覆盖从基础概念到前沿趋势的完整知识体系，融入企业级实战案例与可运行代码示例。
 
 ### 这个项目是什么
@@ -139,6 +141,12 @@ agent/
 | 第 4 章 多 Agent | 15h | ★★★★ | 架构模式、协作、HITL |
 | 第 5 章 行业应用 | 25h | ★★★★ | 企业项目、部署、安全 |
 | 第 6 章 前沿趋势 | 10h | ★★☆ | Agent OS、AGI、多模态 |
+
+## 链接
+
+- 🌐 **在线访问**：https://18232751914.github.io/agent-learning-path/
+- 💻 **GitHub 仓库**：https://github.com/18232751914/agent-learning-path
+- ⭐ 欢迎 Star / Fork / Issue 反馈
 
 ## License
 
