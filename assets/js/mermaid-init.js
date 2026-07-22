@@ -50,7 +50,10 @@ const MermaidInit = {
     this._initialized = true;
   },
 
-  /* === 渲染单个 Mermaid 图表 === */
+  /* === 渲染单个 Mermaid 图表 ===
+     注意：必须读取 element.dataset.code（原始源码），
+     绝不能读取 element.textContent —— 因为首次渲染成功后会把 SVG（含 <style> 主题样式块）
+     写入 element，此时 textContent 已被污染，二次渲染会把它当成图表源码而报错。 */
   async render(element) {
     if (!this._initialized) this.init();
     if (typeof mermaid === 'undefined') {
@@ -58,20 +61,23 @@ const MermaidInit = {
       return;
     }
 
-    // 渲染前保存原始源码
-    const originalCode = element.textContent.trim();
+    // 防重入：同一元素只渲染一次（避免 rAF + setTimeout 双重渲染竞态）
+    if (element.dataset.mermaidRendered === 'true') return;
+    element.dataset.mermaidRendered = 'true';
+
+    // 优先使用存储的原始源码，退化才用 textContent
+    const originalCode = (element.dataset.code || element.textContent || '').trim();
 
     try {
       const id = 'mermaid-' + Utils.generateId();
       const { svg } = await mermaid.render(id, originalCode);
       element.innerHTML = svg;
     } catch (e) {
-      // 详细错误日志，便于排查
+      // 渲染失败后允许重试（下次 fetch/刷新时可再次尝试）
+      element.dataset.mermaidRendered = 'false';
+
       const errMsg = e.message || e || '未知错误';
-      const errStack = e.stack || '';
       console.error('[Mermaid] 渲染失败:', errMsg);
-      console.error('[Mermaid] 源码（前200字）:', originalCode.slice(0, 200));
-      console.error('[Mermaid] 完整堆栈:', errStack);
 
       element.innerHTML = `
         <div style="color: var(--accent-red); font-size: var(--fs-sm); padding: 16px; border-radius: var(--radius-sm); border: 1px solid rgba(248,81,73,0.2);">

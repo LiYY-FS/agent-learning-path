@@ -173,23 +173,27 @@ const Renderer = {
     }
     const mermaidDiv = Utils.createElement('div', 'mermaid');
     mermaidDiv.textContent = data.code || '';
+    // 关键：将原始源码存入 dataset，渲染时优先读取 dataset.code，
+    // 避免首次渲染成功后 SVG（含 <style> 主题块）污染 textContent 导致二次渲染失败
+    mermaidDiv.dataset.code = data.code || '';
     container.appendChild(mermaidDiv);
 
-    // 延迟渲染 Mermaid（使用 requestAnimationFrame 确保 DOM 已插入 + mermaid 库已解析完成）
-    // v11 包体较大(~3.5MB)，需要比 v10 更长的初始化时间
+    // 延迟渲染 Mermaid（确保 DOM 已插入 + mermaid 库已解析完成）
+    // 仅调度一次；MermaidInit.render 内部有防重入守卫，不会重复渲染
     const tryRender = () => {
-      if (typeof MermaidInit !== 'undefined') {
+      if (typeof MermaidInit !== 'undefined' && mermaidDiv.dataset.mermaidRendered !== 'true') {
         MermaidInit.render(mermaidDiv);
       }
     };
-    // 双保险：短延迟 + 长延迟兜底
+
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(tryRender));
+      // 兜底：DOMContentLoaded 之后再用 setTimeout 确保 mermaid 全局已就绪
+      document.addEventListener('DOMContentLoaded', () => setTimeout(tryRender, 200));
     } else {
       requestAnimationFrame(tryRender);
+      setTimeout(tryRender, 200);
     }
-    // 兜底：如果 rAF 时 mermaid 还没就绪，再延时尝试
-    setTimeout(tryRender, 300);
 
     return container;
   },
