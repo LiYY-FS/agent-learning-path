@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="light">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -23,9 +23,10 @@
   <link rel="stylesheet" href="assets/css/components.css">
   <link rel="stylesheet" href="assets/css/syntax.css">
   <link rel="stylesheet" href="assets/css/animations.css">
+  <link rel="stylesheet" href="assets/css/theme-toggle.css">
 
-  <!-- highlight.js 主题 -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
+  <!-- highlight.js 主题（由主题切换脚本动态替换 light/dark） -->
+  <link id="hljs-theme" rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
 
   <!-- Favicon (内嵌 SVG) -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
@@ -62,6 +63,16 @@
           <polyline points="1 4 1 10 7 10"/>
           <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
         </svg>
+      </button>
+
+      <!-- 白天 / 暗黑模式切换（固定在右上角） -->
+      <button class="theme-toggle" id="themeToggle" type="button" role="switch" aria-checked="false" aria-label="切换白天 / 暗黑模式" title="切换白天 / 暗黑模式">
+        <span class="theme-toggle__icon theme-toggle__icon--sun" aria-hidden="true">☀️</span>
+        <span class="theme-toggle__track" aria-hidden="true">
+          <span class="theme-toggle__thumb"></span>
+        </span>
+        <span class="theme-toggle__icon theme-toggle__icon--moon" aria-hidden="true">🌙</span>
+        <span class="theme-toggle__label sr-only">切换主题</span>
       </button>
     </header>
 
@@ -120,6 +131,7 @@
   <script src="assets/js/quiz.js"></script>
   <script src="assets/js/renderer.js"></script>
   <script src="assets/js/mermaid-init.js"></script>
+  <script src="assets/js/theme-toggle.js"></script>
   <script src="assets/js/router.js"></script>
   <script src="assets/js/app.js"></script>
 </body>

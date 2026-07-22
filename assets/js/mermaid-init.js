@@ -11,20 +11,26 @@
 
 const MermaidInit = {
   _initialized: false,
+  _theme: null,
 
   /* === 初始化 Mermaid === */
   init() {
-    if (this._initialized || typeof mermaid === 'undefined') return;
+    if (typeof mermaid === 'undefined') return;
+
+    // 跟随页面主题：浅色页面对应 mermaid 'light'，暗黑对应 'dark'
+    const pageTheme = document.documentElement.dataset.theme === 'dark' ? 'dark' : 'light';
+    // 已初始化且主题未变则跳过
+    if (this._initialized && this._theme === pageTheme) return;
 
     // v11 最小兼容配置
     // securityLevel 必须设为 loose，否则 strict 模式下可能阻止渲染
     mermaid.initialize({
       startOnLoad: false,
       securityLevel: 'loose',        // v11 默认 strict，必须显式设为 loose
-      theme: 'dark',
+      theme: pageTheme,
       fontFamily: 'Inter, Noto Sans SC, sans-serif',
       // v11 主题变量（仅使用确认兼容的键）
-      themeVariables: {
+      themeVariables: pageTheme === 'dark' ? {
         primaryColor: '#a371f7',
         primaryTextColor: '#e6edf3',
         primaryBorderColor: '#a371f7',
@@ -38,6 +44,20 @@ const MermaidInit = {
         clusterBorder: '#30363d',
         edgeLabelBackground: '#0a0e1a',
         fontSize: '14px',
+      } : {
+        primaryColor: '#7c3aed',
+        primaryTextColor: '#1a2233',
+        primaryBorderColor: '#7c3aed',
+        lineColor: '#0891b2',
+        mainBkg: '#ffffff',
+        secondBkg: '#eef1f7',
+        tertiaryBkg: '#f5f7fb',
+        textColor: '#1a2233',
+        nodeBorder: '#e2e8f0',
+        clusterBkg: '#eef1f7',
+        clusterBorder: '#e2e8f0',
+        edgeLabelBackground: '#ffffff',
+        fontSize: '14px',
       },
       // flowchart 配置（v11 兼容：移除已废弃的 htmlLabels）
       flowchart: {
@@ -48,6 +68,24 @@ const MermaidInit = {
     });
 
     this._initialized = true;
+    this._theme = pageTheme;
+  },
+
+  /* === 切换主题后重新初始化 Mermaid === */
+  applyTheme() {
+    this._initialized = false;
+    this._theme = null;
+    this.init();
+  },
+
+  /* === 重新渲染页面中所有已渲染的 Mermaid 图表（用于主题切换）=== */
+  rerenderAll(container = document) {
+    const els = container.querySelectorAll('.mermaid');
+    for (const el of els) {
+      // 重置渲染守卫，允许用新主题重新渲染
+      el.dataset.mermaidRendered = 'false';
+      this.render(el);
+    }
   },
 
   /* === 渲染单个 Mermaid 图表 ===

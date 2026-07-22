@@ -78,3 +78,35 @@
 .hljs-meta .hljs-keyword {
   color: var(--accent-pink);
 }
+
+/* === 白天模式：token 配色适配浅色背景（覆盖上面的硬编码暗色值）=== */
+[data-theme="light"] .hljs-keyword,
+[data-theme="light"] .hljs-selector-tag,
+[data-theme="light"] .hljs-literal,
+[data-theme="light"] .hljs-type,
+[data-theme="light"] .hljs-addition {
+  color: #cf222e;
+}
+
+[data-theme="light"] .hljs-string,
+[data-theme="light"] .hljs-meta .hljs-string,
+[data-theme="light"] .hljs-doctag {
+  color: #0a3069;
+}
+
+[data-theme="light"] .hljs-function .hljs-title,
+[data-theme="light"] .hljs-title.function_,
+[data-theme="light"] .hljs-section,
+[data-theme="light"] .hljs-name {
+  color: #8250df;
+}
+
+[data-theme="light"] .hljs-number,
+[data-theme="light"] .hljs-symbol,
+[data-theme="light"] .hljs-bullet,
+[data-theme="light"] .hljs-link,
+[data-theme="light"] .hljs-meta,
+[data-theme="light"] .hljs-selector-id,
+[data-theme="light"] .hljs-selector-class {
+  color: #0550ae;
+}

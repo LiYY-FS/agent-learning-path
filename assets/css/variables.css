@@ -115,3 +115,55 @@
   --z-modal: 400;
   --z-tooltip: 500;
 }
+
+/* ============================================
+   白天模式（默认）配色方案
+   与暗黑模式保持同一套强调色体系，仅调整明度/对比度以适配浅色背景
+   ============================================ */
+[data-theme="light"] {
+  /* === 背景层级（冷调浅白）=== */
+  --bg-primary: #f5f7fb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eef1f7;
+  --bg-code: #f3f5f9;
+  --bg-terminal: #1e2230;
+  --bg-overlay: rgba(255, 255, 255, 0.78);
+
+  /* === 文字层级 === */
+  --text-primary: #1a2233;
+  --text-secondary: #5a6478;
+  --text-muted: #8b94a7;
+  --text-on-accent: #ffffff;
+
+  /* === 强调色（同色系，加深以提高浅底对比度）=== */
+  --accent-purple: #7c3aed;
+  --accent-cyan: #0891b2;
+  --accent-pink: #db2777;
+  --accent-green: #16a34a;
+  --accent-yellow: #b45309;
+  --accent-red: #dc2626;
+  --accent-blue: #2563eb;
+  --accent-orange: #ea580c;
+
+  /* === 边框 === */
+  --border-default: #e2e8f0;
+  --border-muted: #eef1f7;
+  --border-glow: rgba(124, 58, 237, 0.35);
+  --border-cyan-glow: rgba(8, 145, 178, 0.3);
+
+  /* === 渐变 === */
+  --gradient-primary: linear-gradient(135deg, #7c3aed 0%, #0891b2 100%);
+  --gradient-purple: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+  --gradient-cyan: linear-gradient(135deg, #0891b2 0%, #2563eb 100%);
+  --gradient-glow: radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%);
+  --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(238, 241, 247, 0.9) 100%);
+  --gradient-hero: radial-gradient(ellipse at top, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
+                   radial-gradient(ellipse at bottom right, rgba(8, 145, 178, 0.06) 0%, transparent 50%);
+
+  /* === 阴影（浅色用低透明黑/品牌色柔和阴影）=== */
+  --shadow-sm: 0 2px 8px rgba(26, 34, 51, 0.06);
+  --shadow-md: 0 4px 16px rgba(26, 34, 51, 0.08);
+  --shadow-lg: 0 8px 32px rgba(26, 34, 51, 0.1);
+  --shadow-glow: 0 0 20px rgba(124, 58, 237, 0.15);
+  --shadow-cyan-glow: 0 0 20px rgba(8, 145, 178, 0.15);
+}
