@@ -20,6 +20,12 @@ const Renderer = {
       divider: () => this._renderDivider(),
       html: (block) => this._renderHtml(block),
       knowledgePoint: (block) => this._renderKnowledgePoint(block),
+      // 引用卡片（参考资料 / 延伸阅读）
+      doc: (block) => this._renderReferenceCard(block, 'doc', '📚'),
+      paper: (block) => this._renderReferenceCard(block, 'paper', '📄'),
+      tool: (block) => this._renderReferenceCard(block, 'tool', '🔧'),
+      blog: (block) => this._renderReferenceCard(block, 'blog', '📝'),
+      course: (block) => this._renderReferenceCard(block, 'course', '🎓'),
     };
   },
 
@@ -275,6 +281,26 @@ const Renderer = {
   _renderHtml(block) {
     const el = Utils.createElement('div');
     el.innerHTML = block.html || '';
+    return el;
+  },
+
+  /* === 引用卡片（doc / paper / tool / blog / course）=== */
+  _renderReferenceCard(block, type, icon) {
+    const el = Utils.createElement('a', 'ref-card');
+    el.href = block.url || '#';
+    el.target = '_blank';
+    el.rel = 'noopener noreferrer';
+    const typeLabels = { doc: '文档', paper: '论文', tool: '工具', blog: '博客', course: '课程' };
+    el.innerHTML = `
+      <span class="ref-card__icon">${icon}</span>
+      <div class="ref-card__body">
+        <span class="ref-card__type">${typeLabels[type] || type}</span>
+        <span class="ref-card__title">${Utils.escapeHtml(block.title || '')}</span>
+        ${block.note ? `<span class="ref-card__note">${Utils.escapeHtml(block.note)}</span>` : ''}
+        <span class="ref-card__url">${Utils.escapeHtml((block.url || '').replace(/^https?:\/\/(www\.)?/, ''))}</span>
+      </div>
+      <span class="ref-card__arrow">↗</span>
+    `;
     return el;
   },
 

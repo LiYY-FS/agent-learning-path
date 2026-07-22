@@ -1119,3 +1119,95 @@
 .knowledge-point__body strong {
   color: var(--accent-cyan);
 }
+
+/* === 引用卡片（参考资料 / 延伸阅读）=== */
+.ref-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  margin-bottom: var(--space-sm);
+}
+
+.ref-card:hover {
+  border-color: var(--accent-cyan);
+  background: var(--bg-tertiary);
+  box-shadow: 0 4px 16px rgba(57, 208, 216, 0.1);
+  transform: translateY(-1px);
+}
+
+.ref-card__icon {
+  font-size: 24px;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-sm);
+}
+
+.ref-card__body {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ref-card__type {
+  font-size: var(--fs-xs);
+  color: var(--accent-cyan);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.ref-card__title {
+  font-size: var(--fs-sm);
+  font-weight: 500;
+  color: var(--text-primary);
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ref-card__note {
+  font-size: var(--fs-xs);
+  color: var(--text-muted);
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.ref-card__url {
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.6;
+  font-family: var(--font-code);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ref-card__arrow {
+  color: var(--text-muted);
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
+}
+
+.ref-card:hover .ref-card__arrow {
+  transform: translateX(2px);
+  color: var(--accent-cyan);
+}
