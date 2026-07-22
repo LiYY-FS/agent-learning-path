@@ -55,7 +55,7 @@
 ## 链接
 
 - 🌐 **在线访问**：https://LiYY-FS.github.io/agent-learning-path/
-- 💻 **GitHub 仓库**：https://github.com/18232751914/agent-learning-path
+- 💻 **GitHub 仓库**：https://github.com/LiYY-FS/agent-learning-path
 - ⭐ 欢迎 Star / Fork / Issue 反馈
 
 ## License
