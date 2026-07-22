@@ -3,6 +3,24 @@
    ============================================ */
 
 const Utils = {
+  /* === 基础路径（自动检测，兼容 GitHub Pages 子目录部署） === */
+  get basePath() {
+    if (!this._basePath) {
+      // 从当前页面 URL 提取路径前缀
+      // 例如 https://user.github.io/repo-name/#/ → /repo-name/
+      // 例如 http://localhost:8080/#/ → /
+      const path = location.pathname;
+      // 如果路径不是根路径（即部署在子目录），则保留路径前缀
+      this._basePath = (path === '/' || path.endsWith('/')) ? path : path + '/';
+    }
+    return this._basePath;
+  },
+
+  /* === 构建完整资源 URL === */
+  assetUrl(relativePath) {
+    return this.basePath + relativePath;
+  },
+
   /* === DOM 操作 === */
   $(selector, parent = document) {
     return parent.querySelector(selector);
@@ -75,7 +93,8 @@ const Utils = {
   /* === 数据加载 === */
   async fetchJSON(path) {
     try {
-      const response = await fetch(path);
+      const url = this.assetUrl(path);
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
