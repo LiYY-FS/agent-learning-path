@@ -78,10 +78,16 @@ npx http-server -p 8080
 3. 右键 `index.html` → **Open with Live Server**
 4. 浏览器自动打开预览地址（默认 `http://localhost:5500`）
 
+### 方式四：直接双击打开（零环境，推荐给初学者）
+
+无需任何服务器或联网，直接**双击 `index.html`** 用浏览器打开即可（`file://` 协议）。
+
+> 项目已将所有教学内容内联进 `assets/js/data.js`（以 `window.__DATA__` 变量提供），因此**不依赖 `fetch()` 加载 JSON**，可完全离线、双击运行。代码高亮（highlight.js）与流程图（Mermaid）依赖 CDN，离线时仅图表降级，文字内容不受影响。
+
 ### 启动后看不到内容？排查清单
 
 - **端口被占用**：换一个端口，例如 `python3 -m http.server 9000`，再访问 `http://localhost:9000`。
-- **页面空白 / 内容不加载**：本项目通过 `assets/data/*.json` 加载内容，**必须通过 HTTP 服务器访问**（`http://`），直接双击 `index.html` 用 `file://` 打开会被浏览器 CORS 策略拦截，导致 JSON 加载失败。
+- **页面空白 / 内容不加载**：本项目已内联全部数据，**支持直接双击 `index.html`（`file://`）打开，也支持任意 HTTP 服务器**。若仍空白，请确认 `assets/js/data.js` 与 `index.html` 在同一目录层级未被误删；必要时改用方式一/二的本地服务器排查。
 - **图表（Mermaid）不显示**：Mermaid 与代码高亮依赖 CDN，首次打开需联网；离线环境会看到降级样式，但文字内容不受影响。
 - **端口占用快速查杀**（macOS）：`lsof -i :8080` 找到 PID 后 `kill <PID>`。
 
