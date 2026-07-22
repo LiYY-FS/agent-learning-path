@@ -1004,6 +1004,15 @@
   height: auto;
 }
 
+/* Mermaid SVG 文字字体：确保中文正常渲染（Mermaid 在 SVG <text> 元素中绘制文字） */
+.mermaid svg text,
+.mermaid svg .nodeLabel,
+.mermaid svg .edgeLabel,
+.mermaid svg .cluster-label,
+.mermaid svg .label {
+  font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif !important;
+}
+
 /* === 表格组件 === */
 .table-wrapper {
   overflow-x: auto;

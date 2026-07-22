@@ -175,12 +175,21 @@ const Renderer = {
     mermaidDiv.textContent = data.code || '';
     container.appendChild(mermaidDiv);
 
-    // 延迟渲染 Mermaid
-    setTimeout(() => {
+    // 延迟渲染 Mermaid（使用 requestAnimationFrame 确保 DOM 已插入 + mermaid 库已解析完成）
+    // v11 包体较大(~3.5MB)，需要比 v10 更长的初始化时间
+    const tryRender = () => {
       if (typeof MermaidInit !== 'undefined') {
         MermaidInit.render(mermaidDiv);
       }
-    }, 50);
+    };
+    // 双保险：短延迟 + 长延迟兜底
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => requestAnimationFrame(tryRender));
+    } else {
+      requestAnimationFrame(tryRender);
+    }
+    // 兜底：如果 rAF 时 mermaid 还没就绪，再延时尝试
+    setTimeout(tryRender, 300);
 
     return container;
   },
