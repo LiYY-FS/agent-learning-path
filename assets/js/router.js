@@ -93,7 +93,7 @@ const Router = {
           await Quiz.loadData();
         }
       } catch (e) {
-        content.innerHTML = `<div class="card"><p style="color: var(--accent-red);">❌ 加载章节数据失败：${e.message}</p><p style="color: var(--text-secondary); margin-top: 12px;">请确保通过 HTTP 服务器访问（如 python3 -m http.server），而非直接打开文件。</p></div>`;
+        content.innerHTML = `<div class="card"><p style="color: var(--accent-red);">❌ 加载章节数据失败：${e.message}</p><p style="color: var(--text-secondary); margin-top: 12px;">请确认 <code>assets/js/data.js</code> 已随 index.html 一同存在。本网站支持直接双击 index.html 打开（file://），也可通过 HTTP 服务器访问。</p></div>`;
         return;
       }
     }
@@ -495,7 +495,7 @@ const Router = {
         <h3 style="color: var(--accent-red); margin-bottom: 12px;">❌ 加载失败</h3>
         <p style="color: var(--text-secondary); margin-bottom: 12px;">${Utils.escapeHtml(error.message || String(error))}</p>
         <p style="color: var(--text-muted); font-size: var(--fs-sm);">
-          提示：请通过 HTTP 服务器访问本网站（如 <code>python3 -m http.server 8080</code>），直接打开文件可能无法加载数据。
+          提示：本网站已支持直接双击 index.html 以 file:// 方式打开。若仍加载失败，请确认 <code>assets/js/data.js</code> 存在，或改用 <code>python3 -m http.server</code> 启动本地服务。
         </p>
         <button class="btn btn--primary mt-md" onclick="Router.reload()">重试</button>
       </div>

@@ -139,15 +139,18 @@ const Utils = {
     if (Utils._dataCache.has(cacheKey)) {
       return Utils._dataCache.get(cacheKey);
     }
-    // 先尝试内联数据
-    const inlineVar = `CHAPTER_${chapterId}_DATA`;
+    // 章节 id 形如 "ch1"，而内联数据键与 JSON 文件名为数字形式
+    // （CHAPTER_1_DATA / chapter-1.json），需做 id -> 数字 的映射
+    const num = String(chapterId).replace(/\D+/g, '') || chapterId;
+    // 先尝试内联数据（兼容 file:// 直接双击 与 GitHub Pages HTTP/2）
+    const inlineVar = `CHAPTER_${num}_DATA`;
     const inline = this.getData(inlineVar);
     if (inline) {
       Utils._dataCache.set(cacheKey, inline);
       return inline;
     }
-    // Fallback
-    const data = await Utils.fetchJSON(`assets/data/chapter-${chapterId}.json`);
+    // Fallback: 数字文件名（fetchJSON 内部同样会优先命中内联数据）
+    const data = await Utils.fetchJSON(`assets/data/chapter-${num}.json`);
     Utils._dataCache.set(cacheKey, data);
     return data;
   },

@@ -9,11 +9,24 @@ const Quiz = {
   _userAnswers: [],
   _submitted: false,
 
-  /* === 加载测验数据 === */
+  /* === 加载测验数据（优先内联）=== */
   async loadData() {
     if (this._quizData) return this._quizData;
-    this._quizData = await Utils.fetchJSON('assets/data/quizzes.json');
-    return this._quizData;
+    // 优先从内联 data.js 获取（兼容 file:// 和 GitHub Pages）
+    const inline = Utils.getData('QUIZZES_DATA');
+    if (inline) {
+      this._quizData = inline;
+      return this._quizData;
+    }
+    // Fallback: fetch（仅 HTTP 服务器环境可用）
+    try {
+      this._quizData = await Utils.fetchJSON('assets/data/quizzes.json');
+      return this._quizData;
+    } catch (e) {
+      console.warn('Quiz 数据加载失败（非致命，测验功能不可用）:', e.message);
+      this._quizData = { quizzes: [], chapterQuizzes: [] };
+      return this._quizData;
+    }
   },
 
   /* === 获取小节测验题 === */

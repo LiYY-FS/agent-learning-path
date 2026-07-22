@@ -13,3 +13,8 @@ Thumbs.db
 # 日志与临时文件
 *.log
 tmp/
+
+# 依赖（本地测试用，不发布到仓库）
+node_modules/
+package-lock.json
+package.json
