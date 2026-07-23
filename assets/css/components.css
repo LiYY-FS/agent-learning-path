@@ -321,8 +321,9 @@
 
 .codeblock__line {
   display: block;
-  padding-left: var(--space-md);
+  padding-left: calc(2.5em + var(--space-sm) * 2 + 10px);
   position: relative;
+  min-height: var(--lh-code);
 }
 
 .codeblock__line-number {
@@ -341,7 +342,7 @@
 .codeblock__line--highlight {
   background: rgba(163, 113, 247, 0.1);
   border-left: 3px solid var(--accent-purple);
-  padding-left: calc(var(--space-md) - 3px);
+  padding-left: calc(2.5em + var(--space-sm) * 2 + 10px - 3px);
 }
 
 /* 代码折叠 */
