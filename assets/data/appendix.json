@@ -23,7 +23,7 @@
                 "filename": "python_basics.py",
                 "language": "python",
                 "title": "Python 基础语法速览",
-                "code": "# === 动态类型 ===\nname = \"Agent\"           # str\ncount = 42               # int\nprice = 9.99             # float\nactive = True            # bool\nitems = [1, 2, 3]        # list\ncfg = {\"key\": \"value\"}   # dict\n\n# === 类型注解（推荐使用）===\ndef greet(name: str, times: int = 1) -> str:\n    \"\"\"带类型注解的函数\"\"\"\n    return f\"Hello, {name}!\" * times\n\n# === f-string 格式化 ===\nversion = 3.12\nprint(f\"Python {version:.1f}\")  # Python 3.1\n\n# === 列表推导式 ===\nsquares = [x**2 for x in range(10) if x % 2 == 0]\n# [0, 4, 16, 36, 64]\n\n# === 字典推导式 ===\nword_len = {w: len(w) for w in [\"hello\", \"world\"]}\n# {'hello': 5, 'world': 5}",
+                "code": "import os\n# === 动态类型 ===\nname = \"Agent\"           # str\ncount = 42               # int\nprice = 9.99             # float\nactive = True            # bool\nitems = [1, 2, 3]        # list\ncfg = {\"key\": \"value\"}   # dict\n\n# === 类型注解（推荐使用）===\ndef greet(name: str, times: int = 1) -> str:\n    \"\"\"带类型注解的函数\"\"\"\n    return f\"Hello, {name}!\" * times\n\n# === f-string 格式化 ===\nversion = 3.12\nprint(f\"Python {version:.1f}\")  # Python 3.1\n\n# === 列表推导式 ===\nsquares = [x**2 for x in range(10) if x % 2 == 0]\n# [0, 4, 16, 36, 64]\n\n# === 字典推导式 ===\nword_len = {w: len(w) for w in [\"hello\", \"world\"]}\n# {'hello': 5, 'world': 5}",
                 "output": "Python 3.1\n[0, 4, 16, 36, 64]\n{'hello': 5, 'world': 5}"
               }
             }
@@ -39,7 +39,7 @@
                 "filename": "oop_basics.py",
                 "language": "python",
                 "title": "Python OOP 核心概念",
-                "code": "from dataclasses import dataclass\nfrom typing import Optional\n\n# === dataclass：简化数据类定义 ===\n@dataclass\nclass Tool:\n    name: str\n    description: str\n    enabled: bool = True\n\n# === 继承 ===\nclass BaseAgent:\n    def __init__(self, name: str):\n        self.name = name\n    \n    def run(self, query: str) -> str:\n        raise NotImplementedError\n\nclass ReActAgent(BaseAgent):\n    def __init__(self, name: str, tools: list[Tool]):\n        super().__init__(name)\n        self.tools = tools\n    \n    def run(self, query: str) -> str:\n        return f\"{self.name} processing: {query}\"\n\n# === 装饰器 ===\ndef retry(max_attempts: int = 3):\n    \"\"\"重试装饰器：Agent 开发常用\"\"\"\n    def decorator(func):\n        def wrapper(*args, **kwargs):\n            for attempt in range(max_attempts):\n                try:\n                    return func(*args, **kwargs)\n                except Exception as e:\n                    if attempt == max_attempts - 1:\n                        raise\n                    print(f\"Attempt {attempt+1} failed: {e}\")\n        return wrapper\n    return decorator\n\n@retry(max_attempts=3)\ndef call_llm(prompt: str) -> str:\n    \"\"\"带重试的 LLM 调用\"\"\"\n    return \"response\"\n\n# 使用\nagent = ReActAgent(\"Assistant\", [Tool(\"search\", \"搜索\")])\nprint(agent.run(\"hello\"))",
+                "code": "import os\nfrom dataclasses import dataclass\nfrom typing import Optional\n\n# === dataclass：简化数据类定义 ===\n@dataclass\nclass Tool:\n    name: str\n    description: str\n    enabled: bool = True\n\n# === 继承 ===\nclass BaseAgent:\n    def __init__(self, name: str):\n        self.name = name\n    \n    def run(self, query: str) -> str:\n        raise NotImplementedError\n\nclass ReActAgent(BaseAgent):\n    def __init__(self, name: str, tools: list[Tool]):\n        super().__init__(name)\n        self.tools = tools\n    \n    def run(self, query: str) -> str:\n        return f\"{self.name} processing: {query}\"\n\n# === 装饰器 ===\ndef retry(max_attempts: int = 3):\n    \"\"\"重试装饰器：Agent 开发常用\"\"\"\n    def decorator(func):\n        def wrapper(*args, **kwargs):\n            for attempt in range(max_attempts):\n                try:\n                    return func(*args, **kwargs)\n                except Exception as e:\n                    if attempt == max_attempts - 1:\n                        raise\n                    print(f\"Attempt {attempt+1} failed: {e}\")\n        return wrapper\n    return decorator\n\n@retry(max_attempts=3)\ndef call_llm(prompt: str) -> str:\n    \"\"\"带重试的 LLM 调用\"\"\"\n    return \"response\"\n\n# 使用\nagent = ReActAgent(\"Assistant\", [Tool(\"search\", \"搜索\")])\nprint(agent.run(\"hello\"))",
                 "output": "Assistant processing: hello"
               }
             }
@@ -59,8 +59,11 @@
                 "filename": "async_basics.py",
                 "language": "python",
                 "title": "asyncio 异步编程",
-                "highlightLines": [14, 15],
-                "code": "import asyncio\nimport httpx\n\n# === async/await 基础 ===\nasync def call_llm(prompt: str) -> str:\n    \"\"\"异步调用 LLM API\"\"\"\n    async with httpx.AsyncClient() as client:\n        resp = await client.post(\"https://api.openai.com/v1/chat/completions\",\n                                 json={\"model\": \"gpt-5\", \"messages\": [{\"role\": \"user\", \"content\": prompt}]})\n        return resp.json()[\"choices\"][0][\"message\"][\"content\"]\n\n# === 并发执行多个任务 ===\nasync def parallel_calls():\n    \"\"\"并发调用多个 LLM，大幅减少等待时间\"\"\"\n    prompts = [\"问题1\", \"问题2\", \"问题3\"]\n    # asyncio.gather 并发执行所有任务\n    results = await asyncio.gather(*[call_llm(p) for p in prompts])\n    return results\n\n# === 运行异步代码 ===\nasync def main():\n    results = await parallel_calls()\n    print(f\"获得 {len(results)} 个结果\")\n\nasyncio.run(main())",
+                "highlightLines": [
+                  14,
+                  15
+                ],
+                "code": "import os\nimport asyncio\nimport httpx\n\n# === async/await 基础 ===\nasync def call_llm(prompt: str) -> str:\n    \"\"\"异步调用 LLM API\"\"\"\n    async with httpx.AsyncClient() as client:\n        resp = await client.post(\"https://api.openai.com/v1/chat/completions\",\n                                 json={\"model\": \"gpt-5\", \"messages\": [{\"role\": \"user\", \"content\": prompt}]})\n        return resp.json()[\"choices\"][0][\"message\"][\"content\"]\n\n# === 并发执行多个任务 ===\nasync def parallel_calls():\n    \"\"\"并发调用多个 LLM，大幅减少等待时间\"\"\"\n    prompts = [\"问题1\", \"问题2\", \"问题3\"]\n    # asyncio.gather 并发执行所有任务\n    results = await asyncio.gather(*[call_llm(p) for p in prompts])\n    return results\n\n# === 运行异步代码 ===\nasync def main():\n    results = await parallel_calls()\n    print(f\"获得 {len(results)} 个结果\")\n\nasyncio.run(main())",
                 "output": "获得 3 个结果\n\n# 串行调用 3 个 LLM 约 3 秒\n# 并发调用 3 个 LLM 约 1 秒（3倍提速）",
                 "note": "asyncio.gather 是 Agent 并发调用工具的关键——将多个独立调用并行化"
               }
@@ -81,8 +84,14 @@
                 "filename": "pydantic_basics.py",
                 "language": "python",
                 "title": "Pydantic 数据建模",
-                "highlightLines": [8, 9, 10, 11, 12],
-                "code": "from pydantic import BaseModel, Field, validator\nfrom typing import Optional\n\n# === 定义数据模型 ===\nclass AgentConfig(BaseModel):\n    name: str = Field(..., description=\"Agent 名称\")\n    model: str = Field(default=\"gpt-5\", description=\"使用的 LLM\")\n    temperature: float = Field(default=0.7, ge=0, le=2)  # 0-2 之间\n    max_steps: int = Field(default=10, ge=1, le=100)\n    tools: list[str] = Field(default_factory=list)\n    \n    @validator('name')\n    def name_not_empty(cls, v):\n        if not v.strip():\n            raise ValueError('名称不能为空')\n        return v\n\n# === 自动校验 ===\nconfig = AgentConfig(name=\"MyAgent\", temperature=0.3)\nprint(config.model_dump())  # 转字典\nprint(config.model_json_schema())  # 生成 JSON Schema（用于 Function Calling）\n\n# === 校验失败抛出详细错误 ===\ntry:\n    bad = AgentConfig(name=\"\", temperature=5.0)  # 两个字段都非法\nexcept Exception as e:\n    print(f\"校验失败: {e}\")",
+                "highlightLines": [
+                  8,
+                  9,
+                  10,
+                  11,
+                  12
+                ],
+                "code": "import os\nfrom pydantic import BaseModel, Field, validator\nfrom typing import Optional\n\n# === 定义数据模型 ===\nclass AgentConfig(BaseModel):\n    name: str = Field(..., description=\"Agent 名称\")\n    model: str = Field(default=\"gpt-5\", description=\"使用的 LLM\")\n    temperature: float = Field(default=0.7, ge=0, le=2)  # 0-2 之间\n    max_steps: int = Field(default=10, ge=1, le=100)\n    tools: list[str] = Field(default_factory=list)\n    \n    @validator('name')\n    def name_not_empty(cls, v):\n        if not v.strip():\n            raise ValueError('名称不能为空')\n        return v\n\n# === 自动校验 ===\nconfig = AgentConfig(name=\"MyAgent\", temperature=0.3)\nprint(config.model_dump())  # 转字典\nprint(config.model_json_schema())  # 生成 JSON Schema（用于 Function Calling）\n\n# === 校验失败抛出详细错误 ===\ntry:\n    bad = AgentConfig(name=\"\", temperature=5.0)  # 两个字段都非法\nexcept Exception as e:\n    print(f\"校验失败: {e}\")",
                 "output": "{'name': 'MyAgent', 'model': 'gpt-5', 'temperature': 0.3, 'max_steps': 10, 'tools': []}\n\n校验失败: 2 validation errors for AgentConfig\n  name: 名称不能为空\n  temperature: ensure this value is less than or equal to 2",
                 "note": "Pydantic 自动生成 JSON Schema，可直接用于 OpenAI Function Calling 的工具定义"
               }
@@ -117,16 +126,52 @@
         {
           "type": "table",
           "data": {
-            "headers": ["能力", "重要性", "在 Agent 开发中的用途"],
+            "headers": [
+              "能力",
+              "重要性",
+              "在 Agent 开发中的用途"
+            ],
             "rows": [
-              ["**async/await 异步编程**", "⭐⭐⭐⭐⭐", "并发调用 LLM API 和工具，性能关键"],
-              ["**Pydantic 数据建模**", "⭐⭐⭐⭐⭐", "LLM 输出校验、Tool Schema 生成"],
-              ["**类型提示（Type Hints）**", "⭐⭐⭐⭐", "代码可读性、IDE 智能提示"],
-              ["**装饰器**", "⭐⭐⭐⭐", "重试、缓存、日志等横切关注点"],
-              ["**上下文管理器**", "⭐⭐⭐", "资源管理（API 客户端、文件句柄）"],
-              ["**生成器**", "⭐⭐⭐", "流式响应处理、惰性求值"],
-              ["**dataclass**", "⭐⭐⭐", "配置和数据结构定义"],
-              ["**functools**", "⭐⭐", "lru_cache 缓存、partial 偏函数"]
+              [
+                "**async/await 异步编程**",
+                "⭐⭐⭐⭐⭐",
+                "并发调用 LLM API 和工具，性能关键"
+              ],
+              [
+                "**Pydantic 数据建模**",
+                "⭐⭐⭐⭐⭐",
+                "LLM 输出校验、Tool Schema 生成"
+              ],
+              [
+                "**类型提示（Type Hints）**",
+                "⭐⭐⭐⭐",
+                "代码可读性、IDE 智能提示"
+              ],
+              [
+                "**装饰器**",
+                "⭐⭐⭐⭐",
+                "重试、缓存、日志等横切关注点"
+              ],
+              [
+                "**上下文管理器**",
+                "⭐⭐⭐",
+                "资源管理（API 客户端、文件句柄）"
+              ],
+              [
+                "**生成器**",
+                "⭐⭐⭐",
+                "流式响应处理、惰性求值"
+              ],
+              [
+                "**dataclass**",
+                "⭐⭐⭐",
+                "配置和数据结构定义"
+              ],
+              [
+                "**functools**",
+                "⭐⭐",
+                "lru_cache 缓存、partial 偏函数"
+              ]
             ]
           }
         },
@@ -144,22 +189,97 @@
         {
           "type": "table",
           "data": {
-            "headers": ["类别", "推荐技术", "用途", "优先级"],
+            "headers": [
+              "类别",
+              "推荐技术",
+              "用途",
+              "优先级"
+            ],
             "rows": [
-              ["**LLM SDK**", "openai, anthropic", "调用 GPT/Claude API", "⭐⭐⭐⭐⭐"],
-              ["**数据校验**", "pydantic v2", "数据模型、输出校验、Schema 生成", "⭐⭐⭐⭐⭐"],
-              ["**HTTP 客户端**", "httpx", "异步 HTTP 请求", "⭐⭐⭐⭐⭐"],
-              ["**Token 计算**", "tiktoken", "精确计算 Token 数", "⭐⭐⭐⭐"],
-              ["**重试机制**", "tenacity", "API 调用重试与退避", "⭐⭐⭐⭐"],
-              ["**终端美化**", "rich", "彩色输出、进度条、表格", "⭐⭐⭐"],
-              ["**CLI 工具**", "typer", "命令行界面开发", "⭐⭐⭐"],
-              ["**Web 框架**", "FastAPI", "Agent 服务化", "⭐⭐⭐⭐"],
-              ["**向量数据库**", "ChromaDB, Qdrant", "RAG 向量存储", "⭐⭐⭐⭐"],
-              ["**Agent 框架**", "LangChain, LangGraph", "Agent 开发框架", "⭐⭐⭐⭐⭐"],
-              ["**可观测性**", "LangFuse, LangSmith", "追踪、监控、评估", "⭐⭐⭐⭐"],
-              ["**任务队列**", "Celery + Redis", "异步长任务", "⭐⭐⭐"],
-              ["**容器化**", "Docker", "部署与隔离", "⭐⭐⭐⭐"],
-              ["**代码沙箱**", "E2B, Docker SDK", "安全代码执行", "⭐⭐⭐"]
+              [
+                "**LLM SDK**",
+                "openai, anthropic",
+                "调用 GPT/Claude API",
+                "⭐⭐⭐⭐⭐"
+              ],
+              [
+                "**数据校验**",
+                "pydantic v2",
+                "数据模型、输出校验、Schema 生成",
+                "⭐⭐⭐⭐⭐"
+              ],
+              [
+                "**HTTP 客户端**",
+                "httpx",
+                "异步 HTTP 请求",
+                "⭐⭐⭐⭐⭐"
+              ],
+              [
+                "**Token 计算**",
+                "tiktoken",
+                "精确计算 Token 数",
+                "⭐⭐⭐⭐"
+              ],
+              [
+                "**重试机制**",
+                "tenacity",
+                "API 调用重试与退避",
+                "⭐⭐⭐⭐"
+              ],
+              [
+                "**终端美化**",
+                "rich",
+                "彩色输出、进度条、表格",
+                "⭐⭐⭐"
+              ],
+              [
+                "**CLI 工具**",
+                "typer",
+                "命令行界面开发",
+                "⭐⭐⭐"
+              ],
+              [
+                "**Web 框架**",
+                "FastAPI",
+                "Agent 服务化",
+                "⭐⭐⭐⭐"
+              ],
+              [
+                "**向量数据库**",
+                "ChromaDB, Qdrant",
+                "RAG 向量存储",
+                "⭐⭐⭐⭐"
+              ],
+              [
+                "**Agent 框架**",
+                "LangChain, LangGraph",
+                "Agent 开发框架",
+                "⭐⭐⭐⭐⭐"
+              ],
+              [
+                "**可观测性**",
+                "LangFuse, LangSmith",
+                "追踪、监控、评估",
+                "⭐⭐⭐⭐"
+              ],
+              [
+                "**任务队列**",
+                "Celery + Redis",
+                "异步长任务",
+                "⭐⭐⭐"
+              ],
+              [
+                "**容器化**",
+                "Docker",
+                "部署与隔离",
+                "⭐⭐⭐⭐"
+              ],
+              [
+                "**代码沙箱**",
+                "E2B, Docker SDK",
+                "安全代码执行",
+                "⭐⭐⭐"
+              ]
             ]
           }
         }
