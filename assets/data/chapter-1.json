@@ -237,7 +237,7 @@
         "lessons": "1) Agent 的核心价值在于**自主决策**——它能根据上下文选择不同工具，而非走固定流程；2) 从简单场景起步，先覆盖高频问题，再逐步扩展；3) 保留转人工机制作为安全兜底，Agent 不需要解决所有问题。",
         "analysis": {
           "type": "knowledgePoint",
-          "title": "TOOLS 详解：工具是怎么被定义和调用的（零基础版）",
+          "title": "TOOLS 详解：工具是怎么被定义和调用的",
           "content": [
             {
               "type": "paragraph",
