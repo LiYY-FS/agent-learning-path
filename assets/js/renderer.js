@@ -454,7 +454,7 @@ const Renderer = {
 
   /* === 标记完成按钮 === */
   _renderMarkComplete(chapterId, sectionId) {
-    const isComplete = Progress.isSectionComplete(chapterId, sectionId);
+    let isComplete = Progress.isSectionComplete(chapterId, sectionId);
     const el = Utils.createElement('div', `mark-complete ${isComplete ? 'completed' : ''}`);
     el.id = 'markCompleteBtn';
     el.innerHTML = `
@@ -464,12 +464,20 @@ const Renderer = {
     el.addEventListener('click', () => {
       if (isComplete) {
         Progress.unmarkSection(chapterId, sectionId);
+        el.classList.remove('completed');
+        el.querySelector('.mark-complete__text').textContent = '标记本小节为已完成';
+        isComplete = false;
       } else {
         Progress.markSectionComplete(chapterId, sectionId);
+        el.classList.add('completed');
+        el.querySelector('.mark-complete__text').textContent = '已完成本小节';
+        isComplete = true;
         Utils.toast('恭喜完成本小节！', 'success');
       }
-      // 重新渲染
-      Router.reload();
+      // 就地同步侧边栏进度环与小节标记，避免整节重渲染导致页面滚动到顶部
+      if (typeof Sidebar !== 'undefined' && Sidebar.updateProgressRings) {
+        Sidebar.updateProgressRings();
+      }
     });
     return el;
   },
