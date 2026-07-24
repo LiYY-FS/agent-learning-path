@@ -252,16 +252,22 @@
               "data": {
                 "filename": "tools_snippet.py",
                 "language": "python",
-                "title": "TOOLS 清单长什么样（简化自客服示例）",
+                "title": "TOOLS 清单完整长什么样（含三个真实工具）",
                 "highlightLines": [
+                  1,
+                  2,
                   3,
                   4,
-                  5,
+                  6,
                   9,
                   10,
-                  11
+                  16,
+                  17,
+                  24,
+                  25,
+                  30
                 ],
-                "code": "# TOOLS 清单：告诉模型“你有哪些工具可用”\nTOOLS = [\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"search_knowledge_base\",\n        \"description\": \"搜索客服知识库获取标准答案\",\n        \"parameters\": {\n            \"type\": \"object\",\n            \"properties\": {\"query\": {\"type\": \"string\"}},\n            \"required\": [\"query\"]\n        }\n    }},\n    # ... 还可以继续加 query_order、transfer_to_human 等\n]"
+                "code": "# TOOLS 清单：告诉模型“你有哪些工具可用”。\n# 一个工具 = 一个 {type, function}；多个工具放进同一个列表。\nTOOLS = [\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"search_knowledge_base\",        # 工具名（模型点名用，必填）\n        \"description\": \"搜索客服知识库获取标准答案\",  # 给模型看，决定要不要调\n        \"parameters\": {                          # JSON Schema：描述调用参数\n            \"type\": \"object\",\n            \"properties\": {\n                \"query\": {\"type\": \"string\", \"description\": \"用户问题关键词\"}\n            },\n            \"required\": [\"query\"],               # 缺省会调用失败\n            \"additionalProperties\": False        # 禁止模型乱传未定义参数\n        }\n    }},\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"query_order\",\n        \"description\": \"查询用户订单状态\",\n        \"parameters\": {\n            \"type\": \"object\",\n            \"properties\": {\n                \"order_id\": {\"type\": \"string\", \"description\": \"订单号\"},\n                # enum 限定取值范围，模型只能从给定项里选\n                \"format\": {\"type\": \"string\", \"enum\": [\"brief\", \"detail\"]}\n            },\n            \"required\": [\"order_id\"]\n        }\n    }},\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"transfer_to_human\",\n        \"description\": \"转接人工客服（复杂问题或情绪激动时使用）\",\n        \"parameters\": {\"type\": \"object\", \"properties\": {}}  # 无参数也要给空对象\n    }}\n]"
               }
             },
             {
@@ -284,20 +290,93 @@
                   [
                     "**name**",
                     "工具的唯一名字",
-                    "模型靠它来“点名”调用，比如 search_knowledge_base"
+                    "模型靠它“点名”调用，比如 search_knowledge_base；只能含字母/数字/下划线，不能含空格"
                   ],
                   [
                     "**description**",
                     "人类语言说明这个工具干什么",
-                    "模型靠这段描述决定“该不该用这个工具”；写得越清楚，越不会用错"
+                    "模型靠这段描述决定“该不该用这个工具”；写得越清楚，越不会用错；建议写“何时用、返回什么”"
                   ],
                   [
                     "**parameters**",
                     "用 JSON Schema 描述调用要传哪些参数",
-                    "模型按这个格式生成参数（类型、必填项等）"
+                    "模型按这个格式生成参数（类型、必填项等）；无参数也要给空对象 {}"
+                  ],
+                  [
+                    "**strict**（可选）",
+                    "是否开启严格模式",
+                    "true 时模型输出严格符合 parameters 结构，多余字段会被拒；适合要稳定解析结果的场景"
                   ]
                 ]
               }
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "参数 / 字段",
+                  "写在哪一层",
+                  "说明"
+                ],
+                "rows": [
+                  [
+                    "**tools**",
+                    "API 调用参数",
+                    "工具的列表，传给 client.chat.completions.create(tools=...)"
+                  ],
+                  [
+                    "**tool_choice**",
+                    "API 调用参数",
+                    "auto / none / required / 指定某个工具名，控制要不要调、调哪个"
+                  ],
+                  [
+                    "**parallel_tool_calls**",
+                    "API 调用参数",
+                    "True 允许模型一次返回多个 tool_calls，False 一次只调一个"
+                  ],
+                  [
+                    "**type**",
+                    "每个工具对象",
+                    "固定写 \"function\"，表示这是函数类工具"
+                  ],
+                  [
+                    "**function.name**",
+                    "function 内",
+                    "工具名，模型点名调用时使用"
+                  ],
+                  [
+                    "**function.description**",
+                    "function 内",
+                    "工具用途说明，模型据此决策"
+                  ],
+                  [
+                    "**function.parameters**",
+                    "function 内",
+                    "JSON Schema：type/properties/required/additionalProperties"
+                  ],
+                  [
+                    "**function.strict**",
+                    "function 内",
+                    "可选；true 开启严格模式，输出严格贴合 schema"
+                  ],
+                  [
+                    "**message.tool_calls**",
+                    "模型返回",
+                    "助手消息里的工具调用请求列表：含 id / type / function.name / function.arguments"
+                  ],
+                  [
+                    "**role=\"tool\"**",
+                    "你回填",
+                    "工具结果消息：必须带 tool_call_id 与 content，与上面的 id 配对"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "parameters 里这些子字段也很关键",
+              "text": "properties 里每个参数可细分：type（string/number/boolean/array/object）、description（给模型看）、enum（限定取值）、default（默认值）。required 列出必填参数名；additionalProperties: false 能阻止模型乱传未定义的参数。把这些写全，模型生成的参数才稳。"
             },
             {
               "type": "callout",

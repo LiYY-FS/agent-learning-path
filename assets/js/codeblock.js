@@ -88,6 +88,7 @@ const CodeBlock = {
     // 预期输出
     if (output) {
       const outputEl = Utils.createElement('div', 'codeblock__output');
+      outputEl.classList.add('expanded'); // 默认展开，点击可收起
       const outputHeader = Utils.createElement('div', 'codeblock__output-header');
       outputHeader.innerHTML = '<span class="codeblock__output-toggle"></span>预期输出';
       outputHeader.addEventListener('click', () => outputEl.classList.toggle('expanded'));
