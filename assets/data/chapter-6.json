@@ -1,125 +1,670 @@
 {
-  "id": "ch6", "number": 6, "title": "前沿趋势展望",
+  "id": "ch6",
+  "number": 6,
+  "title": "前沿趋势展望",
   "subtitle": "建立前瞻视角，把握 Agent 技术发展方向",
-  "estimatedHours": 10, "difficulty": 2,
+  "estimatedHours": 10,
+  "difficulty": 2,
   "sections": [
     {
-      "id": "6.1", "title": "Agent OS 与 Agent 操作系统", "subtitle": "理解 Agent OS 愿景",
-      "estimatedMinutes": 15, "difficulty": 3,
-      "objectives": ["理解 Agent OS 概念", "了解探索项目", "理解对开发者的意义"],
-      "content": [
-        {"type": "knowledgePoint", "title": "Agent OS 概念", "content": [
-          {"type": "paragraph", "text": "**Agent OS** 是为 AI Agent 提供标准化运行环境的操作系统，类似传统 OS 对应用程序的作用。它管理 Agent 的资源（模型、工具、数据）、调度（任务队列）、通信（Agent 间消息）、安全（权限隔离）。"},
-          {"type": "table", "data": {"headers": ["项目", "机构", "特点"], "rows": [["**AIOS**", "Rutgers University", "学术原型，Agent 调度与资源管理"], ["**AgentOS**", "开源社区", "模块化 Agent 运行时"], ["**Microsoft Agent Framework**", "微软", "统一多 Agent 运行时（AutoGen 进入维护模式）"]]}},
-          {"type": "callout", "variant": "tip", "title": "2026 现实：编码 Agent 即「软件 Agent OS」", "text": "2026 年最落地的 Agent OS 形态是 agentic 编码平台：Claude Code（终端优先、可并行子 Agent）、OpenAI Codex（云端沙箱、异步并行任务）、Google Antigravity（Google 的 agentic 开发平台，搭配 Gemini 3.5）。它们统一了「模型 + 工具 + 沙箱 + 文件系统 + 多 Agent 编排」，让 Agent 在受控环境中自主写代码、跑命令、修 Bug。"},
-          {"type": "callout", "variant": "info", "title": "与传统 OS 的差异", "text": "传统 OS 管理 CPU/内存/磁盘等物理资源；Agent OS 管理模型/工具/数据等 AI 资源。Agent OS 还需处理概率性执行、自然语言接口等新挑战。"}
-        ]}
+      "id": "6.1",
+      "title": "Agent OS 与 Agent 操作系统",
+      "subtitle": "理解 Agent OS 愿景",
+      "estimatedMinutes": 15,
+      "difficulty": 3,
+      "objectives": [
+        "理解 Agent OS 概念",
+        "了解探索项目",
+        "理解对开发者的意义"
       ],
-      "exercises": [{"title": "调研 Agent OS 项目", "description": "调研 AIOS 或 AgentOS 项目，总结其架构和特点。", "hints": "关注资源管理和调度机制"}],
-      "resources": [{"type": "paper", "title": "AIOS: AI Agent Operating System", "url": "https://arxiv.org/abs/2403.16971"}],
-      "quiz": ["ch6-6.1-q1"]
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "Agent OS 概念",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**Agent OS** 是为 AI Agent 提供标准化运行环境的操作系统，类似传统 OS 对应用程序的作用。它管理 Agent 的资源（模型、工具、数据）、调度（任务队列）、通信（Agent 间消息）、安全（权限隔离）。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "项目",
+                  "机构",
+                  "特点"
+                ],
+                "rows": [
+                  [
+                    "**AIOS**",
+                    "Rutgers University",
+                    "学术原型，Agent 调度与资源管理"
+                  ],
+                  [
+                    "**AgentOS**",
+                    "开源社区",
+                    "模块化 Agent 运行时"
+                  ],
+                  [
+                    "**Microsoft Agent Framework**",
+                    "微软",
+                    "统一多 Agent 运行时（AutoGen 进入维护模式）"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "2026 现实：编码 Agent 即「软件 Agent OS」",
+              "text": "2026 年最落地的 Agent OS 形态是 agentic 编码平台：Claude Code（终端优先、可并行子 Agent）、OpenAI Codex（云端沙箱、异步并行任务）、Google Antigravity（Google 的 agentic 开发平台，搭配 Gemini 3.5）。它们统一了「模型 + 工具 + 沙箱 + 文件系统 + 多 Agent 编排」，让 Agent 在受控环境中自主写代码、跑命令、修 Bug。"
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "与传统 OS 的差异",
+              "text": "传统 OS 管理 CPU/内存/磁盘等物理资源；Agent OS 管理模型/工具/数据等 AI 资源。Agent OS 还需处理概率性执行、自然语言接口等新挑战。"
+            }
+          ]
+        }
+      ],
+      "exercises": [
+        {
+          "title": "调研 Agent OS 项目",
+          "description": "调研 AIOS 或 AgentOS 项目，总结其架构和特点。",
+          "hints": "关注资源管理和调度机制"
+        }
+      ],
+      "resources": [
+        {
+          "type": "paper",
+          "title": "AIOS: AI Agent Operating System",
+          "url": "https://arxiv.org/abs/2403.16971"
+        }
+      ],
+      "quiz": [
+        "ch6-6.1-q1"
+      ]
     },
     {
-      "id": "6.2", "title": "具身智能与物理 Agent", "subtitle": "机器人 + LLM",
-      "estimatedMinutes": 15, "difficulty": 2,
-      "objectives": ["了解具身智能概念", "理解机器人+LLM 结合", "了解代表项目"],
-      "content": [
-        {"type": "knowledgePoint", "title": "具身智能（Embodied AI）", "content": [
-          {"type": "paragraph", "text": "**具身智能**是将 LLM 的推理能力与物理机器人的感知执行能力结合，让 AI 能在物理世界中行动。这是从数字 Agent 到物理 Agent 的跨越。"},
-          {"type": "table", "data": {"headers": ["项目", "公司", "特点"], "rows": [["**Figure 01/02**", "Figure AI", "人形机器人 + OpenAI 模型"], ["**Optimus**", "Tesla", "人形机器人，自主任务执行"], ["**RT-2**", "Google DeepMind", "视觉-语言-动作模型"], ["**GR-1**", "字节跳动", "人形机器人通用模型"]]}},
-          {"type": "callout", "variant": "tip", "title": "Sim-to-Real", "text": "具身智能核心挑战是 Sim-to-Real（仿真到现实）：在仿真环境中训练，迁移到真实世界。差距（reality gap）是主要难题。"}
-        ]}
+      "id": "6.2",
+      "title": "具身智能与物理 Agent",
+      "subtitle": "机器人 + LLM",
+      "estimatedMinutes": 15,
+      "difficulty": 2,
+      "objectives": [
+        "了解具身智能概念",
+        "理解机器人+LLM 结合",
+        "了解代表项目"
       ],
-      "exercises": [{"title": "调研具身智能项目", "description": "选择一个具身智能项目深入调研。", "hints": "关注感知-决策-执行链路"}],
-      "resources": [{"type": "paper", "title": "RT-2: Vision-Language-Action Models", "url": "https://robotics-transformer2.github.io/"}],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "具身智能（Embodied AI）",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**具身智能**是将 LLM 的推理能力与物理机器人的感知执行能力结合，让 AI 能在物理世界中行动。这是从数字 Agent 到物理 Agent 的跨越。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "项目",
+                  "公司",
+                  "特点"
+                ],
+                "rows": [
+                  [
+                    "**Figure 01/02**",
+                    "Figure AI",
+                    "人形机器人 + OpenAI 模型"
+                  ],
+                  [
+                    "**Optimus**",
+                    "Tesla",
+                    "人形机器人，自主任务执行"
+                  ],
+                  [
+                    "**RT-2**",
+                    "Google DeepMind",
+                    "视觉-语言-动作模型"
+                  ],
+                  [
+                    "**GR-1**",
+                    "字节跳动",
+                    "人形机器人通用模型"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "Sim-to-Real",
+              "text": "具身智能核心挑战是 Sim-to-Real（仿真到现实）：在仿真环境中训练，迁移到真实世界。差距（reality gap）是主要难题。"
+            }
+          ]
+        }
+      ],
+      "exercises": [
+        {
+          "title": "调研具身智能项目",
+          "description": "选择一个具身智能项目深入调研。",
+          "hints": "关注感知-决策-执行链路"
+        }
+      ],
+      "resources": [
+        {
+          "type": "paper",
+          "title": "RT-2: Vision-Language-Action Models",
+          "url": "https://robotics-transformer2.github.io/"
+        }
+      ],
       "quiz": []
     },
     {
-      "id": "6.3", "title": "AGI 路线与 Agent 演进", "subtitle": "Agent 在 AGI 路径中的位置",
-      "estimatedMinutes": 15, "difficulty": 3,
-      "objectives": ["理解 AGI 概念", "了解自主性等级", "认识 Agent 与 AGI 的差距"],
-      "content": [
-        {"type": "knowledgePoint", "title": "AGI 与 Agent 演进", "content": [
-          {"type": "paragraph", "text": "**AGI（通用人工智能）** 指能像人类一样在各种任务中表现出智能的 AI。Agent 是通往 AGI 的重要路径——从任务特定到任务通用。"},
-          {"type": "table", "data": {"headers": ["等级", "名称", "描述", "当前状态"], "rows": [["**L1**", "工具型", "人工指定工具调用", "✅ 已实现"], ["**L2**", "任务型", "给定任务自主完成", "✅ 已实现"], ["**L3**", "自主型", "给定大目标自主分解执行", "⚠️ 部分实现"], ["**L4**", "自适应型", "能学习适应新领域", "🔬 研究中"], ["**L5**", "通用型", "AGI，跨领域通用", "❌ 未实现"]]}},
-          {"type": "callout", "variant": "note", "title": "当前水平", "text": "当前最好的 Agent 系统约在 L2-L3 之间。从 L3 到 L4（自适应学习）和 L4 到 L5（通用智能）仍有巨大差距，可能需要新的技术突破。"}
-        ]}
+      "id": "6.3",
+      "title": "AGI 路线与 Agent 演进",
+      "subtitle": "Agent 在 AGI 路径中的位置",
+      "estimatedMinutes": 15,
+      "difficulty": 3,
+      "objectives": [
+        "理解 AGI 概念",
+        "了解自主性等级",
+        "认识 Agent 与 AGI 的差距"
       ],
-      "exercises": [{"title": "绘制自主性演进图", "description": "绘制 Agent 自主性 L1-L5 演进图，标注当前技术水平。", "hints": "参考等级表"}],
-      "resources": [{"type": "paper", "title": "Levels of AGI", "url": "https://arxiv.org/abs/2311.17824"}],
-      "quiz": ["ch6-6.3-q1"]
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "AGI 与 Agent 演进",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**AGI（通用人工智能）** 指能像人类一样在各种任务中表现出智能的 AI。Agent 是通往 AGI 的重要路径——从任务特定到任务通用。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "等级",
+                  "名称",
+                  "描述",
+                  "当前状态"
+                ],
+                "rows": [
+                  [
+                    "**L1**",
+                    "工具型",
+                    "人工指定工具调用",
+                    "✅ 已实现"
+                  ],
+                  [
+                    "**L2**",
+                    "任务型",
+                    "给定任务自主完成",
+                    "✅ 已实现"
+                  ],
+                  [
+                    "**L3**",
+                    "自主型",
+                    "给定大目标自主分解执行",
+                    "⚠️ 部分实现"
+                  ],
+                  [
+                    "**L4**",
+                    "自适应型",
+                    "能学习适应新领域",
+                    "🔬 研究中"
+                  ],
+                  [
+                    "**L5**",
+                    "通用型",
+                    "AGI，跨领域通用",
+                    "❌ 未实现"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "note",
+              "title": "当前水平",
+              "text": "当前最好的 Agent 系统约在 L2-L3 之间。从 L3 到 L4（自适应学习）和 L4 到 L5（通用智能）仍有巨大差距，可能需要新的技术突破。"
+            }
+          ]
+        }
+      ],
+      "exercises": [
+        {
+          "title": "绘制自主性演进图",
+          "description": "绘制 Agent 自主性 L1-L5 演进图，标注当前技术水平。",
+          "hints": "参考等级表"
+        }
+      ],
+      "resources": [
+        {
+          "type": "paper",
+          "title": "Levels of AGI",
+          "url": "https://arxiv.org/abs/2311.17824"
+        }
+      ],
+      "quiz": [
+        "ch6-6.3-q1"
+      ]
     },
     {
-      "id": "6.4", "title": "多模态 Agent", "subtitle": "视觉/语音/视频理解",
-      "estimatedMinutes": 15, "difficulty": 2,
-      "objectives": ["了解多模态 Agent 能力", "理解多模态工具调用", "了解多模态 RAG"],
-      "content": [
-        {"type": "knowledgePoint", "title": "多模态 Agent 能力", "content": [
-          {"type": "table", "data": {"headers": ["模态", "能力", "代表模型", "应用场景"], "rows": [["**视觉**", "理解图片/截图", "GPT-5, Claude Opus 4.8", "UI 分析、图表理解"], ["**语音**", "语音对话", "GPT-5 Voice", "语音助手、实时翻译"], ["**视频**", "理解视频内容", "Gemini 3.5", "视频分析、监控"], ["**多模态工具**", "调用视觉/语音工具", "Computer Use", "GUI 操作、文档处理"]]}},
-          {"type": "callout", "variant": "info", "title": "多模态 RAG", "text": "多模态 RAG 不仅能检索文本，还能检索图片、表格、视频片段。例如：查询产品手册时，同时返回相关文字说明和操作示意图。"}
-        ]}
+      "id": "6.4",
+      "title": "多模态 Agent",
+      "subtitle": "视觉/语音/视频理解",
+      "estimatedMinutes": 15,
+      "difficulty": 2,
+      "objectives": [
+        "了解多模态 Agent 能力",
+        "理解多模态工具调用",
+        "了解多模态 RAG"
       ],
-      "exercises": [{"title": "体验多模态 Agent", "description": "体验 GPT-5 的视觉能力，分析一张架构图。", "hints": "上传图片让 Agent 解释"}],
-      "resources": [{"type": "doc", "title": "GPT-5 多模态", "url": "https://platform.openai.com/docs/guides/vision"}],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "多模态 Agent 能力",
+          "content": [
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "模态",
+                  "能力",
+                  "代表模型",
+                  "应用场景"
+                ],
+                "rows": [
+                  [
+                    "**视觉**",
+                    "理解图片/截图",
+                    "GPT-5, Claude Opus 4.8",
+                    "UI 分析、图表理解"
+                  ],
+                  [
+                    "**语音**",
+                    "语音对话",
+                    "GPT-5 Voice",
+                    "语音助手、实时翻译"
+                  ],
+                  [
+                    "**视频**",
+                    "理解视频内容",
+                    "Gemini 3.5",
+                    "视频分析、监控"
+                  ],
+                  [
+                    "**多模态工具**",
+                    "调用视觉/语音工具",
+                    "Computer Use",
+                    "GUI 操作、文档处理"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "多模态 RAG",
+              "text": "多模态 RAG 不仅能检索文本，还能检索图片、表格、视频片段。例如：查询产品手册时，同时返回相关文字说明和操作示意图。"
+            }
+          ]
+        }
+      ],
+      "exercises": [
+        {
+          "title": "体验多模态 Agent",
+          "description": "体验 GPT-5 的视觉能力，分析一张架构图。",
+          "hints": "上传图片让 Agent 解释"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "GPT-5 多模态",
+          "url": "https://platform.openai.com/docs/guides/vision"
+        }
+      ],
       "quiz": []
     },
     {
-      "id": "6.5", "title": "Agent 安全与对齐", "subtitle": "AI 安全挑战",
-      "estimatedMinutes": 15, "difficulty": 3,
-      "objectives": ["理解对齐问题", "了解 RLHF 技术", "认识 Agent 安全风险"],
-      "content": [
-        {"type": "knowledgePoint", "title": "AI 对齐与安全", "content": [
-          {"type": "paragraph", "text": "**对齐问题（Alignment Problem）** 是确保 AI 行为符合人类价值观的核心挑战。Agent 因为能执行实际操作，安全风险比纯文本 LLM 更大。"},
-          {"type": "table", "data": {"headers": ["安全风险", "说明", "研究方向"], "rows": [["**目标误解**", "Agent 误解用户意图", "意图澄清、确认机制"], ["**工具滥用**", "Agent 滥用工具权限", "权限最小化、HITL"], ["**欺骗行为**", "Agent 为达目标欺骗用户", "诚实性训练、可审计"], ["**能力越界**", "Agent 超出预期能力范围", "能力监测、紧急停止"]]}},
-          {"type": "callout", "variant": "warning", "title": "RLHF 与对齐", "text": "**RLHF（基于人类反馈的强化学习）** 是当前主要的对齐技术：通过人类偏好数据训练奖励模型，引导 LLM 行为对齐人类价值观。但 RLHF 不完美，越狱攻击仍可能成功。"}
-        ]}
+      "id": "6.5",
+      "title": "Agent 安全与对齐",
+      "subtitle": "AI 安全挑战",
+      "estimatedMinutes": 15,
+      "difficulty": 3,
+      "objectives": [
+        "理解对齐问题",
+        "了解 RLHF 技术",
+        "认识 Agent 安全风险"
       ],
-      "exercises": [{"title": "设计安全评估方案", "description": "为 Agent 设计安全评估方案，包含红队测试。", "hints": "参考 OWASP LLM Top 10"}],
-      "resources": [{"type": "doc", "title": "Anthropic 安全研究", "url": "https://www.anthropic.com/research"}, {"type": "doc", "title": "NIST AI 风险管理", "url": "https://www.nist.gov/itl/ai-risk-management-framework"}],
-      "quiz": ["ch6-6.5-q1"]
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "AI 对齐与安全",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**对齐问题（Alignment Problem）** 是确保 AI 行为符合人类价值观的核心挑战。Agent 因为能执行实际操作，安全风险比纯文本 LLM 更大。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "安全风险",
+                  "说明",
+                  "研究方向"
+                ],
+                "rows": [
+                  [
+                    "**目标误解**",
+                    "Agent 误解用户意图",
+                    "意图澄清、确认机制"
+                  ],
+                  [
+                    "**工具滥用**",
+                    "Agent 滥用工具权限",
+                    "权限最小化、HITL"
+                  ],
+                  [
+                    "**欺骗行为**",
+                    "Agent 为达目标欺骗用户",
+                    "诚实性训练、可审计"
+                  ],
+                  [
+                    "**能力越界**",
+                    "Agent 超出预期能力范围",
+                    "能力监测、紧急停止"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "RLHF 与对齐",
+              "text": "**RLHF（基于人类反馈的强化学习）** 是当前主要的对齐技术：通过人类偏好数据训练奖励模型，引导 LLM 行为对齐人类价值观。但 RLHF 不完美，越狱攻击仍可能成功。"
+            }
+          ]
+        }
+      ],
+      "exercises": [
+        {
+          "title": "设计安全评估方案",
+          "description": "为 Agent 设计安全评估方案，包含红队测试。",
+          "hints": "参考 OWASP LLM Top 10"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "Anthropic 安全研究",
+          "url": "https://www.anthropic.com/research"
+        },
+        {
+          "type": "doc",
+          "title": "NIST AI 风险管理",
+          "url": "https://www.nist.gov/itl/ai-risk-management-framework"
+        }
+      ],
+      "quiz": [
+        "ch6-6.5-q1"
+      ]
     },
     {
-      "id": "6.6", "title": "Agent 经济与市场化", "subtitle": "Agent 商业化方向",
-      "estimatedMinutes": 15, "difficulty": 2,
-      "objectives": ["了解 AgentaaS 模式", "理解 Agent 市场", "探索商业模式"],
-      "content": [
-        {"type": "knowledgePoint", "title": "Agent 经济", "content": [
-          {"type": "paragraph", "text": "随着 Agent 能力提升，Agent 正在形成新的经济形态：**Agent 即服务（AgentaaS）**、Agent 间交易市场、Agent 自主经济行为。"},
-          {"type": "table", "data": {"headers": ["商业模式", "说明", "示例"], "rows": [["**AgentaaS**", "Agent 作为云服务提供", "OpenAI Agents SDK / 云厂商 Agent 服务"], ["**按结果付费**", "按任务完成效果收费", "代码审查按 PR 收费"], ["**Agent 市场**", "Agent 交易和订阅平台", "GPT Store、Coze 商店"], ["**Agent 协作**", "Agent 间委托任务并付费", "自主 Agent 经济体"]]}},
-          {"type": "callout", "variant": "info", "title": "未来展望", "text": "未来可能出现 Agent 间自主交易的经济系统——Agent A 委托 Agent B 完成子任务并支付费用。这需要 Agent 身份认证、信誉系统、支付协议等基础设施。"}
-        ]}
+      "id": "6.6",
+      "title": "Agent 经济与市场化",
+      "subtitle": "Agent 商业化方向",
+      "estimatedMinutes": 15,
+      "difficulty": 2,
+      "objectives": [
+        "了解 AgentaaS 模式",
+        "理解 Agent 市场",
+        "探索商业模式"
       ],
-      "exercises": [{"title": "设计 Agent 商业模式", "description": "为一个 Agent 产品设计商业模式。", "hints": "考虑订阅/按调用/按结果三种模式"}],
-      "resources": [{"type": "blog", "title": "a16z AI 投资报告", "url": "https://a16z.com/"}],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "Agent 经济",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "随着 Agent 能力提升，Agent 正在形成新的经济形态：**Agent 即服务（AgentaaS）**、Agent 间交易市场、Agent 自主经济行为。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "商业模式",
+                  "说明",
+                  "示例"
+                ],
+                "rows": [
+                  [
+                    "**AgentaaS**",
+                    "Agent 作为云服务提供",
+                    "OpenAI Agents SDK / 云厂商 Agent 服务"
+                  ],
+                  [
+                    "**按结果付费**",
+                    "按任务完成效果收费",
+                    "代码审查按 PR 收费"
+                  ],
+                  [
+                    "**Agent 市场**",
+                    "Agent 交易和订阅平台",
+                    "GPT Store、Coze 商店"
+                  ],
+                  [
+                    "**Agent 协作**",
+                    "Agent 间委托任务并付费",
+                    "自主 Agent 经济体"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "未来展望",
+              "text": "未来可能出现 Agent 间自主交易的经济系统——Agent A 委托 Agent B 完成子任务并支付费用。这需要 Agent 身份认证、信誉系统、支付协议等基础设施。"
+            }
+          ]
+        }
+      ],
+      "exercises": [
+        {
+          "title": "设计 Agent 商业模式",
+          "description": "为一个 Agent 产品设计商业模式。",
+          "hints": "考虑订阅/按调用/按结果三种模式"
+        }
+      ],
+      "resources": [
+        {
+          "type": "blog",
+          "title": "a16z AI 投资报告",
+          "url": "https://a16z.com/"
+        }
+      ],
       "quiz": []
     },
     {
-      "id": "6.7", "title": "开源生态动态", "subtitle": "跟踪开源生态",
-      "estimatedMinutes": 15, "difficulty": 2,
-      "objectives": ["了解重要开源项目", "跟踪开源模型", "了解本地部署方案"],
-      "content": [
-        {"type": "knowledgePoint", "title": "开源生态概览", "content": [
-          {"type": "table", "data": {"headers": ["类别", "项目", "特点"], "rows": [["**Agent 框架**", "LangChain, LlamaIndex, CrewAI, AutoGen", "持续迭代，生态丰富"], ["**开源模型**", "Llama 4, Qwen (最新版), DeepSeek V4", "性能比肩闭源，可本地部署"], ["**本地部署**", "Ollama, vLLM, LM Studio", "简化本地推理部署"], ["**向量数据库**", "Chroma, Qdrant, Milvus", "开源 RAG 基础设施"], ["**评估工具**", "RAGAS, DeepEval, Promptfoo", "Agent 质量评估"]]}},
-          {"type": "callout", "variant": "tip", "title": "如何跟踪动态", "text": "1) GitHub Trending（关注 AI/LLM 标签）；2) Hugging Face Trending；3) r/LocalLLaMA；4) LangChain/LlamaIndex Discord；5) ArXiv 每日论文。建议每周花 1 小时跟踪。"}
-        ]}
+      "id": "6.7",
+      "title": "开源生态动态",
+      "subtitle": "跟踪开源生态",
+      "estimatedMinutes": 15,
+      "difficulty": 2,
+      "objectives": [
+        "了解重要开源项目",
+        "跟踪开源模型",
+        "了解本地部署方案"
       ],
-      "exercises": [{"title": "关注开源项目", "description": "在 GitHub 上关注 3 个 Agent 开源项目并跟踪更新。", "hints": "Star 项目并开启 Release 通知"}],
-      "resources": [{"type": "tool", "title": "GitHub Trending", "url": "https://github.com/trending"}, {"type": "tool", "title": "Hugging Face", "url": "https://huggingface.co/"}],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "开源生态概览",
+          "content": [
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "类别",
+                  "项目",
+                  "特点"
+                ],
+                "rows": [
+                  [
+                    "**Agent 框架**",
+                    "LangChain, LlamaIndex, CrewAI, AutoGen",
+                    "持续迭代，生态丰富"
+                  ],
+                  [
+                    "**开源模型**",
+                    "Llama 4, Qwen (最新版), DeepSeek V4",
+                    "性能比肩闭源，可本地部署"
+                  ],
+                  [
+                    "**本地部署**",
+                    "Ollama, vLLM, LM Studio",
+                    "简化本地推理部署"
+                  ],
+                  [
+                    "**向量数据库**",
+                    "Chroma, Qdrant, Milvus",
+                    "开源 RAG 基础设施"
+                  ],
+                  [
+                    "**评估工具**",
+                    "RAGAS, DeepEval, Promptfoo",
+                    "Agent 质量评估"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "如何跟踪动态",
+              "text": "1) GitHub Trending（关注 AI/LLM 标签）；2) Hugging Face Trending；3) r/LocalLLaMA；4) LangChain/LlamaIndex Discord；5) ArXiv 每日论文。建议每周花 1 小时跟踪。"
+            }
+          ]
+        }
+      ],
+      "exercises": [
+        {
+          "title": "关注开源项目",
+          "description": "在 GitHub 上关注 3 个 Agent 开源项目并跟踪更新。",
+          "hints": "Star 项目并开启 Release 通知"
+        }
+      ],
+      "resources": [
+        {
+          "type": "tool",
+          "title": "GitHub Trending",
+          "url": "https://github.com/trending"
+        },
+        {
+          "type": "tool",
+          "title": "Hugging Face",
+          "url": "https://huggingface.co/"
+        }
+      ],
       "quiz": []
     },
     {
-      "id": "6.8", "title": "学习资源与社区", "subtitle": "建立持续学习路径",
-      "estimatedMinutes": 10, "difficulty": 1,
-      "objectives": ["获取必读论文清单", "了解在线课程", "加入活跃社区"],
-      "content": [
-        {"type": "knowledgePoint", "title": "持续学习资源", "content": [
-          {"type": "paragraph", "text": "Agent 领域发展极快，持续学习是保持竞争力的关键。以下资源按优先级排序。"},
-          {"type": "table", "data": {"headers": ["类别", "资源", "推荐"], "rows": [["**论文**", "ReAct, ToT, Reflexion, GraphRAG", "必读经典"], ["**课程**", "DeepLearning.AI 系列, Anthropic 官方", "系统学习"], ["**社区**", "LangChain Discord, r/LocalLLaMA", "实时交流"], ["**博客**", "Anthropic Blog, Lilian Weng, LangChain Blog", "深度分析"], ["**会议**", "NeurIPS, ACL, ICML", "前沿研究"], ["**Newsletter**", "The Batch, AI Tool Report", "定期推送"]]}},
-          {"type": "callout", "variant": "note", "title": "学习方法论", "text": "1) **20%时间跟前沿**：每周读 1-2 篇论文/博客；2) **60%时间动手做**：每月完成 1 个小项目；3) **20%时间教别人**：写博客或分享。输入-实践-输出循环是最高效的学习方式。"}
-        ]}
+      "id": "6.8",
+      "title": "学习资源与社区",
+      "subtitle": "建立持续学习路径",
+      "estimatedMinutes": 10,
+      "difficulty": 1,
+      "objectives": [
+        "获取必读论文清单",
+        "了解在线课程",
+        "加入活跃社区"
       ],
-      "exercises": [{"title": "制定持续学习计划", "description": "制定个人持续学习计划：每周/每月的学习目标。", "hints": "参考 20-60-20 时间分配"}],
-      "resources": [{"type": "course", "title": "DeepLearning.AI 短课程", "url": "https://www.deeplearning.ai/short-courses/"}, {"type": "doc", "title": "Anthropic 学习中心", "url": "https://anthropic.com/news"}],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "持续学习资源",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 领域发展极快，持续学习是保持竞争力的关键。以下资源按优先级排序。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "类别",
+                  "资源",
+                  "推荐"
+                ],
+                "rows": [
+                  [
+                    "**论文**",
+                    "ReAct, ToT, Reflexion, GraphRAG",
+                    "必读经典"
+                  ],
+                  [
+                    "**课程**",
+                    "DeepLearning.AI 系列, Anthropic 官方",
+                    "系统学习"
+                  ],
+                  [
+                    "**社区**",
+                    "LangChain Discord, r/LocalLLaMA",
+                    "实时交流"
+                  ],
+                  [
+                    "**博客**",
+                    "Anthropic Blog, Lilian Weng, LangChain Blog",
+                    "深度分析"
+                  ],
+                  [
+                    "**会议**",
+                    "NeurIPS, ACL, ICML",
+                    "前沿研究"
+                  ],
+                  [
+                    "**Newsletter**",
+                    "The Batch, AI Tool Report",
+                    "定期推送"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "note",
+              "title": "学习方法论",
+              "text": "1) **20%时间跟前沿**：每周读 1-2 篇论文/博客；2) **60%时间动手做**：每月完成 1 个小项目；3) **20%时间教别人**：写博客或分享。输入-实践-输出循环是最高效的学习方式。"
+            }
+          ]
+        }
+      ],
+      "exercises": [
+        {
+          "title": "制定持续学习计划",
+          "description": "制定个人持续学习计划：每周/每月的学习目标。",
+          "hints": "参考 20-60-20 时间分配"
+        }
+      ],
+      "resources": [
+        {
+          "type": "course",
+          "title": "DeepLearning.AI 短课程",
+          "url": "https://www.deeplearning.ai/short-courses/"
+        },
+        {
+          "type": "doc",
+          "title": "Anthropic 学习中心",
+          "url": "https://anthropic.com/news"
+        }
+      ],
       "quiz": []
     }
   ]
