@@ -600,6 +600,90 @@
         },
         {
           "type": "knowledgePoint",
+          "title": "Function Calling 完整参数速查表（请求 / 响应全字段）",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "把 Function Calling 拆开看，其实就是「你传给 API 的请求参数」和「模型返回、你再回填的内容」两部分。下面这张表把每个字段写在哪一层、干什么用一次说清，可作为随时查阅的“字典”。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "参数 / 字段",
+                  "写在哪一层",
+                  "说明"
+                ],
+                "rows": [
+                  [
+                    "**tools**",
+                    "API 调用参数",
+                    "工具的列表，传给 client.chat.completions.create(tools=...)"
+                  ],
+                  [
+                    "**tool_choice**",
+                    "API 调用参数",
+                    "auto / none / required / 指定某个工具名，控制要不要调、调哪个"
+                  ],
+                  [
+                    "**parallel_tool_calls**",
+                    "API 调用参数",
+                    "True 允许模型一次返回多个 tool_calls；False 一次只调一个（注意：设为 False 只是不并行，不代表禁止调用）"
+                  ],
+                  [
+                    "**type**",
+                    "每个工具对象",
+                    "固定写 \"function\"，表示这是函数类工具"
+                  ],
+                  [
+                    "**function.name**",
+                    "function 内",
+                    "工具名，模型点名调用时使用"
+                  ],
+                  [
+                    "**function.description**",
+                    "function 内",
+                    "工具用途说明，模型据此决策要不要调"
+                  ],
+                  [
+                    "**function.parameters**",
+                    "function 内",
+                    "JSON Schema：type / properties / required / additionalProperties"
+                  ],
+                  [
+                    "**function.strict**",
+                    "function 内",
+                    "可选；true 开启严格模式，模型输出严格贴合 schema，多出的字段会被拒绝；推荐生产环境开启"
+                  ],
+                  [
+                    "**message.tool_calls**",
+                    "模型返回",
+                    "助手消息里的工具调用请求列表：含 id / type / function.name / function.arguments"
+                  ],
+                  [
+                    "**role=\"tool\"**",
+                    "你回填",
+                    "工具结果消息：必须带 tool_call_id 与 content，与上面的 id 配对"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "strict 严格模式：生产环境的“安全带”",
+              "text": "在 function 里加 \"strict\": true（需配合 JSON Schema 的完整写法），模型返回的参数会被强制约束在 parameters 定义之内：不会冒出你没声明的字段、required 项一定存在、类型一定匹配。这样你后端用 pydantic / 类型校验解析时几乎不会翻车。代价是 schema 必须写得更规范（每个属性都要声明、additionalProperties 必须为 false）。开发期想灵活一点可以先关掉。"
+            },
+            {
+              "type": "callout",
+              "variant": "note",
+              "title": "parameters 子字段速记",
+              "text": "properties 里每个参数可细分：type（string / number / boolean / array / object）、description（给模型看）、enum（限定取值）、default（默认值）；required 列出必填项；additionalProperties: false 能阻止模型乱传未定义参数。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
           "title": "进阶工具调用能力：tool_choice / 并行调用 / 流式 / Responses API",
           "content": [
             {
