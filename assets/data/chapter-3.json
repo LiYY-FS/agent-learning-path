@@ -200,14 +200,14 @@
                 "title": "LangChain RAG Agent 实现",
                 "highlightLines": [
                   15,
-                  16,
-                  17,
-                  18,
                   19,
                   20,
-                  21
+                  21,
+                  22,
+                  23,
+                  24
                 ],
-                "code": "import os\nfrom langchain_openai import ChatOpenAI\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_core.output_parsers import StrOutputParser\nfrom langchain_community.vectorstores import Chroma\nfrom langchain_openai import OpenAIEmbeddings\nfrom langchain_community.document_loaders import DirectoryLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n\n# ===================== 配置区（请自行填写，或设置环境变量）=====================\n# 方式一（推荐）：在终端先设置环境变量，再运行本脚本\n#   export OPENAI_API_KEY=\"sk-你的密钥\"\n#   export OPENAI_BASE_URL=\"https://api.openai.com/v1\"   # 官方地址，或任意兼容 OpenAI 的中转地址\n#   export OPENAI_MODEL=\"gpt-4o\"\n# 方式二（仅本地测试，切勿提交到 Git）：直接把下面的值改成你的真实信息\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")  # ← 模型名称，按需替换（如 gpt-4o-mini）\n\n\n# 1. 加载并分块文档\nloader = DirectoryLoader(\"./docs\", glob=\"**/*.md\")\ndocs = loader.load()\nsplitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)\nchunks = splitter.split_documents(docs)\n\n# 2. 创建向量索引\nvectorstore = Chroma.from_documents(chunks, OpenAIEmbeddings())\nretriever = vectorstore.as_retriever(search_kwargs={\"k\": 5})\n\n# 3. LCEL 构建 RAG Chain\nllm = ChatOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)\nprompt = ChatPromptTemplate.from_template(\"\"\"\n基于以下上下文回答问题。如果上下文不包含答案，说\"我无法回答\"。\n\n上下文: {context}\n问题: {question}\n回答:\"\"\")\n\n# LCEL 管道语法\nrag_chain = (\n    {\"context\": retriever, \"question\": lambda x: x[\"question\"]}\n    | prompt\n    | llm\n    | StrOutputParser()\n)\n\n# 4. 查询\nresult = rag_chain.invoke({\"question\": \"公司的退货政策是什么？\"})\nprint(result)",
+                "code": "import os\nfrom langchain_openai import ChatOpenAI\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_core.output_parsers import StrOutputParser\nfrom langchain_community.vectorstores import Chroma\nfrom langchain_openai import OpenAIEmbeddings\nfrom langchain_community.document_loaders import DirectoryLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n\n# ===================== 配置区（请自行填写，或设置环境变量）=====================\n# 方式一（推荐）：在终端先设置环境变量，再运行本脚本\n#   export OPENAI_API_KEY=\"sk-你的密钥\"\n#   export OPENAI_BASE_URL=\"https://api.openai.com/v1\"   # 官方地址，或任意兼容 OpenAI 的中转地址\n#   export OPENAI_MODEL=\"gpt-4o\"\n# 方式二（仅本地测试，切勿提交到 Git）：直接把下面的值改成你的真实信息\n\n# 第1步：读取密钥等配置 —— 优先读环境变量，缺失时给占位默认值，\n# 这样既能本地测试，又避免把密钥硬编码提交到仓库造成泄露\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")  # ← 模型名称，按需替换（如 gpt-4o-mini）\n\n\n# 1. 加载并分块文档\n\n# 第2步：加载文档 —— 用 DirectoryLoader 批量读取目录里的 Markdown 文件，\n# 把原始文件统一成可处理的 Document 列表，省去逐个打开的重复代码\nloader = DirectoryLoader(\"./docs\", glob=\"**/*.md\")\ndocs = loader.load()\n\n# 第3步：切分文档 —— chunk_size 控制每块字符数，太大检索不精准、\n# 太小会丢失上下文；chunk_overlap 让相邻块重叠，保留跨块语义衔接\nsplitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)\nchunks = splitter.split_documents(docs)\n\n# 2. 创建向量索引\n\n# 第4步：建向量库 —— 把文本块转成向量存入 Chroma，后续才能按语义检索\nvectorstore = Chroma.from_documents(chunks, OpenAIEmbeddings())\n\n# 第5步：取检索器 —— k=5 表示每次取最相关的 5 块，平衡召回与噪声\nretriever = vectorstore.as_retriever(search_kwargs={\"k\": 5})\n\n# 3. LCEL 构建 RAG Chain\n\n# 第6步：初始化模型 —— 用上面读到的密钥和地址创建 ChatOpenAI 实例\nllm = ChatOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)\n\n# 第7步：设计提示词模板 —— 用 {context} 与 {question} 占位符，\n# 运行时把检索内容和用户问题填进去，约束模型基于上下文回答\nprompt = ChatPromptTemplate.from_template(\"\"\"\n基于以下上下文回答问题。如果上下文不包含答案，说\"我无法回答\"。\n\n上下文: {context}\n问题: {question}\n回答:\"\"\")\n\n# LCEL 管道语法\n\n# 第8步：组装 RAG 链 —— 用 LCEL 的 | 管道把“检索+提问+模型+解析”串起来，\n# 数据按左到右流动，代码结构即执行顺序，易读也好维护\nrag_chain = (\n    {\"context\": retriever, \"question\": lambda x: x[\"question\"]}\n    | prompt\n    | llm\n    | StrOutputParser()\n)\n\n# 4. 查询\n\n# 第9步：执行查询 —— invoke 传入问题，链路自动先检索再生成最终答案\nresult = rag_chain.invoke({\"question\": \"公司的退货政策是什么？\"})\nprint(result)",
                 "output": "7天内无理由退货，15天内质量问题可换货。"
               }
             }
@@ -266,15 +266,15 @@
                 "language": "python",
                 "title": "LangGraph 条件路由 Agent",
                 "highlightLines": [
-                  25,
-                  26,
-                  27,
-                  28,
-                  29,
-                  30,
-                  31
+                  35,
+                  36,
+                  38,
+                  40,
+                  42,
+                  43,
+                  44
                 ],
-                "code": "import os\nfrom langgraph.graph import StateGraph, END\nfrom typing import TypedDict, Annotated\nfrom langchain_openai import ChatOpenAI\n\n# ===================== 配置区（请自行填写，或设置环境变量）=====================\n# 方式一（推荐）：在终端先设置环境变量，再运行本脚本\n#   export OPENAI_API_KEY=\"sk-你的密钥\"\n#   export OPENAI_BASE_URL=\"https://api.openai.com/v1\"   # 官方地址，或任意兼容 OpenAI 的中转地址\n#   export OPENAI_MODEL=\"gpt-4o\"\n# 方式二（仅本地测试，切勿提交到 Git）：直接把下面的值改成你的真实信息\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")  # ← 模型名称，按需替换（如 gpt-4o-mini）\n\n\n# 1. 定义状态\nclass AgentState(TypedDict):\n    messages: list\n    needs_tool: bool\n    tool_result: str\n\n# 2. 定义节点\ndef think(state: AgentState) -> AgentState:\n    llm = ChatOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)\n    # LLM 决策是否需要工具\n    response = llm.invoke(state[\"messages\"])\n    state[\"messages\"].append(response)\n    state[\"needs_tool\"] = bool(response.tool_calls)\n    return state\n\ndef execute_tool(state: AgentState) -> AgentState:\n    # 执行工具调用\n    state[\"tool_result\"] = \"工具执行结果\"\n    return state\n\ndef generate_answer(state: AgentState) -> AgentState:\n    # 生成最终回答\n    return state\n\n# 3. 条件路由\ndef should_use_tool(state: AgentState) -> str:\n    return \"execute_tool\" if state[\"needs_tool\"] else \"generate_answer\"\n\n# 4. 构建图\ngraph = StateGraph(AgentState)\ngraph.add_node(\"think\", think)\ngraph.add_node(\"execute_tool\", execute_tool)\ngraph.add_node(\"generate_answer\", generate_answer)\n\ngraph.set_entry_point(\"think\")\ngraph.add_conditional_edges(\"think\", should_use_tool)\ngraph.add_edge(\"execute_tool\", \"think\")  # 工具执行后回到思考\ngraph.add_edge(\"generate_answer\", END)\n\n# 5. 编译并运行\napp = graph.compile()\nresult = app.invoke({\"messages\": [{\"role\": \"user\", \"content\": \"北京天气\"}]})",
+                "code": "import os\nfrom langgraph.graph import StateGraph, END\nfrom typing import TypedDict, Annotated\nfrom langchain_openai import ChatOpenAI\n\n# ===================== 配置区（请自行填写，或设置环境变量）=====================\n# 方式一（推荐）：在终端先设置环境变量，再运行本脚本\n#   export OPENAI_API_KEY=\"sk-你的密钥\"\n#   export OPENAI_BASE_URL=\"https://api.openai.com/v1\"   # 官方地址，或任意兼容 OpenAI 的中转地址\n#   export OPENAI_MODEL=\"gpt-4o\"\n# 方式二（仅本地测试，切勿提交到 Git）：直接把下面的值改成你的真实信息\n\n# 第1步：读取密钥等配置 —— 优先读环境变量，缺失给占位默认值，\n# 既方便本地调试，也避免把密钥硬编码进仓库导致泄露\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")  # ← 模型名称，按需替换（如 gpt-4o-mini）\n\n\n# 1. 定义状态\n\n# 第2步：定义共享状态结构 —— 用 TypedDict 显式声明状态字段，\n# 图里每个节点都读写同一份状态，比散落变量更清晰也不易出错\nclass AgentState(TypedDict):\n    messages: list\n    needs_tool: bool\n    tool_result: str\n\n# 2. 定义节点\n\n# 第3步：思考节点 —— 让 LLM 读历史消息做决策，\n# 先建模型实例再调用，调用结果追加进消息列表供后续节点使用\ndef think(state: AgentState) -> AgentState:\n    # 用配置里的密钥和地址创建 ChatOpenAI 实例\n    llm = ChatOpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)\n    # LLM 决策是否需要工具\n    # 把当前对话历史发给模型，拿到它的回复\n    response = llm.invoke(state[\"messages\"])\n    # 把模型回复存回状态，后续节点可继续看到上下文\n    state[\"messages\"].append(response)\n    # 根据回复是否带工具调用，标记是否需要走工具分支\n    state[\"needs_tool\"] = bool(response.tool_calls)\n    return state\n\n# 第4步：工具节点 —— 真正执行工具并把结果写回状态，\n# 这里用字符串占位，真实场景应调用具体工具并捕获异常\ndef execute_tool(state: AgentState) -> AgentState:\n    # 执行工具调用\n    state[\"tool_result\"] = \"工具执行结果\"\n    return state\n\n# 第5步：回答节点 —— 工具结果合并进上下文后，生成最终回复，\n# 把“要不要工具”的分支收敛到统一的输出环节\ndef generate_answer(state: AgentState) -> AgentState:\n    # 生成最终回答\n    return state\n\n# 3. 条件路由\n\n# 第6步：条件路由函数 —— 依据状态里的标志决定下一步走向，\n# 返回节点名字符串，交给 add_conditional_edges 做分支控制\ndef should_use_tool(state: AgentState) -> str:\n    return \"execute_tool\" if state[\"needs_tool\"] else \"generate_answer\"\n\n# 4. 构建图\n\n# 第7步：用图结构显式管理状态流转 —— StateGraph 比链式调用\n# 更适合有分支和循环的场景，节点与边一目了然，便于扩展\ngraph = StateGraph(AgentState)\n# 注册三个节点，绑定对应的处理函数\ngraph.add_node(\"think\", think)\ngraph.add_node(\"execute_tool\", execute_tool)\ngraph.add_node(\"generate_answer\", generate_answer)\n\n# 设入口为 think，由条件函数决定走工具还是直接回答\ngraph.set_entry_point(\"think\")\ngraph.add_conditional_edges(\"think\", should_use_tool)\n# 工具执行后回到思考，形成“思考-工具-再思考”的循环\ngraph.add_edge(\"execute_tool\", \"think\")  # 工具执行后回到思考\ngraph.add_edge(\"generate_answer\", END)\n\n# 5. 编译并运行\n\n# 第8步：编译并运行 —— compile 把图转成可执行应用，\n# invoke 传入初始状态即可按边驱动整个流程跑完\napp = graph.compile()\nresult = app.invoke({\"messages\": [{\"role\": \"user\", \"content\": \"北京天气\"}]})",
                 "output": "LangGraph 执行流程:\nthink → needs_tool=True → execute_tool → think → needs_tool=False → generate_answer → END"
               }
             }
@@ -338,7 +338,7 @@
                 "filename": "openai_agents_sdk.py",
                 "language": "python",
                 "title": "Agents SDK 客服路由 Agent",
-                "code": "import os\nfrom agents import Agent, Runner, function_tool\n\n# 定义工具\n@function_tool\ndef query_order(order_id: str) -> str:\n    \"\"\"查询订单状态\"\"\"\n    return f\"订单 {order_id} 正在运输中\"\n\n# 定义 Agent\ncustomer_service = Agent(\n    name=\"客服助手\",\n    instructions=\"你是客服助手，可以查询订单状态。复杂问题转接主管。\",\n    tools=[query_order],\n)\n\n# 运行\nresult = Runner.run_sync(customer_service, \"查询订单 12345 的状态\")\nprint(result.final_output)",
+                "code": "import os\nfrom agents import Agent, Runner, function_tool\n\n# 第1步：定义工具 —— 用 @function_tool 把普通函数包装成 Agent 可调用工具，\n# 框架会自动从函数签名和文档字符串生成工具的 schema 与说明\n# 定义工具\n@function_tool\ndef query_order(order_id: str) -> str:\n    \"\"\"查询订单状态\"\"\"\n    # 返回该订单的当前状态；真实场景应查询数据库或订单服务\n    return f\"订单 {order_id} 正在运输中\"\n\n# 第2步：定义 Agent —— 通过 name/instructions/tools 描述角色与能力，\n# instructions 约束模型的行为边界，tools 决定它能调用什么\n# 定义 Agent\ncustomer_service = Agent(\n    name=\"客服助手\",\n    instructions=\"你是客服助手，可以查询订单状态。复杂问题转接主管。\",\n    tools=[query_order],\n)\n\n# 第3步：运行 Agent —— run_sync 同步执行（阻塞到出结果），\n# 传入用户问题，框架自动决定何时调用工具并汇总成最终回答\n# 运行\nresult = Runner.run_sync(customer_service, \"查询订单 12345 的状态\")\n# 打印模型给出的最终答案\nprint(result.final_output)",
                 "output": "订单 12345 正在运输中"
               }
             }
@@ -477,16 +477,16 @@
                 "language": "python",
                 "title": "MCP Server 开发",
                 "highlightLines": [
-                  10,
-                  11,
-                  12,
-                  13,
                   14,
-                  15,
                   16,
-                  17
+                  17,
+                  18,
+                  20,
+                  21,
+                  22,
+                  25
                 ],
-                "code": "import os\nfrom mcp.server import Server\nfrom mcp.types import Tool, TextContent\nimport mcp.server.stdio\nimport asyncio\n\nserver = Server(\"my-tools\")\n\n@server.list_tools()\nasync def list_tools() -> list[Tool]:\n    return [Tool(\n        name=\"search_docs\",\n        description=\"搜索文档库\",\n        inputSchema={\"type\": \"object\", \"properties\": {\"query\": {\"type\": \"string\"}}, \"required\": [\"query\"]}\n    )]\n\n@server.call_tool()\nasync def call_tool(name: str, arguments: dict) -> list[TextContent]:\n    if name == \"search_docs\":\n        result = search_database(arguments[\"query\"])\n        return [TextContent(type=\"text\", text=result)]\n    return [TextContent(type=\"text\", text=f\"未知工具: {name}\")]\n\nasync def main():\n    async with mcp.server.stdio.stdio_server() as (read, write):\n        await server.run(read, write, server.create_initialization_options())\n\nasyncio.run(main())",
+                "code": "import os\nfrom mcp.server import Server\nfrom mcp.types import Tool, TextContent\nimport mcp.server.stdio\nimport asyncio\n\n# 第1步：创建 MCP 服务器实例 —— Server 是整套工具服务的入口，\n# 名字用于标识服务，客户端据此发现并连接本服务\nserver = Server(\"my-tools\")\n\n# 第2步：注册工具清单 —— list_tools 告诉客户端本服务有哪些工具，\n# 返回的 Tool 描述含名称、说明和输入 schema，供客户端生成调用参数\n@server.list_tools()\nasync def list_tools() -> list[Tool]:\n    # 声明一个名为 search_docs 的搜索工具及其入参结构\n    return [Tool(\n        name=\"search_docs\",\n        description=\"搜索文档库\",\n        # inputSchema 用 JSON Schema 描述入参，客户端据此校验和补全参数\n        inputSchema={\"type\": \"object\", \"properties\": {\"query\": {\"type\": \"string\"}}, \"required\": [\"query\"]}\n    )]\n\n# 第3步：注册工具执行逻辑 —— call_tool 按工具名分发并执行，\n# 参数由客户端传入，返回结果以 TextContent 列表回传给客户端\n@server.call_tool()\nasync def call_tool(name: str, arguments: dict) -> list[TextContent]:\n    # 根据工具名做分发，这里只实现 search_docs 这一种\n    if name == \"search_docs\":\n        # 真实场景这里应连数据库；search_database 为示意函数\n        result = search_database(arguments[\"query\"])\n        return [TextContent(type=\"text\", text=result)]\n    # 未知工具名返回提示，避免静默失败让客户端无从排查\n    return [TextContent(type=\"text\", text=f\"未知工具: {name}\")]\n\n# 第4步：启动服务 —— 用 stdio 传输层接收客户端消息并驱动 server.run，\n# 这是本地进程间通信最常用的方式，无需额外网络端口\nasync def main():\n    async with mcp.server.stdio.stdio_server() as (read, write):\n        await server.run(read, write, server.create_initialization_options())\n\n# 第5步：运行主协程 —— asyncio.run 启动事件循环，服务随之常驻等待调用\nasyncio.run(main())",
                 "output": "MCP Server 启动后，Claude Desktop 等客户端可自动发现并使用 search_docs 工具"
               }
             }
@@ -675,7 +675,7 @@
                 "filename": "langfuse_integration.py",
                 "language": "python",
                 "title": "LangFuse 集成示例",
-                "code": "import os\nfrom langfuse import Langfuse\nfrom langfuse.decorators import observe\n\nlangfuse = Langfuse()\n\n@observe()  # 自动追踪函数调用\ndef agent_run(query: str) -> str:\n    # LangFuse 自动记录：输入、输出、耗时、Token、成本\n    thought = think(query)  # 被追踪\n    result = execute(thought)  # 被追踪\n    return result\n\n@observe()\ndef think(query):\n    return llm.invoke(query)\n\n@observe()\ndef execute(thought):\n    return tool.run(thought)",
+                "code": "import os\nfrom langfuse import Langfuse\nfrom langfuse.decorators import observe\n\n# 第1步：初始化 Langfuse 客户端 —— 自动从环境变量读取密钥与宿主地址，\n# 之后所有被 observe 装饰的函数都会被上报，无需手动埋点\nlangfuse = Langfuse()\n\n# 第2步：装饰入口函数 —— @observe 开启对该函数的自动追踪，\n# 调用链上的子函数若也被装饰，会形成完整的父子调用树\n@observe()  # 自动追踪函数调用\ndef agent_run(query: str) -> str:\n    # LangFuse 自动记录：输入、输出、耗时、Token、成本\n    # 子调用同样被追踪，从而拼出整条链路的可观测性数据\n    thought = think(query)  # 被追踪\n    result = execute(thought)  # 被追踪\n    return result\n\n# 第3步：追踪思考环节 —— 单独的 observe 让 think 作为 agent_run 的子节点，\n# 便于在面板上看到这一步耗时与 Token 消耗\n@observe()\ndef think(query):\n    return llm.invoke(query)\n\n# 第4步：追踪执行环节 —— 与 think 同理，execute 也是可观测的子节点，\n# 把“模型调用”与“工具执行”拆开统计，方便定位瓶颈\n@observe()\ndef execute(thought):\n    return tool.run(thought)",
                 "output": "LangFuse Dashboard 显示:\n- 总请求数: 1,234\n- 平均耗时: 3.2s\n- 总 Token: 2.3M\n- 总成本: $5.76\n- Trace 链路: agent_run → think → execute"
               }
             }
@@ -778,16 +778,16 @@
                 "language": "python",
                 "title": "Docker 沙箱执行代码",
                 "highlightLines": [
-                  12,
-                  13,
-                  14,
-                  15,
-                  16,
-                  17,
-                  18,
-                  19
+                  19,
+                  20,
+                  21,
+                  22,
+                  25,
+                  27,
+                  29,
+                  31
                 ],
-                "code": "import docker\nimport tempfile\nimport os\n\nclient = docker.from_env()\n\ndef execute_in_sandbox(code: str, timeout: int = 30) -> dict:\n    \"\"\"在 Docker 沙箱中安全执行代码\"\"\"\n    # 写入临时文件\n    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:\n        f.write(code)\n        script_path = f.name\n    \n    try:\n        # 在受限容器中执行\n        result = client.containers.run(\n            \"python:3.12-slim\",\n            command=f\"python /tmp/script.py\",\n            volumes={script_path: {\"bind\": \"/tmp/script.py\", \"mode\": \"ro\"}},\n            mem_limit=\"256m\",      # 内存限制\n            cpu_quota=50000,        # CPU 限制\n            network_mode=\"none\",   # 禁用网络\n            timeout=timeout,        # 超时\n            remove=True             # 执行后删除容器\n        )\n        return {\"success\": True, \"output\": result.decode()}\n    except Exception as e:\n        return {\"success\": False, \"error\": str(e)}\n    finally:\n        os.unlink(script_path)",
+                "code": "import docker\nimport tempfile\nimport os\n\n# 第1步：连接本地 Docker —— from_env 读取环境变量里的 Docker 守护进程地址，\n# 沙箱能力完全依赖它，连不上就无法隔离执行代码\nclient = docker.from_env()\n\n# 第2步：封装沙箱执行函数 —— 入参是待运行代码与超时秒数，\n# 返回统一的结果字典，调用方无需关心内部隔离细节\ndef execute_in_sandbox(code: str, timeout: int = 30) -> dict:\n    \"\"\"在 Docker 沙箱中安全执行代码\"\"\"\n    # 写入临时文件\n    # 第3步：落盘待执行代码 —— 用 NamedTemporaryFile 生成临时 .py 文件，\n    # delete=False 让文件在 with 块结束后仍存在，供容器挂载读取\n    with tempfile.NamedTemporaryFile(mode='w', suffix='.py', delete=False) as f:\n        # 把代码写入临时文件，拿到它在宿主机的绝对路径\n        f.write(code)\n        script_path = f.name\n    \n    try:\n        # 在受限容器中执行\n        # 第4步：在受限容器中运行 —— 用官方精简镜像起一次性容器跑脚本，\n        # 代码在隔离环境执行，即使有恶意逻辑也伤不到宿主\n        result = client.containers.run(\n            # 指定基础镜像，精简版体积小、启动快\n            \"python:3.12-slim\",\n            # 容器内执行的命令：运行挂载进去的脚本\n            command=f\"python /tmp/script.py\",\n            # 把宿主临时文件只读挂载进容器，避免容器篡改源码\n            volumes={script_path: {\"bind\": \"/tmp/script.py\", \"mode\": \"ro\"}},\n            mem_limit=\"256m\",      # 内存限制\n            cpu_quota=50000,        # CPU 限制\n            network_mode=\"none\",   # 禁用网络\n            timeout=timeout,        # 超时\n            remove=True             # 执行后删除容器\n        )\n        # 执行成功，把容器标准输出解码后回传\n        return {\"success\": True, \"output\": result.decode()}\n    except Exception as e:\n        # 任何异常都归一为失败结果，便于上层统一处理\n        return {\"success\": False, \"error\": str(e)}\n    finally:\n        # 第5步：清理临时文件 —— finally 保证无论成败都删除临时脚本，\n        # 否则会留下残留文件占用磁盘并可能泄露代码\n        os.unlink(script_path)",
                 "output": "执行 print('Hello Agent')\n→ {\"success\": True, \"output\": \"Hello Agent\\n\"}"
               }
             }
