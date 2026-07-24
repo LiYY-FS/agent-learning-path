@@ -210,8 +210,32 @@
               "text": "不要一上来就追求最复杂的自主 Agent。大多数企业场景中，**工具增强型 Agent** 或**任务型 Agent** 已经能解决 80% 的问题，且可控性和可靠性远高于完全自主的 Agent。"
             }
           ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "传统 FAQ 客服 vs Agent 化智能客服",
+        "background": "某电商平台原有一套基于关键词匹配的 FAQ 客服系统，覆盖 500+ 常见问题。随着业务增长，问题覆盖率不足 40%，大量用户转人工客服，人力成本高企。",
+        "architecture": "团队将客服系统从\\\"关键词匹配 + 固定流程\\\"升级为\\\"Agent + RAG 知识库\\\"架构。Agent 能根据用户问题自主决定：是直接回答、检索知识库、查询订单系统、还是转人工。",
+        "code": {
+          "data": {
+            "filename": "customer_service_agent.py",
+            "language": "python",
+            "title": "Agent 化客服系统核心架构",
+            "highlightLines": [
+              21,
+              22,
+              23,
+              24,
+              25
+            ],
+            "code": "\"\"\"\nAgent 化客服系统 — 完整可运行示例\n================================\n依赖: pip install openai\n\n运行前配置（推荐通过环境变量）:\n       export OPENAI_API_KEY=\"sk-你的密钥\"\n       export OPENAI_BASE_URL=\"https://api.openai.com/v1\"   # 官方或中转地址\n       export AGENT_MODEL=\"gpt-4o\"\n  （也可直接修改下方「配置区」的 client / MODEL 常量，仅本地测试，切勿提交到 Git）\n\"\"\"\n\n# 第1步：导入依赖 —— json 解析工具调用参数，os 读取环境变量，OpenAI 调用模型\nimport json\nimport os\nfrom openai import OpenAI\n\n# 第2步：配置 API 客户端 —— 密钥从环境变量读取，避免硬编码泄露\n# ===================== 1. 配置区（需自行填写） =====================\n# 用 os.getenv 取密钥与 Base URL —— 缺失返回 None，便于本地调试\nclient = OpenAI(\n    api_key=os.getenv(\"OPENAI_API_KEY\"),       # ← 在此填写你的 API Key\n    base_url=os.getenv(\"OPENAI_BASE_URL\"),     # ← 在此填写 API Base URL（官方或中转地址）\n)\nMODEL = os.getenv(\"AGENT_MODEL\", \"gpt-4o\")     # ← 模型名称，按需替换（如 gpt-4o-mini）\n\n\n# 第3步：定义工具清单 TOOLS —— 用 JSON Schema 描述可调用的函数\n# ===================== 2. 工具定义（Function Calling Schema） =====================\n# 每个工具含 name/description/parameters —— 模型据此决定调用哪个工具\nTOOLS = [\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"search_knowledge_base\",\n        \"description\": \"搜索客服知识库获取标准答案\",\n        \"parameters\": {\n            \"type\": \"object\",\n            \"properties\": {\"query\": {\"type\": \"string\"}},\n            \"required\": [\"query\"]\n        }\n    }},\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"query_order\",\n        \"description\": \"查询用户订单状态\",\n        \"parameters\": {\n            \"type\": \"object\",\n            \"properties\": {\"order_id\": {\"type\": \"string\"}},\n            \"required\": [\"order_id\"]\n        }\n    }},\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"transfer_to_human\",\n        \"description\": \"转接人工客服（复杂问题或情绪激动时使用）\",\n        \"parameters\": {\"type\": \"object\", \"properties\": {}}\n    }}\n]\n\n\n# 第4步：实现工具函数 —— 把每个工具名映射到具体业务逻辑\n# ===================== 3. 工具实现 =====================\ndef search_knowledge_base(query: str) -> str:\n    \"\"\"检索知识库。生产环境替换为真实检索（向量库 / 数据库）。\"\"\"\n    return f\"[知识库] 关于「{query}」：支持 7 天无理由退货，15 天内质量问题可换货。\"\n\n\ndef query_order(order_id: str) -> str:\n    \"\"\"查询订单。生产环境替换为真实订单系统 API。\"\"\"\n    return f\"[订单系统] 订单 {order_id} 当前状态：运输中，预计明天送达。\"\n\n\ndef transfer_to_human() -> str:\n    \"\"\"转接人工客服。生产环境接入工单 / 排队系统。\"\"\"\n    return \"[转人工] 已为您转接人工客服，请稍候。\"\n\n\ndef execute_tool(name: str, args: dict) -> str:\n    \"\"\"工具分发器：按名称路由到对应实现函数。\"\"\"\n    registry = {\n        \"search_knowledge_base\": search_knowledge_base,\n        \"query_order\": query_order,\n        \"transfer_to_human\": transfer_to_human,\n    }\n    if name not in registry:\n        return f\"[错误] 未知工具: {name}\"\n# 第5步：编写 Agent 主循环 —— 让模型自主决定调用工具并生成回复\n    return registry[name](**args)\n\n# 先拼好 system+user 消息，再交给模型决定下一步动作\n\n# ===================== 4. Agent 主逻辑 =====================\ndef customer_service_agent(user_message: str, user_id: str) -> str:\n    \"\"\"Agent 化客服：自主决策调用哪个工具并生成最终回复。\"\"\"\n    messages = [\n        {\"role\": \"system\", \"content\": \"你是电商客服助手。根据用户问题选择最合适的工具。情绪激动的用户优先转人工。\"},\n        {\"role\": \"user\", \"content\": user_message},\n    ]\n\n# 第6步：首次调用模型（带 tools）—— tool_choice=auto 让模型自选工具\n    try:\n        response = client.chat.completions.create(\n            model=MODEL,\n            messages=messages,\n            tools=TOOLS,\n            tool_choice=\"auto\",  # 让 Agent 自主决定\n        )\n    except Exception as e:\n        return f\"[系统错误] 调用模型失败: {e}\"\n\n    message = response.choices[0].message\n# 第7步：若模型要求调用工具 —— 逐个执行并把结果回填到对话历史\n    if message.tool_calls:\n        # 关键：必须先把带 tool_calls 的 assistant 消息追加进历史，\n        # 否则后续 role=\"tool\" 消息不合法，第二次调用会报 400 错误\n        messages.append(message)\n        # Agent 自主选择了工具 → 逐个执行并将结果回填\n# 遍历模型返回的工具调用，执行后将结果以 role=tool 追加\n        for tc in message.tool_calls:\n# json.loads 解析参数 —— 模型返回的是 JSON 字符串，必须转 dict 才能传参\n            try:\n                args = json.loads(tc.function.arguments or \"{}\")\n            except json.JSONDecodeError:\n                args = {}\n            result = execute_tool(tc.function.name, args)\n            messages.append({\"role\": \"tool\", \"tool_call_id\": tc.id, \"content\": result})\n\n        # 基于工具结果生成最终回答（仍需传入 tools，否则模型丢失工具上下文）\n# 第8步：用工具结果二次调用模型 —— 生成最终自然语言回复\n        try:\n            final = client.chat.completions.create(model=MODEL, messages=messages, tools=TOOLS)\n        except Exception as e:\n            return f\"[系统错误] 生成回复失败: {e}\"\n        return final.choices[0].message.content\n\n    return message.content or \"(无回复)\"\n\n\nif __name__ == \"__main__\":\n# 第9步：本地自测 —— 模拟一条用户投诉，验证 Agent 端到端可用\n    # 本地测试：模拟用户咨询\n    print(customer_service_agent(\"我的订单 #12345 还没到，都三天了！\", \"user_001\"))\n",
+            "output": "用户: 我的订单 #12345 还没到，都三天了！\n\nAgent 决策:\n  → 调用工具: query_order({\"order_id\": \"12345\"})\n  → 工具返回: 订单状态=运输中，预计明天送达\n\nAgent 回答: 您的订单 #12345 目前正在运输中，预计明天就能送达。非常抱歉让您久等了！如果明天仍未收到，请联系我们。\n\n用户: 我要退款！\n\nAgent 决策:\n  → 检测到情绪激动\n  → 调用工具: transfer_to_human()\n  → 转接人工客服",
+            "note": "注意 Agent 如何根据用户情绪和问题类型自主选择不同工具——这是 Workflow 无法做到的"
+          }
         },
-        {
+        "outcome": "升级后问题覆盖率从 40% 提升至 85%，人工转接率下降 60%，平均响应时间从 3 分钟缩短至 30 秒，用户满意度提升 35%。",
+        "lessons": "1) Agent 的核心价值在于**自主决策**——它能根据上下文选择不同工具，而非走固定流程；2) 从简单场景起步，先覆盖高频问题，再逐步扩展；3) 保留转人工机制作为安全兜底，Agent 不需要解决所有问题。",
+        "analysis": {
           "type": "knowledgePoint",
           "title": "TOOLS 详解：工具是怎么被定义和调用的（零基础版）",
           "content": [
@@ -314,30 +338,6 @@
             }
           ]
         }
-      ],
-      "enterpriseCase": {
-        "title": "传统 FAQ 客服 vs Agent 化智能客服",
-        "background": "某电商平台原有一套基于关键词匹配的 FAQ 客服系统，覆盖 500+ 常见问题。随着业务增长，问题覆盖率不足 40%，大量用户转人工客服，人力成本高企。",
-        "architecture": "团队将客服系统从\\\"关键词匹配 + 固定流程\\\"升级为\\\"Agent + RAG 知识库\\\"架构。Agent 能根据用户问题自主决定：是直接回答、检索知识库、查询订单系统、还是转人工。",
-        "code": {
-          "data": {
-            "filename": "customer_service_agent.py",
-            "language": "python",
-            "title": "Agent 化客服系统核心架构",
-            "highlightLines": [
-              21,
-              22,
-              23,
-              24,
-              25
-            ],
-            "code": "\"\"\"\nAgent 化客服系统 — 完整可运行示例\n================================\n依赖: pip install openai\n\n运行前配置（推荐通过环境变量）:\n       export OPENAI_API_KEY=\"sk-你的密钥\"\n       export OPENAI_BASE_URL=\"https://api.openai.com/v1\"   # 官方或中转地址\n       export AGENT_MODEL=\"gpt-4o\"\n  （也可直接修改下方「配置区」的 client / MODEL 常量，仅本地测试，切勿提交到 Git）\n\"\"\"\n\n# 第1步：导入依赖 —— json 解析工具调用参数，os 读取环境变量，OpenAI 调用模型\nimport json\nimport os\nfrom openai import OpenAI\n\n# 第2步：配置 API 客户端 —— 密钥从环境变量读取，避免硬编码泄露\n# ===================== 1. 配置区（需自行填写） =====================\n# 用 os.getenv 取密钥与 Base URL —— 缺失返回 None，便于本地调试\nclient = OpenAI(\n    api_key=os.getenv(\"OPENAI_API_KEY\"),       # ← 在此填写你的 API Key\n    base_url=os.getenv(\"OPENAI_BASE_URL\"),     # ← 在此填写 API Base URL（官方或中转地址）\n)\nMODEL = os.getenv(\"AGENT_MODEL\", \"gpt-4o\")     # ← 模型名称，按需替换（如 gpt-4o-mini）\n\n\n# 第3步：定义工具清单 TOOLS —— 用 JSON Schema 描述可调用的函数\n# ===================== 2. 工具定义（Function Calling Schema） =====================\n# 每个工具含 name/description/parameters —— 模型据此决定调用哪个工具\nTOOLS = [\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"search_knowledge_base\",\n        \"description\": \"搜索客服知识库获取标准答案\",\n        \"parameters\": {\n            \"type\": \"object\",\n            \"properties\": {\"query\": {\"type\": \"string\"}},\n            \"required\": [\"query\"]\n        }\n    }},\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"query_order\",\n        \"description\": \"查询用户订单状态\",\n        \"parameters\": {\n            \"type\": \"object\",\n            \"properties\": {\"order_id\": {\"type\": \"string\"}},\n            \"required\": [\"order_id\"]\n        }\n    }},\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"transfer_to_human\",\n        \"description\": \"转接人工客服（复杂问题或情绪激动时使用）\",\n        \"parameters\": {\"type\": \"object\", \"properties\": {}}\n    }}\n]\n\n\n# 第4步：实现工具函数 —— 把每个工具名映射到具体业务逻辑\n# ===================== 3. 工具实现 =====================\ndef search_knowledge_base(query: str) -> str:\n    \"\"\"检索知识库。生产环境替换为真实检索（向量库 / 数据库）。\"\"\"\n    return f\"[知识库] 关于「{query}」：支持 7 天无理由退货，15 天内质量问题可换货。\"\n\n\ndef query_order(order_id: str) -> str:\n    \"\"\"查询订单。生产环境替换为真实订单系统 API。\"\"\"\n    return f\"[订单系统] 订单 {order_id} 当前状态：运输中，预计明天送达。\"\n\n\ndef transfer_to_human() -> str:\n    \"\"\"转接人工客服。生产环境接入工单 / 排队系统。\"\"\"\n    return \"[转人工] 已为您转接人工客服，请稍候。\"\n\n\ndef execute_tool(name: str, args: dict) -> str:\n    \"\"\"工具分发器：按名称路由到对应实现函数。\"\"\"\n    registry = {\n        \"search_knowledge_base\": search_knowledge_base,\n        \"query_order\": query_order,\n        \"transfer_to_human\": transfer_to_human,\n    }\n    if name not in registry:\n        return f\"[错误] 未知工具: {name}\"\n# 第5步：编写 Agent 主循环 —— 让模型自主决定调用工具并生成回复\n    return registry[name](**args)\n\n# 先拼好 system+user 消息，再交给模型决定下一步动作\n\n# ===================== 4. Agent 主逻辑 =====================\ndef customer_service_agent(user_message: str, user_id: str) -> str:\n    \"\"\"Agent 化客服：自主决策调用哪个工具并生成最终回复。\"\"\"\n    messages = [\n        {\"role\": \"system\", \"content\": \"你是电商客服助手。根据用户问题选择最合适的工具。情绪激动的用户优先转人工。\"},\n        {\"role\": \"user\", \"content\": user_message},\n    ]\n\n# 第6步：首次调用模型（带 tools）—— tool_choice=auto 让模型自选工具\n    try:\n        response = client.chat.completions.create(\n            model=MODEL,\n            messages=messages,\n            tools=TOOLS,\n            tool_choice=\"auto\",  # 让 Agent 自主决定\n        )\n    except Exception as e:\n        return f\"[系统错误] 调用模型失败: {e}\"\n\n    message = response.choices[0].message\n# 第7步：若模型要求调用工具 —— 逐个执行并把结果回填到对话历史\n    if message.tool_calls:\n        # 关键：必须先把带 tool_calls 的 assistant 消息追加进历史，\n        # 否则后续 role=\"tool\" 消息不合法，第二次调用会报 400 错误\n        messages.append(message)\n        # Agent 自主选择了工具 → 逐个执行并将结果回填\n# 遍历模型返回的工具调用，执行后将结果以 role=tool 追加\n        for tc in message.tool_calls:\n# json.loads 解析参数 —— 模型返回的是 JSON 字符串，必须转 dict 才能传参\n            try:\n                args = json.loads(tc.function.arguments or \"{}\")\n            except json.JSONDecodeError:\n                args = {}\n            result = execute_tool(tc.function.name, args)\n            messages.append({\"role\": \"tool\", \"tool_call_id\": tc.id, \"content\": result})\n\n        # 基于工具结果生成最终回答（仍需传入 tools，否则模型丢失工具上下文）\n# 第8步：用工具结果二次调用模型 —— 生成最终自然语言回复\n        try:\n            final = client.chat.completions.create(model=MODEL, messages=messages, tools=TOOLS)\n        except Exception as e:\n            return f\"[系统错误] 生成回复失败: {e}\"\n        return final.choices[0].message.content\n\n    return message.content or \"(无回复)\"\n\n\nif __name__ == \"__main__\":\n# 第9步：本地自测 —— 模拟一条用户投诉，验证 Agent 端到端可用\n    # 本地测试：模拟用户咨询\n    print(customer_service_agent(\"我的订单 #12345 还没到，都三天了！\", \"user_001\"))\n",
-            "output": "用户: 我的订单 #12345 还没到，都三天了！\n\nAgent 决策:\n  → 调用工具: query_order({\"order_id\": \"12345\"})\n  → 工具返回: 订单状态=运输中，预计明天送达\n\nAgent 回答: 您的订单 #12345 目前正在运输中，预计明天就能送达。非常抱歉让您久等了！如果明天仍未收到，请联系我们。\n\n用户: 我要退款！\n\nAgent 决策:\n  → 检测到情绪激动\n  → 调用工具: transfer_to_human()\n  → 转接人工客服",
-            "note": "注意 Agent 如何根据用户情绪和问题类型自主选择不同工具——这是 Workflow 无法做到的"
-          }
-        },
-        "outcome": "升级后问题覆盖率从 40% 提升至 85%，人工转接率下降 60%，平均响应时间从 3 分钟缩短至 30 秒，用户满意度提升 35%。",
-        "lessons": "1) Agent 的核心价值在于**自主决策**——它能根据上下文选择不同工具，而非走固定流程；2) 从简单场景起步，先覆盖高频问题，再逐步扩展；3) 保留转人工机制作为安全兜底，Agent 不需要解决所有问题。"
       },
       "exercises": [
         {

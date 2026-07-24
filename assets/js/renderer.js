@@ -348,6 +348,10 @@ const Renderer = {
     if (caseData.outcome) {
       html += `<div class="case-study__outcome"><div class="case-study__outcome-title">实施效果</div><div>${this._renderInlineText(caseData.outcome)}</div></div>`;
     }
+    if (caseData.analysis) {
+      const analysisEl = this.renderBlock(caseData.analysis);
+      if (analysisEl) el.appendChild(analysisEl);
+    }
     if (caseData.lessons) {
       html += `<div class="case-study__section"><div class="case-study__section-title">经验总结</div><div>${this._renderInlineText(caseData.lessons)}</div></div>`;
     }
