@@ -348,10 +348,6 @@ const Renderer = {
     if (caseData.outcome) {
       html += `<div class="case-study__outcome"><div class="case-study__outcome-title">实施效果</div><div>${this._renderInlineText(caseData.outcome)}</div></div>`;
     }
-    if (caseData.analysis) {
-      const analysisEl = this.renderBlock(caseData.analysis);
-      if (analysisEl) el.appendChild(analysisEl);
-    }
     if (caseData.lessons) {
       html += `<div class="case-study__section"><div class="case-study__section-title">经验总结</div><div>${this._renderInlineText(caseData.lessons)}</div></div>`;
     }
@@ -365,6 +361,12 @@ const Renderer = {
         const codeEl = CodeBlock.create(caseData.code.data || caseData.code);
         placeholder.replaceWith(codeEl);
       }
+    }
+
+    // 案例详解（如有）：必须在 innerHTML 设置之后再 append，否则会被覆盖
+    if (caseData.analysis) {
+      const analysisEl = this.renderBlock(caseData.analysis);
+      if (analysisEl) el.appendChild(analysisEl);
     }
 
     return el;
