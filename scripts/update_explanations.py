@@ -6,7 +6,9 @@
 """
 import json, os
 
-DATA = "assets/data"
+_HERE = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(_HERE)
+DATA = os.path.join(REPO_ROOT, "assets", "data")
 
 def load(name):
     with open(os.path.join(DATA, name), encoding="utf-8") as f:

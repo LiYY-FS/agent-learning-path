@@ -7,8 +7,10 @@ import json
 import os
 import re
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "assets", "data")
-OUTPUT_FILE = os.path.join(os.path.dirname(__file__), "assets", "js", "data.js")
+_HERE = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(_HERE)
+DATA_DIR = os.path.join(REPO_ROOT, "assets", "data")
+OUTPUT_FILE = os.path.join(REPO_ROOT, "assets", "js", "data.js")
 
 # JSON 文件 → JS 变量名 映射
 MAPPING = {

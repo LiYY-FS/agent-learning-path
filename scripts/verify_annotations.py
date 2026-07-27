@@ -1,6 +1,8 @@
 import json, ast, sys, os
 
-DATA = "assets/data"
+_HERE = os.path.dirname(os.path.abspath(__file__))
+REPO_ROOT = os.path.dirname(_HERE)
+DATA = os.path.join(REPO_ROOT, "assets", "data")
 files = [f for f in os.listdir(DATA) if f.endswith(".json")]
 files.sort()
 
