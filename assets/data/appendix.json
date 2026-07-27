@@ -431,11 +431,26 @@
               "type": "list",
               "ordered": false,
               "items": [
-                "**ReAct: Synergizing Reasoning and Acting in LLMs** (2022) - Agent 范式奠基",
-                "**Tree of Thoughts** (2023) - 多路径推理",
-                "**Reflexion** (2023) - 自我反思机制",
-                "**GraphRAG** (2024) - 知识图谱增强 RAG",
-                "**A Survey on LLM Agents** (2024) - Agent 综述"
+                {
+                  "text": "**ReAct: Synergizing Reasoning and Acting in LLMs** (2022) - Agent 范式奠基",
+                  "url": "https://arxiv.org/abs/2210.03629"
+                },
+                {
+                  "text": "**Tree of Thoughts** (2023) - 多路径推理",
+                  "url": "https://arxiv.org/abs/2305.10601"
+                },
+                {
+                  "text": "**Reflexion** (2023) - 自我反思机制",
+                  "url": "https://arxiv.org/abs/2303.11366"
+                },
+                {
+                  "text": "**GraphRAG** (2024) - 知识图谱增强 RAG",
+                  "url": "https://arxiv.org/abs/2404.16130"
+                },
+                {
+                  "text": "**A Survey on LLM Agents** (2024) - Agent 综述",
+                  "url": "https://arxiv.org/abs/2308.11432"
+                }
               ]
             }
           ]
@@ -448,11 +463,26 @@
               "type": "list",
               "ordered": false,
               "items": [
-                "**DeepLearning.AI** - ChatGPT Prompt Engineering for Developers（免费）",
-                "**DeepLearning.AI** - LangChain for LLM Application Development",
-                "**Anthropic** - Claude 官方文档与教程",
-                "**OpenAI** - Cookbook 实战示例库",
-                "**吴恩达** - Building Systems with the ChatGPT API"
+                {
+                  "text": "**DeepLearning.AI** - ChatGPT Prompt Engineering for Developers（免费）",
+                  "url": "https://www.deeplearning.ai/short-courses/chatgpt-prompt-engineering-for-developers/"
+                },
+                {
+                  "text": "**DeepLearning.AI** - LangChain for LLM Application Development",
+                  "url": "https://www.deeplearning.ai/short-courses/langchain-for-llm-application-development/"
+                },
+                {
+                  "text": "**Anthropic** - Claude 官方文档与教程",
+                  "url": "https://docs.anthropic.com/"
+                },
+                {
+                  "text": "**OpenAI** - Cookbook 实战示例库",
+                  "url": "https://cookbook.openai.com/"
+                },
+                {
+                  "text": "**吴恩达** - Building Systems with the ChatGPT API",
+                  "url": "https://www.deeplearning.ai/short-courses/building-systems-with-chatgpt/"
+                }
               ]
             }
           ]
@@ -465,11 +495,26 @@
               "type": "list",
               "ordered": false,
               "items": [
-                "**Anthropic Blog** - Building Effective Agents（必读）",
-                "**Lilian Weng** - LLM Powered Autonomous Agents（深度技术）",
-                "**LangChain Blog** - 框架最新动态",
-                "**OpenAI Cookbook** - 实战代码示例",
-                "**Hugging Face Blog** - 开源模型动态"
+                {
+                  "text": "**Anthropic Blog** - Building Effective Agents（必读）",
+                  "url": "https://www.anthropic.com/research/building-effective-agents"
+                },
+                {
+                  "text": "**Lilian Weng** - LLM Powered Autonomous Agents（深度技术）",
+                  "url": "https://lilianweng.github.io/posts/2023-06-23-agent/"
+                },
+                {
+                  "text": "**LangChain Blog** - 框架最新动态",
+                  "url": "https://blog.langchain.dev/"
+                },
+                {
+                  "text": "**OpenAI Cookbook** - 实战代码示例",
+                  "url": "https://cookbook.openai.com/"
+                },
+                {
+                  "text": "**Hugging Face Blog** - 开源模型动态",
+                  "url": "https://huggingface.co/blog"
+                }
               ]
             }
           ]
@@ -482,11 +527,26 @@
               "type": "list",
               "ordered": false,
               "items": [
-                "**LangChain Discord** - 框架官方社区，问题解答快",
-                "**r/LocalLLaMA** (Reddit) - 开源模型讨论",
-                "**Hugging Face** - 模型和数据集",
-                "**GitHub Trending** - 跟踪热门 Agent 项目",
-                "**ArXiv** - 最新论文预印本"
+                {
+                  "text": "**LangChain Discord** - 框架官方社区，问题解答快",
+                  "url": "https://discord.gg/langchain"
+                },
+                {
+                  "text": "**r/LocalLLaMA** (Reddit) - 开源模型讨论",
+                  "url": "https://www.reddit.com/r/LocalLLaMA/"
+                },
+                {
+                  "text": "**Hugging Face** - 模型和数据集",
+                  "url": "https://huggingface.co/"
+                },
+                {
+                  "text": "**GitHub Trending** - 跟踪热门 Agent 项目",
+                  "url": "https://github.com/trending"
+                },
+                {
+                  "text": "**ArXiv** - 最新论文预印本",
+                  "url": "https://arxiv.org/"
+                }
               ]
             }
           ]

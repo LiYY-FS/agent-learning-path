@@ -239,10 +239,21 @@ const Renderer = {
     (block.items || []).forEach((item) => {
       const li = Utils.createElement('li');
       let text = typeof item === 'string' ? item : (item.text || '');
+      const url = typeof item === 'string' ? '' : (item.url || '');
       text = Utils.escapeHtml(text);
       text = text.replace(/`([^`]+)`/g, '<code>$1</code>');
       text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-      li.innerHTML = text;
+      if (url) {
+        // 列表项带 url 时渲染为可点击外链
+        const a = Utils.createElement('a', 'list-link');
+        a.href = url;
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+        a.innerHTML = text + ' <span class="list-link__arrow">↗</span>';
+        li.appendChild(a);
+      } else {
+        li.innerHTML = text;
+      }
       el.appendChild(li);
     });
     return el;

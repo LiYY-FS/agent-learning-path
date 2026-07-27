@@ -643,6 +643,28 @@
   color: var(--text-muted);
 }
 
+/* === 列表内可点击链接（学习资源清单等）=== */
+.list-link {
+  color: var(--accent-purple);
+  text-decoration: none;
+  cursor: pointer;
+  border-bottom: 1px dashed transparent;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+.list-link:hover {
+  color: var(--accent-pink);
+  border-bottom-color: currentColor;
+}
+.list-link__arrow {
+  font-size: 0.85em;
+  opacity: 0;
+  margin-left: 2px;
+  transition: opacity var(--transition-fast);
+}
+.list-link:hover .list-link__arrow {
+  opacity: 1;
+}
+
 /* === 测验 === */
 .quiz {
   background: var(--bg-secondary);
