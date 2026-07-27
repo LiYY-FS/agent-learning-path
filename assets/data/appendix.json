@@ -113,6 +113,73 @@
               }
             }
           ]
+        }
+      ]
+    },
+    {
+      "title": "Python 进阶能力",
+      "content": [
+        {
+          "type": "paragraph",
+          "text": "掌握以下进阶能力后，你就能流畅阅读和编写 Agent 项目代码。"
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "能力",
+              "重要性",
+              "在 Agent 开发中的用途"
+            ],
+            "rows": [
+              [
+                "**async/await 异步编程**",
+                "⭐⭐⭐⭐⭐",
+                "并发调用 LLM API 和工具，性能关键"
+              ],
+              [
+                "**Pydantic 数据建模**",
+                "⭐⭐⭐⭐⭐",
+                "LLM 输出校验、Tool Schema 生成"
+              ],
+              [
+                "**类型提示（Type Hints）**",
+                "⭐⭐⭐⭐",
+                "代码可读性、IDE 智能提示"
+              ],
+              [
+                "**装饰器**",
+                "⭐⭐⭐⭐",
+                "重试、缓存、日志等横切关注点"
+              ],
+              [
+                "**上下文管理器**",
+                "⭐⭐⭐",
+                "资源管理（API 客户端、文件句柄）"
+              ],
+              [
+                "**生成器**",
+                "⭐⭐⭐",
+                "流式响应处理、惰性求值"
+              ],
+              [
+                "**dataclass**",
+                "⭐⭐⭐",
+                "配置和数据结构定义"
+              ],
+              [
+                "**functools**",
+                "⭐⭐",
+                "lru_cache 缓存、partial 偏函数"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "关键第三方库",
+          "text": "**openai/anthropic**: LLM SDK；**pydantic**: 数据校验；**httpx**: 异步 HTTP 客户端；**rich**: 终端美化输出；**tenacity**: 重试机制；**tiktoken**: Token 计算。这些是 Agent 开发的标配库。"
         },
         {
           "type": "knowledgePoint",
@@ -239,73 +306,6 @@
               }
             }
           ]
-        }
-      ]
-    },
-    {
-      "title": "Python 进阶能力",
-      "content": [
-        {
-          "type": "paragraph",
-          "text": "掌握以下进阶能力后，你就能流畅阅读和编写 Agent 项目代码。"
-        },
-        {
-          "type": "table",
-          "data": {
-            "headers": [
-              "能力",
-              "重要性",
-              "在 Agent 开发中的用途"
-            ],
-            "rows": [
-              [
-                "**async/await 异步编程**",
-                "⭐⭐⭐⭐⭐",
-                "并发调用 LLM API 和工具，性能关键"
-              ],
-              [
-                "**Pydantic 数据建模**",
-                "⭐⭐⭐⭐⭐",
-                "LLM 输出校验、Tool Schema 生成"
-              ],
-              [
-                "**类型提示（Type Hints）**",
-                "⭐⭐⭐⭐",
-                "代码可读性、IDE 智能提示"
-              ],
-              [
-                "**装饰器**",
-                "⭐⭐⭐⭐",
-                "重试、缓存、日志等横切关注点"
-              ],
-              [
-                "**上下文管理器**",
-                "⭐⭐⭐",
-                "资源管理（API 客户端、文件句柄）"
-              ],
-              [
-                "**生成器**",
-                "⭐⭐⭐",
-                "流式响应处理、惰性求值"
-              ],
-              [
-                "**dataclass**",
-                "⭐⭐⭐",
-                "配置和数据结构定义"
-              ],
-              [
-                "**functools**",
-                "⭐⭐",
-                "lru_cache 缓存、partial 偏函数"
-              ]
-            ]
-          }
-        },
-        {
-          "type": "callout",
-          "variant": "tip",
-          "title": "关键第三方库",
-          "text": "**openai/anthropic**: LLM SDK；**pydantic**: 数据校验；**httpx**: 异步 HTTP 客户端；**rich**: 终端美化输出；**tenacity**: 重试机制；**tiktoken**: Token 计算。这些是 Agent 开发的标配库。"
         }
       ]
     },
