@@ -14,6 +14,10 @@ Thumbs.db
 *.log
 tmp/
 
+# Python 编译缓存
+__pycache__/
+*.pyc
+
 # 依赖（本地测试用，不发布到仓库）
 node_modules/
 package-lock.json
