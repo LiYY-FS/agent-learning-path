@@ -718,7 +718,7 @@
         {
           "type": "doc",
           "title": "OpenAI API 文档 - Tokenization",
-          "url": "https://platform.openai.com/docs/guides/tokens",
+          "url": "https://developers.openai.com/api/docs/guides/token-counting",
           "note": "官方 Token 说明"
         },
         {
@@ -730,8 +730,8 @@
         {
           "type": "tool",
           "title": "Tokenizer 可视化工具",
-          "url": "https://platform.openai.com/tokenizer",
-          "note": "在线可视化分词"
+          "url": "https://help.openai.com/en/articles/4936856-what-are-tokens-and-how-to-count-them",
+          "note": "Token 基础概念与在线工具入口"
         },
         {
           "type": "doc",
