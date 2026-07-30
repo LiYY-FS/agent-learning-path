@@ -14,6 +14,7 @@ const Router = {
       { pattern: /^#\/chapter\/(\w+)\/section\/([\w.]+)$/, handler: (m) => this._renderSection(m[1], m[2]) },
       { pattern: /^#\/chapter\/(\w+)\/quiz$/, handler: (m) => this._renderChapterQuiz(m[1]) },
       { pattern: /^#\/appendix$/, handler: () => this._renderAppendix() },
+      { pattern: /^#\/appendix-redis$/, handler: () => this._renderAppendixThenScroll('Redis 基础') },
       { pattern: /^#\/glossary$/, handler: () => this._renderGlossary() },
       { pattern: /^#\/progress$/, handler: () => this._renderProgress() },
     ];
@@ -312,6 +313,22 @@ const Router = {
     } catch (e) {
       this._renderError(e);
     }
+  },
+
+  /* === 渲染附录并滚动到指定小节 === */
+  async _renderAppendixThenScroll(sectionTitle) {
+    await this._renderAppendix();
+    // 等渲染完成后，按标题找到对应卡片并平滑滚动
+    setTimeout(() => {
+      const cards = document.querySelectorAll('.card');
+      for (const card of cards) {
+        const titleEl = card.querySelector('.card__title');
+        if (titleEl && titleEl.textContent.trim() === sectionTitle) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          return;
+        }
+      }
+    }, 200);
   },
 
   /* === 渲染术语表 === */

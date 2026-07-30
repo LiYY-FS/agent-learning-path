@@ -67,43 +67,7 @@ const Sidebar = {
       });
     });
 
-    // 构建附录可展开子目录（含 Redis 基础等小节）
-    this._buildAppendixNav();
-
     this.updateProgressRings();
-  },
-
-  /* === 构建附录可展开子目录 === */
-  _buildAppendixNav() {
-    const ul = document.getElementById('appendixSections');
-    const header = document.getElementById('appendixNavHeader');
-    if (!ul || !header) return;
-
-    const appendix = Utils.getData('APPENDIX_DATA');
-    const sections = (appendix && appendix.sections) || [];
-    ul.innerHTML = '';
-
-    sections.forEach((sec, idx) => {
-      const li = Utils.createElement('li');
-      const link = Utils.createElement('div', 'sidebar__section-link');
-      link.dataset.appendixTarget = `appendix-sec-${idx}`;
-      link.innerHTML = `<span>${sec.title}</span>`;
-      link.addEventListener('click', (e) => {
-        e.stopPropagation();
-        const targetId = `appendix-sec-${idx}`;
-        Router.navigate('#/appendix');
-        // 等附录页渲染完成后再滚动到对应小节
-        setTimeout(() => {
-          const el = document.getElementById(targetId);
-          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 150);
-      });
-      li.appendChild(link);
-      ul.appendChild(li);
-    });
-
-    // 注：标题的展开/收起由 updateActive 在路由切换时统一处理，
-    // 与章节小节行为一致，避免与导航事件相互覆盖。
   },
 
   /* === 更新进度环 === */
@@ -179,14 +143,6 @@ const Sidebar = {
       // 激活资源链接
       const link = document.querySelector(`.sidebar__link[data-route="${hash}"]`);
       if (link) link.classList.add('active');
-
-      // 进入附录页时展开其子目录，让 Redis 基础等小节在目录中可见
-      if (hash === '#/appendix') {
-        const apUl = document.getElementById('appendixSections');
-        const apHeader = document.getElementById('appendixNavHeader');
-        if (apUl) apUl.classList.add('expanded');
-        if (apHeader) apHeader.classList.add('expanded');
-      }
     }
   },
 };
