@@ -294,8 +294,9 @@ const Router = {
       content.appendChild(header);
 
       if (data.sections) {
-        data.sections.forEach((section) => {
+        data.sections.forEach((section, idx) => {
           const sectionEl = Utils.createElement('div', 'card');
+          sectionEl.id = `appendix-sec-${idx}`;
           sectionEl.innerHTML = `<h3 class="card__title">${section.title}</h3>`;
           if (section.content) {
             section.content.forEach((block) => {

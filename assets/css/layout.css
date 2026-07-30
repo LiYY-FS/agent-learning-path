@@ -309,6 +309,23 @@
   background: rgba(57, 208, 216, 0.08);
 }
 
+/* 附录可展开子目录的箭头 */
+.sidebar__link--expandable {
+  justify-content: flex-start;
+}
+
+.sidebar__caret {
+  margin-left: auto;
+  font-size: 10px;
+  line-height: 1;
+  transition: transform var(--transition-fast);
+  color: var(--text-muted);
+}
+
+.sidebar__link--expandable.expanded .sidebar__caret {
+  transform: rotate(90deg);
+}
+
 /* === 主内容区 === */
 .main {
   flex: 1;

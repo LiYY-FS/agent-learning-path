@@ -88,10 +88,12 @@
       <div class="sidebar__section">
         <div class="sidebar__section-title">资源</div>
         <nav class="sidebar__nav">
-          <div class="sidebar__link" data-route="#/appendix">
+          <div class="sidebar__link sidebar__link--expandable" data-route="#/appendix" id="appendixNavHeader">
             <span>📎</span>
             <span>附录：Python 基础</span>
+            <span class="sidebar__caret">▸</span>
           </div>
+          <ul class="sidebar__sections" id="appendixSections"></ul>
           <div class="sidebar__link" data-route="#/glossary">
             <span>📖</span>
             <span>术语速查表</span>
