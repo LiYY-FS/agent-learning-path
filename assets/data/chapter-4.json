@@ -85,7 +85,8 @@
         "background": "某公司客服需处理售前/售后/物流/技术支持多种问题。",
         "architecture": "Router Agent 分类问题 → 转接到 4 个专业 Agent → 结果汇总给 Router。",
         "outcome": "问题路由准确率 92%，平均处理时间降低 50%。",
-        "lessons": "层级式架构的 Router 质量决定整体效果。"
+        "lessons": "层级式架构的 Router 质量决定整体效果。",
+        "code": "multi_agent_comm.py"
       },
       "exercises": [
         {
@@ -191,7 +192,8 @@
         "background": "用多 Agent 模拟软件开发团队：PM/设计/前端/后端/测试。",
         "architecture": "CrewAI 定义 5 个角色，PM 分解需求 → 前后端并行开发 → 测试 Agent 验证。",
         "outcome": "小型项目自动开发成功率 70%，开发时间缩短 60%。",
-        "lessons": "角色定义要明确边界，避免职责重叠。"
+        "lessons": "角色定义要明确边界，避免职责重叠。",
+        "code": "crewai_roles.py"
       },
       "exercises": [
         {
@@ -280,7 +282,8 @@
         "background": "某报告生成系统需要研究/分析/撰写三个 Agent 协作。",
         "architecture": "用 LangGraph 共享状态传递中间结果，每个 Agent 负责一个环节。",
         "outcome": "报告生成全自动化，质量评分 4.2/5。",
-        "lessons": "共享状态适合线性流程，复杂交互用消息传递。"
+        "lessons": "共享状态适合线性流程，复杂交互用消息传递。",
+        "code": "multi_agent_comm.py"
       },
       "exercises": [
         {
@@ -386,7 +389,8 @@
         "background": "某咨询公司需生成行业分析报告，包含市场/技术/财务三维度。",
         "architecture": "DAG 编排：3 个收集 Agent 并行 → 分析 Agent 汇总 → 报告 Agent 生成。",
         "outcome": "报告生成时间从 4 小时降至 20 分钟。",
-        "lessons": "DAG 并行化是多 Agent 系统性能优化的关键。"
+        "lessons": "DAG 并行化是多 Agent 系统性能优化的关键。",
+        "code": "ops_agent.py"
       },
       "exercises": [
         {
@@ -468,7 +472,8 @@
         "background": "用 3 个 Agent 从安全/性能/可读性审查同一份代码。",
         "architecture": "3 个专业 Agent 并行审查 → Critic Agent 聚合，冲突时取最严格建议。",
         "outcome": "代码缺陷发现率提升 40%。",
-        "lessons": "多视角审查比单 Agent 更全面。"
+        "lessons": "多视角审查比单 Agent 更全面。",
+        "code": "code_review_agent.py"
       },
       "exercises": [
         {
@@ -557,7 +562,8 @@
         "background": "某公司需要 Agent 处理数小时的数据分析任务。",
         "architecture": "Celery + Redis 任务队列，LangGraph Checkpoint 持久化，支持中断恢复。",
         "outcome": "长任务成功率从 60% 提升至 95%（可恢复）。",
-        "lessons": "长任务必须支持 Checkpoint，否则中断后从头重来浪费巨大。"
+        "lessons": "长任务必须支持 Checkpoint，否则中断后从头重来浪费巨大。",
+        "code": "long_task.py"
       },
       "exercises": [
         {
@@ -629,7 +635,8 @@
         "background": "某银行自动交易 Agent 需要在大额交易时人工确认。",
         "architecture": "LangGraph interrupt + 异步 Webhook 通知审批人，审批后通过 Command 恢复执行。",
         "outcome": "大额交易 100% 人工确认，零未授权交易。",
-        "lessons": "HITL 是金融场景的合规必需品。"
+        "lessons": "HITL 是金融场景的合规必需品。",
+        "code": "hitl_langgraph.py"
       },
       "exercises": [
         {
@@ -745,7 +752,8 @@
         "background": "某公司需要 Agent 自动测试 Web 应用的 UI。",
         "architecture": "Agent 用 Playwright 操作浏览器，截图理解页面，自主执行测试用例。",
         "outcome": "UI 测试覆盖率从 40% 提升至 85%，测试时间缩短 70%。",
-        "lessons": "Playwright + LLM 是 GUI 自动化的最佳实践，比纯 Computer Use 更可靠。"
+        "lessons": "Playwright + LLM 是 GUI 自动化的最佳实践，比纯 Computer Use 更可靠。",
+        "code": "playwright_agent.py"
       },
       "exercises": [
         {

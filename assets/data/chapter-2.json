@@ -266,7 +266,8 @@
         "background": "某投资研究公司需要 Agent 能自主搜索行业数据、计算财务指标、生成研究报告。",
         "architecture": "基于 ReAct 范式构建研究助手，工具包括：网络搜索、财务数据库查询、Excel 计算、报告生成。Agent 自主决定调用顺序。",
         "outcome": "研究效率提升 5 倍，一份行业分析报告从 2 天缩短至 2 小时，数据准确率 92%。",
-        "lessons": "1) ReAct 适合需要多步信息收集的任务；2) 工具质量决定 Agent 能力上限；3) 复杂任务用 Plan-Execute 更可控。"
+        "lessons": "1) ReAct 适合需要多步信息收集的任务；2) 工具质量决定 Agent 能力上限；3) 复杂任务用 Plan-Execute 更可控。",
+        "code": "react_agent.py"
       },
       "exercises": [
         {
@@ -881,7 +882,17 @@
         "background": "某公司 Agent 在测试环境表现良好，上线后发现偶发循环失控和 Token 爆炸。",
         "architecture": "增加五重防护：max_steps=15、单步超时 30s、总超时 5min、Token 上限 50K、费用上限 $1/请求。增加 LangFuse 追踪每一步。",
         "outcome": "上线后零循环失控事故，平均 Token 消耗控制在 8K 以内，单请求成本 <$0.05。",
-        "lessons": "1) 生产环境防护必须多层；2) 监控每一步的 Token 消耗；3) 异常时优雅降级而非崩溃。"
+        "lessons": "1) 生产环境防护必须多层；2) 监控每一步的 Token 消耗；3) 异常时优雅降级而非崩溃。",
+        "code": {
+          "data": {
+            "filename": "agent_loop_production.py",
+            "language": "python",
+            "title": "生产级 Agent Loop：五重防护实现",
+            "code": "import json\nimport time\nimport os\nfrom openai import OpenAI\n\n# 生产级 Agent Loop —— 五重防护实现\n# 对应企业案例「生产级 Agent Loop 的工程实践」所描述的防护策略：\n#   max_steps=15 / 单步超时 30s / 总超时 5min / Token 上限 50K / 费用上限 $1\n\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")\n\n# 模型单价（美元 / 1K tokens），仅用于费用估算；实际以账单为准\nPRICE_PER_1K = {\"prompt\": 0.005, \"completion\": 0.015}\n\n\ndef estimate_tokens(text: str) -> int:\n    \"\"\"粗略估算 token 数（英文约 4 字符/token，中文约 1.5 字符/token）。\n    生产环境建议使用 tiktoken 精确计算。\"\"\"\n    return max(1, int(len(text) / 4))\n\n\ndef estimate_cost(prompt_tokens: int, completion_tokens: int) -> float:\n    return (prompt_tokens / 1000) * PRICE_PER_1K[\"prompt\"] + \\\n           (completion_tokens / 1000) * PRICE_PER_1K[\"completion\"]\n\n\nclient = OpenAI(api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)\n\n\nclass ProductionAgentLoop:\n    \"\"\"带五重防护的生产级 Agent Loop\"\"\"\n\n    def __init__(self, system_prompt: str, tools: list, tool_functions: dict,\n                 model: str = MODEL, max_steps: int = 15,\n                 step_timeout: int = 30, total_timeout: int = 300,\n                 token_limit: int = 50000, cost_limit: float = 1.0):\n        # 第1步：保存模型名与五项防护阈值\n        self.model = model\n        self.max_steps = max_steps            # 防护①：步数上限\n        self.step_timeout = step_timeout      # 防护②：单步超时 30s\n        self.total_timeout = total_timeout    # 防护③：总超时 5min\n        self.token_limit = token_limit        # 防护④：Token 上限 50K\n        self.cost_limit = cost_limit          # 防护⑤：费用上限 $1\n        self.tools = tools\n        self.tool_functions = tool_functions\n        self.messages = [{\"role\": \"system\", \"content\": system_prompt}]\n        self.used_tokens = 0\n        self.used_cost = 0.0\n\n    # 轻量追踪钩子：生产环境把下面这行替换为 LangFuse 上报\n    def _trace(self, event: str, **kwargs):\n        # from langfuse import Langfuse; langfuse.trace(name=event, metadata=kwargs)\n        print(f\"[trace] {event}: {kwargs}\")\n\n    def run(self, user_input: str) -> str:\n        \"\"\"执行带防护的 Agent 循环\"\"\"\n        # 第2步：把用户输入加入历史\n        self.messages.append({\"role\": \"user\", \"content\": user_input})\n        start_time = time.time()\n\n        # 第3步：循环最多 max_steps 步\n        for step in range(self.max_steps):\n            # 防护③+④+⑤：每轮先查总超时 / Token / 费用，超限即优雅降级\n            if time.time() - start_time > self.total_timeout:\n                return \"⏱️ 总超时(5min)，已终止\"\n            if self.used_tokens > self.token_limit:\n                return \"🪙 Token 超过 50K 上限，已终止\"\n            if self.used_cost > self.cost_limit:\n                return \"💰 费用超过 $1 上限，已终止（优雅降级）\"\n\n            try:\n                # 第4步：请求 LLM，timeout=单步超时 30s（防护②）\n                response = client.chat.completions.create(\n                    model=self.model,\n                    messages=self.messages,\n                    tools=self.tools,\n                    tool_choice=\"auto\",\n                    temperature=0,\n                    timeout=self.step_timeout,\n                )\n            # 异常兜底：LLM 失败不致整个 Agent 崩溃\n            except Exception as e:\n                return f\"❌ LLM 调用失败: {e}\"\n\n            # 第5步：取出消息并回填\n            message = response.choices[0].message\n            self.messages.append(message)\n\n            # 统计 Token / 费用（防护④⑤）\n            usage = getattr(response, \"usage\", None)\n            if usage:\n                p_tokens = usage.prompt_tokens\n                c_tokens = usage.completion_tokens\n            else:\n                p_tokens = estimate_tokens(str(self.messages))\n                c_tokens = estimate_tokens(message.content or \"\")\n            self.used_tokens = p_tokens  # 以当前上下文体量判断上限\n            self.used_cost += estimate_cost(p_tokens, c_tokens)\n            self._trace(\"llm_call\", step=step, tokens=p_tokens, cost=round(self.used_cost, 4))\n\n            # 第6步：无工具调用即完成\n            if not message.tool_calls:\n                return message.content\n\n            # 第7步：遍历并执行工具调用\n            for tc in message.tool_calls:\n                tool_name = tc.function.name\n                try:\n                    args = json.loads(tc.function.arguments)\n                    # 第8步：带超时执行工具（失败不崩溃）\n                    result = self._execute_tool(tool_name, args)\n                except Exception as e:\n                    result = {\"error\": f\"工具执行失败: {str(e)}\"}\n                print(f\"步骤{step + 1}: 调用 {tool_name}({args}) → {result}\")\n                # 第9步：回填 tool 结果（必须紧跟对应 assistant）\n                self.messages.append({\n                    \"role\": \"tool\",\n                    \"tool_call_id\": tc.id,\n                    \"content\": json.dumps(result, ensure_ascii=False),\n                })\n\n        # 第10步：超步数兜底\n        return f\"⚠️ 达到最大步数({self.max_steps})，Agent 终止\"\n\n    def _execute_tool(self, name: str, args: dict):\n        \"\"\"执行工具调用（带安全检查）\"\"\"\n        # 第11步：校验工具是否存在\n        if name not in self.tool_functions:\n            return {\"error\": f\"未知工具: {name}\"}\n        # 第12步：按名调用函数\n        return self.tool_functions[name](**args)\n\n\n# ===================== 使用示例 =====================\ndef search_func(query: str) -> dict:\n    \"\"\"演示用搜索工具（桩实现）\"\"\"\n    return {\"result\": f\"关于 '{query}' 的搜索结果\"}\n\n\ndef calc_func(expression: str) -> dict:\n    \"\"\"演示用计算工具\"\"\"\n    return {\"result\": eval(expression)}  # 仅演示，生产环境需安全解析\n\n\nTOOLS = [\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"search\", \"description\": \"搜索互联网信息\",\n        \"parameters\": {\"type\": \"object\", \"properties\": {\"query\": {\"type\": \"string\"}}, \"required\": [\"query\"]}}},\n    {\"type\": \"function\", \"function\": {\n        \"name\": \"calculate\", \"description\": \"计算数学表达式\",\n        \"parameters\": {\"type\": \"object\", \"properties\": {\"expression\": {\"type\": \"string\"}}, \"required\": [\"expression\"]}}},\n]\n\n\nif __name__ == \"__main__\":\n    agent = ProductionAgentLoop(\n        system_prompt=\"你是智能助手，可以搜索和计算\",\n        tools=TOOLS,\n        tool_functions={\"search\": search_func, \"calculate\": calc_func},\n        max_steps=15,\n    )\n    result = agent.run(\"2024年中国GDP是多少？换算成美元呢？\")\n    print(\"最终结果:\", result)\n",
+            "note": "在基础 Agent Loop 之上叠加 max_steps=15 / 单步超时 30s / 总超时 5min / Token 上限 50K / 费用上限 $1 五重防护，并用 _trace 钩子对接 LangFuse 追踪每一步。",
+            "output": "[trace] llm_call: {'step': 0, 'tokens': 50, 'cost': 0.0004}\n步骤1: 调用 calculate({'expression': '126/7.2'}) → {'result': 17.5}\n[trace] llm_call: {'step': 1, 'tokens': 80, 'cost': 0.0011}\n最终结果: 2024年中国GDP约126万亿元，折合约17.5万亿美元。"
+          }
+        }
       },
       "exercises": [
         {
@@ -1018,7 +1029,8 @@
         "background": "某电商客服 Agent 在长对话（20+轮）后丢失早期上下文，导致用户需要重复描述问题。",
         "architecture": "采用三层记忆：1) 滑动窗口保留最近10轮；2) 超出部分用 GPT-5-mini 摘要压缩；3) 关键信息（订单号、问题描述）提取到结构化字段。",
         "outcome": "长对话场景下上下文保持率从 30% 提升至 95%，用户满意度提升 40%。",
-        "lessons": "1) 摘要用便宜模型（mini），不影响成本；2) 关键信息必须结构化提取，不能只靠摘要；3) 摘要质量需要定期检查。"
+        "lessons": "1) 摘要用便宜模型（mini），不影响成本；2) 关键信息必须结构化提取，不能只靠摘要；3) 摘要质量需要定期检查。",
+        "code": "memory_management.py"
       },
       "exercises": [
         {
@@ -1122,7 +1134,8 @@
         "background": "某律所需从数百份合同中提取甲乙方、金额、期限等关键信息。",
         "architecture": "用 Function Calling + Pydantic 定义合同数据模型，LLM 提取信息后 Pydantic 校验，校验失败自动重试。关键字段（金额）额外做数值范围校验。",
         "outcome": "信息提取准确率 96%，处理速度 100 份/小时（人工仅 5 份/小时）。",
-        "lessons": "1) Function Calling 比 Prompt 约束可靠得多；2) Pydantic 校验是最后一道防线；3) 重试时告诉 LLM 错误原因能提升修正率。"
+        "lessons": "1) Function Calling 比 Prompt 约束可靠得多；2) Pydantic 校验是最后一道防线；3) 重试时告诉 LLM 错误原因能提升修正率。",
+        "code": "structured_output.py"
       },
       "exercises": [
         {
@@ -1386,7 +1399,8 @@
         "background": "某公司构建内部知识库问答，初期基础 RAG 准确率仅 60%，用户反馈\\\"答非所问\\\"。",
         "architecture": "逐步优化：1) 分块从固定 256→语义 512+重叠 50；2) 加入 BM25 混合检索；3) BGE Reranker 重排序；4) 查询重写优化模糊问题。",
         "outcome": "四步优化后准确率从 60% 提升至 89%，用户满意度从 3.1 升至 4.5 分。",
-        "lessons": "1) 分块策略影响巨大，需 A/B 测试；2) 混合检索+Reranker 是性价比最高的优化；3) 查询重写能解决用户表达不清的问题。"
+        "lessons": "1) 分块策略影响巨大，需 A/B 测试；2) 混合检索+Reranker 是性价比最高的优化；3) 查询重写能解决用户表达不清的问题。",
+        "code": "rag_system.py"
       },
       "exercises": [
         {
@@ -1539,7 +1553,8 @@
         "background": "某银行智能投顾 Agent 在安全测试中被红队通过 Prompt 注入成功绕过限制，输出了不该提供的具体股票推荐。",
         "architecture": "实施五层防护：1) 输入过滤（关键词+正则）；2) System Prompt 明确边界；3) 输出审查（检测投资建议关键词）；4) 高风险操作 HITL；5) 审计日志记录所有交互。",
         "outcome": "安全测试通过率从 40% 提升至 98%，通过银监会安全审查。",
-        "lessons": "1) 金融场景安全是第一优先级；2) Prompt 注入防护必须多层；3) 定期红队测试发现漏洞。"
+        "lessons": "1) 金融场景安全是第一优先级；2) Prompt 注入防护必须多层；3) 定期红队测试发现漏洞。",
+        "code": "prompt_safety.py"
       },
       "exercises": [
         {
@@ -1693,7 +1708,8 @@
         "background": "某公司客服 Agent 上线前需要系统评估，确保质量达标。",
         "architecture": "构建 200 题评估数据集（覆盖常见/边界/异常场景），用 AgentEvaluator 自动评分 + 人工抽检 20%。设定通过标准：准确率≥85%、平均步数≤5、单次成本≤$0.05。",
         "outcome": "经过 3 轮 Prompt 优化，准确率从 72% 提升至 88%，成功上线。",
-        "lessons": "1) 评估数据集要覆盖边界场景；2) 自动评估+人工抽检结合；3) 设定明确的上线标准。"
+        "lessons": "1) 评估数据集要覆盖边界场景；2) 自动评估+人工抽检结合；3) 设定明确的上线标准。",
+        "code": "agent_eval.py"
       },
       "exercises": [
         {

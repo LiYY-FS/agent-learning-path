@@ -154,6 +154,9 @@ const App = {
     // 初始化渲染器
     Renderer.init();
 
+    // 构建全局代码块注册表（供企业级案例按文件名复用已有代码）
+    Utils.buildCodeRegistry();
+
     // 初始化 Mermaid
     MermaidInit.init();
 

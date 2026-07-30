@@ -30,6 +30,27 @@ const Utils = {
     return !!(window.__DATA__ && Object.keys(window.__DATA__).length > 0);
   },
 
+  /* === 构建全局代码块注册表（按 filename 索引）===
+     供企业级案例 enterpriseCase.code 以文件名字符串复用已有代码块，避免重复维护 */
+  buildCodeRegistry() {
+    if (window.__CODE_REGISTRY__) return window.__CODE_REGISTRY__;
+    const registry = {};
+    const collect = (node) => {
+      if (!node || typeof node !== 'object') return;
+      if (Array.isArray(node)) { node.forEach(collect); return; }
+      if (node.type === 'code' && node.data && node.data.filename) {
+        registry[node.data.filename] = node.data;
+      }
+      for (const k in node) {
+        if (node[k] && typeof node[k] === 'object') collect(node[k]);
+      }
+    };
+    const data = window.__DATA__ || {};
+    Object.values(data).forEach(collect);
+    window.__CODE_REGISTRY__ = registry;
+    return registry;
+  },
+
   /* === DOM 操作 === */
   $(selector, parent = document) {
     return parent.querySelector(selector);

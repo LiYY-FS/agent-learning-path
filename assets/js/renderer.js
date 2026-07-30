@@ -339,6 +339,11 @@ const Renderer = {
   /* === 企业级案例 === */
   _renderCaseStudy(caseData) {
     const el = Utils.createElement('div', 'case-study animate-fade-in-up');
+    // 支持 enterpriseCase.code 为文件名字符串：从全局代码注册表按文件名解析已有代码块
+    let caseCode = caseData.code;
+    if (typeof caseCode === 'string') {
+      caseCode = (window.__CODE_REGISTRY__ && window.__CODE_REGISTRY__[caseCode]) || null;
+    }
     let html = `
       <div class="case-study__header">
         <span class="case-study__badge">企业级案例</span>
@@ -352,8 +357,8 @@ const Renderer = {
     if (caseData.architecture) {
       html += `<div class="case-study__section"><div class="case-study__section-title">架构设计</div><div>${this._renderInlineText(caseData.architecture)}</div></div>`;
     }
-    if (caseData.code) {
-      const codeBlock = CodeBlock.create(caseData.code.data || caseData.code);
+    if (caseCode) {
+      const codeBlock = CodeBlock.create(caseCode.data || caseCode);
       html += `<div class="case-study__section"><div class="case-study__section-title">关键代码</div><div id="caseCodePlaceholder"></div></div>`;
     }
     if (caseData.outcome) {
@@ -366,10 +371,10 @@ const Renderer = {
     el.innerHTML = html;
 
     // 如果有代码，插入到占位符
-    if (caseData.code) {
+    if (caseCode) {
       const placeholder = el.querySelector('#caseCodePlaceholder');
       if (placeholder) {
-        const codeEl = CodeBlock.create(caseData.code.data || caseData.code);
+        const codeEl = CodeBlock.create(caseCode.data || caseCode);
         placeholder.replaceWith(codeEl);
       }
     }

@@ -61,7 +61,8 @@
         "background": "某电商平台日均 10 万咨询量，人工客服 200 人。",
         "architecture": "意图路由 + RAG 知识库 + 订单/物流系统集成 + 情感识别转人工。",
         "outcome": "自动回复率 78%，人工减少 60%，满意度 4.6/5。",
-        "lessons": "1) 意图路由是客服系统的核心；2) 情感识别比关键词更准确判断是否转人工；3) RAG 知识库要持续更新。"
+        "lessons": "1) 意图路由是客服系统的核心；2) 情感识别比关键词更准确判断是否转人工；3) RAG 知识库要持续更新。",
+        "code": "customer_service.py"
       },
       "exercises": [
         {
@@ -130,7 +131,8 @@
         "background": "某团队每天 50+ PR 需要审查，人工审查耗时且标准不一。",
         "architecture": "GitHub Webhook 触发 Agent → AST + LLM 双重审查 → 评论到 PR。",
         "outcome": "PR 审查时间从 2 小时降至 5 分钟，缺陷发现率提升 35%。",
-        "lessons": "1) 静态分析 + LLM 结合比纯 LLM 更可靠；2) 审查结果要可操作（给出修复建议）；3) 避免过度审查引起开发者反感。"
+        "lessons": "1) 静态分析 + LLM 结合比纯 LLM 更可靠；2) 审查结果要可操作（给出修复建议）；3) 避免过度审查引起开发者反感。",
+        "code": "code_review_agent.py"
       },
       "exercises": [
         {
@@ -201,7 +203,8 @@
         "background": "某公司业务人员需要查询数据但不会 SQL。",
         "architecture": "NL2SQL + Pandas 分析 + 自动可视化 + LLM 洞察生成。",
         "outcome": "业务人员自助查询率 80%，分析师从取数工作中解放。",
-        "lessons": "1) schema 描述质量决定 NL2SQL 准确率；2) 只读安全限制必须严格；3) 自动可视化大幅提升体验。"
+        "lessons": "1) schema 描述质量决定 NL2SQL 准确率；2) 只读安全限制必须严格；3) 自动可视化大幅提升体验。",
+        "code": "data_analysis_agent.py"
       },
       "exercises": [
         {
@@ -344,7 +347,8 @@
         "background": "某 5000 人企业，内部文档 2 万+，分布在 Confluence/SharePoint/本地。",
         "architecture": "统一 Loader + 增量索引 + 文档级 ACL + 混合检索 + Reranker。",
         "outcome": "员工找文档时间从 15 分钟降至 30 秒，知识复用率提升 50%。",
-        "lessons": "1) 权限控制是企业 RAG 的硬需求；2) 增量索引避免全量重建；3) 引用来源提升可信度。"
+        "lessons": "1) 权限控制是企业 RAG 的硬需求；2) 增量索引避免全量重建；3) 引用来源提升可信度。",
+        "code": "rag_system.py"
       },
       "exercises": [
         {
@@ -403,7 +407,8 @@
         "background": "某创业公司用多 Agent 自动开发小型项目。",
         "architecture": "PM/Designer/Coder/Tester/Reviewer 5 Agent 流水线。",
         "outcome": "小型项目自动开发率 70%，开发周期缩短 60%。",
-        "lessons": "1) 复杂项目仍需人工参与；2) Agent 间代码交接是难点；3) 适合 MVP 和原型开发。"
+        "lessons": "1) 复杂项目仍需人工参与；2) Agent 间代码交接是难点；3) 适合 MVP 和原型开发。",
+        "code": "multi_agent_dev.py"
       },
       "exercises": [
         {
@@ -460,7 +465,8 @@
         "background": "用 Agent 自动开发一个 CRUD API 服务。",
         "architecture": "Agent 自主完成：数据库设计 → API 开发 → 单元测试 → Docker 部署。",
         "outcome": "简单 CRUD 项目 30 分钟内完成开发和部署。",
-        "lessons": "1) 适合标准化项目；2) 复杂业务逻辑需人工指导；3) 自动测试是质量保障关键。"
+        "lessons": "1) 适合标准化项目；2) 复杂业务逻辑需人工指导；3) 自动测试是质量保障关键。",
+        "code": "fastapi_agent.py"
       },
       "exercises": [
         {
@@ -586,7 +592,8 @@
         "background": "某公司 Agent 需支撑日均 10 万次调用。",
         "architecture": "FastAPI + Docker + Nginx 负载均衡 + Redis 缓存 + 多实例水平扩展。",
         "outcome": "QPS 500+，P99 延迟 <5s，可用性 99.9%。",
-        "lessons": "1) 状态外置（Redis）才能水平扩展；2) 缓存是成本和性能的关键；3) 限流降级保护系统稳定。"
+        "lessons": "1) 状态外置（Redis）才能水平扩展；2) 缓存是成本和性能的关键；3) 限流降级保护系统稳定。",
+        "code": "Dockerfile"
       },
       "exercises": [
         {
@@ -678,7 +685,8 @@
         "background": "某银行 Agent 需通过银监会安全审查。",
         "architecture": "五层安全：输入过滤 + Guardrail + HITL + 审计日志 + 数据脱敏。",
         "outcome": "通过安全审查，零合规事故。",
-        "lessons": "金融/医疗/法律场景安全合规是第一优先级。"
+        "lessons": "金融/医疗/法律场景安全合规是第一优先级。",
+        "code": "prompt_safety.py"
       },
       "exercises": [
         {
@@ -765,7 +773,8 @@
         "background": "某公司 Agent 因未设 max_steps 导致 Token 爆炸，单次请求消耗 $50。",
         "architecture": "增加 max_steps=15 + Token 上限 50K + 费用上限 $1 + 告警。",
         "outcome": "后续零类似事故。",
-        "lessons": "防护措施必须上线前就位，不能事后补救。"
+        "lessons": "防护措施必须上线前就位，不能事后补救。",
+        "code": "langfuse_integration.py"
       },
       "exercises": [
         {
