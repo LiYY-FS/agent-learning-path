@@ -1022,6 +1022,72 @@
           "variant": "tip",
           "title": "记忆策略选择",
           "text": "1) 简单对话：滑动窗口（N=10-20）即可；2) 长对话：滑动窗口 + 摘要压缩；3) 跨会话：加入长期记忆（向量库）；4) 关键信息：主动提取存入结构化存储。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "从内存字典到数据库：教学示例如何演进为企业级",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "前面的滑动窗口和摘要压缩都发生在「内存」里——也就是一个 Python 列表 messages。这够教学用，但进程一重启记忆就没了，多用户也无法隔离。企业级要把记忆真正存下来：短期记忆交给 Redis（按 session_id 隔离、毫秒级读写），长期记忆交给向量库（pgvector）持久化并可跨会话检索。这一步，正是第 5 章 5.11「企业级存储实战」要落地的内容。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "环节",
+                  "教学示例",
+                  "企业级"
+                ],
+                "rows": [
+                  [
+                    "短期记忆",
+                    "messages = [] 进程内",
+                    "Redis：r.set(f\"session:{sid}\", ...)"
+                  ],
+                  [
+                    "长期记忆",
+                    "无（重启即丢）",
+                    "pgvector：INSERT + 余弦检索"
+                  ],
+                  [
+                    "多用户",
+                    "单进程单用户",
+                    "session_id 隔离，多实例共享"
+                  ],
+                  [
+                    "持久化",
+                    "否",
+                    "是，重启不丢"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "memory_to_redis.py",
+                "language": "python",
+                "title": "从内存到 Redis 的最小改造",
+                "highlightLines": [
+                  1,
+                  2,
+                  9,
+                  10,
+                  12,
+                  13
+                ],
+                "code": "# 教学版：记忆在进程内存\nmessages = []                      # 重启即丢，无法多用户\ndef chat(user_msg):\n    messages.append({\"role\": \"user\", \"content\": user_msg})\n    reply = llm(messages)\n    messages.append({\"role\": \"assistant\", \"content\": reply})\n    return reply\n\n# 企业版：记忆外置到 Redis\nimport redis, json\nr = redis.Redis(decode_responses=True)\ndef chat(sid, user_msg):\n    hist = json.loads(r.get(f\"session:{sid}\") or \"[]\")   # 按 session 隔离\n    hist.append({\"role\": \"user\", \"content\": user_msg})\n    reply = llm(hist)\n    hist.append({\"role\": \"assistant\", \"content\": reply})\n    r.set(f\"session:{sid}\", json.dumps(hist[-20:]))       # 持久化、仅留近 20 轮\n    return reply",
+                "output": "教学版：进程重启 → messages 清空，记忆丢失\n企业版：进程重启 → 从 Redis 读回 session:abc 的历史，记忆仍在"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "继续深入",
+              "text": "想看这三层存储如何组装成一个可运行的 Agent？跳到 5.11「企业级存储实战」：那里有完整的 Redis + pgvector + PostgreSQL 代码示例，以及选型速记。"
+            }
+          ]
         }
       ],
       "enterpriseCase": {
