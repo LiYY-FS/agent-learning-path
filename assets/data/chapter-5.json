@@ -793,6 +793,119 @@
       "quiz": [
         "ch5-5.10-q1"
       ]
+    },
+    {
+      "id": "5.11",
+      "title": "企业级存储实战",
+      "subtitle": "Agent 的数据库选型与落地",
+      "estimatedMinutes": 30,
+      "difficulty": 4,
+      "objectives": [
+        "理解教学示例与企业级的存储差异",
+        "掌握三层存储架构（Redis + pgvector + PostgreSQL）",
+        "能根据场景选择正确的数据库组合"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "为什么企业级 Agent 必须落地存储",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "教学示例为了让你看清 Agent 的「感知-推理-行动」主循环，通常用一个字典或全局变量假装记忆（memory = []），进程重启即丢失。但生产环境的 Agent 必须面对：记忆要持久、知识要检索、业务要落库、会话要并发——这些全靠数据库支撑。企业级 Agent 一般采用三层存储：短时记忆（Redis）、长期语义记忆/RAG（pgvector）、业务数据与日志（PostgreSQL）。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "维度",
+                  "教学示例",
+                  "企业级示例"
+                ],
+                "rows": [
+                  [
+                    "记忆",
+                    "memory = [] 进程内，重启即丢",
+                    "Redis（短时）+ pgvector（长期），跨进程持久"
+                  ],
+                  [
+                    "知识",
+                    "直接塞进 prompt",
+                    "向量检索按需召回，省 token、可更新"
+                  ],
+                  [
+                    "业务",
+                    "print 假装",
+                    "真实写入 PostgreSQL，带事务与审计"
+                  ],
+                  [
+                    "并发",
+                    "单用户",
+                    "session_id 隔离，多用户互不干扰"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "mermaid",
+              "data": {
+                "title": "企业级 Agent 存储分层",
+                "code": "flowchart TB\n  U[用户请求] --> A[Agent Core]\n  A -->|短时记忆| R[(Redis)]\n  A -->|长期语义 RAG| V[(pgvector)]\n  A -->|业务数据 日志| P[(PostgreSQL)]"
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "agent_storage.py",
+                "language": "python",
+                "title": "企业级 Agent 三层存储示例",
+                "highlightLines": [
+                  9,
+                  18,
+                  26,
+                  35,
+                  44
+                ],
+                "code": "import json, os, redis, psycopg2\nfrom openai import OpenAI\nfrom pgvector.psycopg2 import register_vector\n\n# ===================== 配置区 =====================\n# 生产环境用环境变量/密钥管理服务注入，勿硬编码密钥\nREDIS_URL = \"redis://localhost:6379\"\nPG_DSN = \"postgres://user:pass@localhost:5432/agent\"\nclient = OpenAI(api_key=os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\"))\n\n# ── 1. 短时记忆：Redis 管会话状态（毫秒级、按 session_id 隔离）──\nr = redis.Redis.from_url(REDIS_URL, decode_responses=True)\ndef load_session(sid: str) -> list:\n    raw = r.get(f\"agent:session:{sid}\")\n    return json.loads(raw) if raw else []           # 当前对话窗口\ndef save_turn(sid: str, turn: dict):\n    hist = load_session(sid); hist.append(turn)\n    r.set(f\"agent:session:{sid}\", json.dumps(hist[-20:]))   # 仅保留近 20 轮\n\n# ── 2. 长期语义记忆 + RAG：pgvector（PostgreSQL 扩展）──\npg = psycopg2.connect(PG_DSN); register_vector(pg)\ndef embed(text: str):\n    return client.embeddings.create(input=text,\n           model=\"text-embedding-3-small\").data[0].embedding\ndef retrieve_knowledge(query: str, top_k=5) -> list:\n    cur = pg.cursor()\n    cur.execute(\"SELECT content FROM knowledge ORDER BY embedding <=> %s LIMIT %s\",\n                (embed(query), top_k))              # <=> 是 pgvector 余弦距离算子\n    return [row[0] for row in cur.fetchall()]       # 即 RAG 的检索侧\ndef save_long_term(text: str, meta: dict):\n    cur = pg.cursor()\n    cur.execute(\"INSERT INTO knowledge(content,embedding,meta) VALUES(%s,%s,%s)\",\n                (text, embed(text), json.dumps(meta))); pg.commit()\n\n# ── 3. 业务数据 / 日志：同一 PostgreSQL 实例的另一张表 ──\ndef write_order(order: dict):                        # Agent 调用「下单工具」时落库\n    cur = pg.cursor()\n    cur.execute(\"INSERT INTO orders(customer,item,amount) VALUES(%s,%s,%s)\",\n                (order[\"customer\"], order[\"item\"], order[\"amount\"]))\n    pg.commit()\n\n# ── Agent 主循环（骨架）──\ndef run_agent(sid, user_msg):\n    history = load_session(sid)                     # 从 Redis 取短时记忆\n    ctx = retrieve_knowledge(user_msg)              # 从 pgvector 取长期知识\n    # 推理 + 工具调用（write_order 等）由具体框架完成\n    reply = f\"[回答] 结合 {len(ctx)} 条知识，回复：{user_msg}\"\n    save_turn(sid, {\"user\": user_msg, \"agent\": reply})  # 写回 Redis\n    return reply",
+                "output": "用户: 查一下我上个月的订单\n→ 从 Redis 取短时记忆（历史对话）\n→ 从 pgvector 召回长期知识（用户画像 / 历史订单摘要）\n→ 调用查询工具读取 PostgreSQL\n→ 回复写入 Redis 短时记忆"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "选型速记",
+              "text": "向量库负责「想得起相关内容」（RAG）；SQL/NoSQL 负责「记得准的事实」；Redis 负责「当前在干什么」（会话状态）；图库负责「理清谁和谁有关」（关系推理）。多数成熟 Agent 是这几类的组合，而非单一选型。轻量场景可用 Chroma + 内存；生产推荐 PostgreSQL + pgvector 一套搞定结构化和向量，再加 Redis 管会话。"
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "企业级 Agent 存储落地",
+        "background": "某 SaaS 产品将客服 Agent 从「内存字典」重构为三层存储。",
+        "architecture": "Redis（会话状态）+ pgvector（知识库 RAG）+ PostgreSQL（订单/工单业务表）+ 时序库（调用监控）。",
+        "outcome": "重启不丢记忆、多实例可水平扩展、知识库可增量更新、业务操作可审计。",
+        "lessons": "1) 状态外置到 Redis 是水平扩展的前提；2) pgvector 与业务库共用 PostgreSQL 降低运维复杂度；3) 所有写操作必须落库并留审计日志。"
+      },
+      "exercises": [
+        {
+          "title": "设计三层存储",
+          "description": "为一个客服 Agent 设计 Redis + pgvector + PostgreSQL 的存储方案，说明每张表 / 每条 key 的用途。",
+          "hints": "先区分短时记忆、长期语义、业务数据三类"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "pgvector 官方文档",
+          "url": "https://github.com/pgvector/pgvector"
+        },
+        {
+          "type": "tool",
+          "title": "Redis",
+          "url": "https://redis.io/"
+        }
+      ],
+      "quiz": []
     }
   ]
 }
