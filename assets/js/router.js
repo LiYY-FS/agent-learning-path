@@ -14,7 +14,7 @@ const Router = {
       { pattern: /^#\/chapter\/(\w+)\/section\/([\w.]+)$/, handler: (m) => this._renderSection(m[1], m[2]) },
       { pattern: /^#\/chapter\/(\w+)\/quiz$/, handler: (m) => this._renderChapterQuiz(m[1]) },
       { pattern: /^#\/appendix$/, handler: () => this._renderAppendix() },
-      { pattern: /^#\/appendix-redis$/, handler: () => this._renderAppendixThenScroll('Redis 基础') },
+      { pattern: /^#\/redis$/, handler: () => this._renderRedis() },
       { pattern: /^#\/glossary$/, handler: () => this._renderGlossary() },
       { pattern: /^#\/progress$/, handler: () => this._renderProgress() },
     ];
@@ -315,20 +315,36 @@ const Router = {
     }
   },
 
-  /* === 渲染附录并滚动到指定小节 === */
-  async _renderAppendixThenScroll(sectionTitle) {
-    await this._renderAppendix();
-    // 等渲染完成后，按标题找到对应卡片并平滑滚动
-    setTimeout(() => {
-      const cards = document.querySelectorAll('.card');
-      for (const card of cards) {
-        const titleEl = card.querySelector('.card__title');
-        if (titleEl && titleEl.textContent.trim() === sectionTitle) {
-          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
-          return;
-        }
+  /* === 渲染 Redis 基础（独立页面） === */
+  async _renderRedis() {
+    await this._ensureData();
+
+    try {
+      const data = Utils.getData('REDIS_DATA') || await Utils.fetchJSON('assets/data/redis.json');
+      const content = document.getElementById('content');
+      content.innerHTML = '';
+
+      const header = Utils.createElement('div', 'section-header');
+      header.innerHTML = `
+        <div class="section-header__breadcrumb"><span>资源</span></div>
+        <h1 class="section-header__title">${data.title || 'Redis 基础'}</h1>
+        <p class="section-header__subtitle">${data.subtitle || ''}</p>
+      `;
+      content.appendChild(header);
+
+      if (data.content) {
+        const wrapper = Utils.createElement('div', 'section-content');
+        data.content.forEach((block) => {
+          const rendered = Renderer.renderBlock(block);
+          if (rendered) wrapper.appendChild(rendered);
+        });
+        content.appendChild(wrapper);
       }
-    }, 200);
+
+      MermaidInit.renderAll(content);
+    } catch (e) {
+      this._renderError(e);
+    }
   },
 
   /* === 渲染术语表 === */

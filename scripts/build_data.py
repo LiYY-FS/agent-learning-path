@@ -15,6 +15,7 @@ OUTPUT_FILE = os.path.join(REPO_ROOT, "assets", "js", "data.js")
 # JSON 文件 → JS 变量名 映射
 MAPPING = {
     "appendix.json":   "APPENDIX_DATA",
+    "redis.json":      "REDIS_DATA",
     "chapter-1.json":  "CHAPTER_1_DATA",
     "chapter-2.json":  "CHAPTER_2_DATA",
     "chapter-3.json":  "CHAPTER_3_DATA",
