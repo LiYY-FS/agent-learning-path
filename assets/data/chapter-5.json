@@ -61,8 +61,7 @@
         "background": "某电商平台日均 10 万咨询量，人工客服 200 人。",
         "architecture": "意图路由 + RAG 知识库 + 订单/物流系统集成 + 情感识别转人工。",
         "outcome": "自动回复率 78%，人工减少 60%，满意度 4.6/5。",
-        "lessons": "1) 意图路由是客服系统的核心；2) 情感识别比关键词更准确判断是否转人工；3) RAG 知识库要持续更新。",
-        "code": "customer_service.py"
+        "lessons": "1) 意图路由是客服系统的核心；2) 情感识别比关键词更准确判断是否转人工；3) RAG 知识库要持续更新。"
       },
       "exercises": [
         {
@@ -131,8 +130,7 @@
         "background": "某团队每天 50+ PR 需要审查，人工审查耗时且标准不一。",
         "architecture": "GitHub Webhook 触发 Agent → AST + LLM 双重审查 → 评论到 PR。",
         "outcome": "PR 审查时间从 2 小时降至 5 分钟，缺陷发现率提升 35%。",
-        "lessons": "1) 静态分析 + LLM 结合比纯 LLM 更可靠；2) 审查结果要可操作（给出修复建议）；3) 避免过度审查引起开发者反感。",
-        "code": "code_review_agent.py"
+        "lessons": "1) 静态分析 + LLM 结合比纯 LLM 更可靠；2) 审查结果要可操作（给出修复建议）；3) 避免过度审查引起开发者反感。"
       },
       "exercises": [
         {
@@ -203,8 +201,7 @@
         "background": "某公司业务人员需要查询数据但不会 SQL。",
         "architecture": "NL2SQL + Pandas 分析 + 自动可视化 + LLM 洞察生成。",
         "outcome": "业务人员自助查询率 80%，分析师从取数工作中解放。",
-        "lessons": "1) schema 描述质量决定 NL2SQL 准确率；2) 只读安全限制必须严格；3) 自动可视化大幅提升体验。",
-        "code": "data_analysis_agent.py"
+        "lessons": "1) schema 描述质量决定 NL2SQL 准确率；2) 只读安全限制必须严格；3) 自动可视化大幅提升体验。"
       },
       "exercises": [
         {
@@ -440,8 +437,7 @@
         "background": "某创业公司用多 Agent 自动开发小型项目。",
         "architecture": "PM/Designer/Coder/Tester/Reviewer 5 Agent 流水线。",
         "outcome": "小型项目自动开发率 70%，开发周期缩短 60%。",
-        "lessons": "1) 复杂项目仍需人工参与；2) Agent 间代码交接是难点；3) 适合 MVP 和原型开发。",
-        "code": "multi_agent_dev.py"
+        "lessons": "1) 复杂项目仍需人工参与；2) Agent 间代码交接是难点；3) 适合 MVP 和原型开发。"
       },
       "exercises": [
         {
@@ -625,8 +621,7 @@
         "background": "某公司 Agent 需支撑日均 10 万次调用。",
         "architecture": "FastAPI + Docker + Nginx 负载均衡 + Redis 缓存 + 多实例水平扩展。",
         "outcome": "QPS 500+，P99 延迟 <5s，可用性 99.9%。",
-        "lessons": "1) 状态外置（Redis）才能水平扩展；2) 缓存是成本和性能的关键；3) 限流降级保护系统稳定。",
-        "code": "Dockerfile"
+        "lessons": "1) 状态外置（Redis）才能水平扩展；2) 缓存是成本和性能的关键；3) 限流降级保护系统稳定。"
       },
       "exercises": [
         {

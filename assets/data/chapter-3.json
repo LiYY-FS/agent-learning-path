@@ -219,8 +219,7 @@
         "background": "某公司有 500+ 内部文档需要构建问答系统。",
         "architecture": "用 LangChain LCEL 构建 RAG Chain，ChromaDB 存向量，RecursiveCharacterTextSplitter 分块。",
         "outcome": "问答准确率 85%，响应时间 <3s。",
-        "lessons": "LangChain LCEL 语法简洁，适合快速搭建 RAG 原型。",
-        "code": "langchain_rag.py"
+        "lessons": "LangChain LCEL 语法简洁，适合快速搭建 RAG 原型。"
       },
       "exercises": [
         {
@@ -352,8 +351,7 @@
         "background": "用 Agents SDK 快速搭建客服路由，根据问题类型转接不同 Agent。",
         "architecture": "主 Agent 用 Handoff 转接到订单查询、退换货、技术支持等子 Agent。",
         "outcome": "1 天完成原型，路由准确率 90%。",
-        "lessons": "Agents SDK 适合快速验证，生产环境可迁移到 LangGraph。",
-        "code": "openai_agents_sdk.py"
+        "lessons": "Agents SDK 适合快速验证，生产环境可迁移到 LangGraph。"
       },
       "exercises": [
         {
@@ -502,8 +500,7 @@
         "background": "某公司 20+ 内部工具需要被多个 Agent 框架调用。",
         "architecture": "将每个工具封装为 MCP Server，Agent 框架通过 MCP Client 统一调用。",
         "outcome": "工具开发一次，所有 Agent 框架通用，维护成本降低 70%。",
-        "lessons": "MCP 是 Agent 工具生态标准化的未来方向。",
-        "code": "mcp_server.py"
+        "lessons": "MCP 是 Agent 工具生态标准化的未来方向。"
       },
       "exercises": [
         {
@@ -692,8 +689,7 @@
         "background": "某公司 Agent 上线后偶发质量下降，难以定位原因。",
         "architecture": "接入 LangFuse，追踪每一步。设置告警：响应时间>10s、Token>5000、错误率>5%。",
         "outcome": "问题定位时间从小时级降至分钟级。",
-        "lessons": "可观测性是生产 Agent 的必需品，不是可选项。",
-        "code": "langfuse_integration.py"
+        "lessons": "可观测性是生产 Agent 的必需品，不是可选项。"
       },
       "exercises": [
         {
@@ -805,8 +801,7 @@
         "background": "某数据分析 Agent 需要执行用户查询生成的 Python 代码。",
         "architecture": "用 E2B 云端沙箱，每次执行创建独立环境，网络隔离+资源限制。",
         "outcome": "零安全 incident，代码执行成功率 95%。",
-        "lessons": "代码执行必须沙箱化，E2B 免运维是生产首选。",
-        "code": "sandbox_execute.py"
+        "lessons": "代码执行必须沙箱化，E2B 免运维是生产首选。"
       },
       "exercises": [
         {
