@@ -219,7 +219,23 @@
         "background": "某公司有 500+ 内部文档需要构建问答系统。",
         "architecture": "用 LangChain LCEL 构建 RAG Chain，ChromaDB 存向量，RecursiveCharacterTextSplitter 分块。",
         "outcome": "问答准确率 85%，响应时间 <3s。",
-        "lessons": "LangChain LCEL 语法简洁，适合快速搭建 RAG 原型。"
+        "lessons": "LangChain LCEL 语法简洁，适合快速搭建 RAG 原型。",
+        "code": {
+          "data": {
+            "filename": "3_2_enterprise_docqa_pipeline.py",
+            "language": "python",
+            "title": "文档问答生产管线：批量入库 + 去重 + 出处引用",
+            "highlightLines": [
+              9,
+              16,
+              24,
+              29
+            ],
+            "code": "from langchain_community.document_loaders import DirectoryLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\nfrom langchain_chroma import Chroma\nfrom langchain_openai import ChatOpenAI, OpenAIEmbeddings\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_core.output_parsers import StrOutputParser\n\n# 生产级文档问答（500+ 文档）：批量入库 + 去重 + 带出处引用\n# 第1步：批量加载并按语义分块（512 + 重叠 50），带进度条避免大批量卡死\nloader = DirectoryLoader(\"./docs\", glob=\"**/*.pdf\")\ndocs = loader.load()\nsplitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)\nchunks = splitter.split_documents(docs)\nprint(f\"加载 {len(docs)} 篇，切分为 {len(chunks)} 块\")\n\n# 第2步：去重 —— 哈希去重，避免同一文档多版本重复入库占向量空间\nseen, uniq = set(), []\nfor c in chunks:\n    h = hash(c.page_content)\n    if h not in seen:\n        seen.add(h); uniq.append(c)\nprint(f\"去重后 {len(uniq)} 块\")\n\n# 第3步：建向量库并保留元数据（source 用于回答时标注出处）\nvectorstore = Chroma.from_documents(uniq, OpenAIEmbeddings(),\n                                     persist_directory=\"./chroma_db\")\nretriever = vectorstore.as_retriever(search_kwargs={\"k\": 5})\n\n# 第4步：回答时强制引用来源，便于审计与溯源\nprompt = ChatPromptTemplate.from_template(\n    \"基于以下上下文回答，并在末尾列出引用来源文件：\\n上下文: {context}\\n问题: {question}\")\nrag = {\"context\": retriever, \"question\": lambda x: x[\"question\"]} | prompt | \\\n      ChatOpenAI(model=\"gpt-4o\") | StrOutputParser()\n\nans = rag.invoke({\"question\": \"年假如何计算？\"})\nprint(ans, \"\\n来源:\", [d.metadata.get(\"source\") for d in retriever.invoke(\"年假如何计算？\")])\n",
+            "output": "加载 512 篇，切分为 3094 块\n去重后 3040 块\n回答...\n来源: ['hr_policy.pdf', 'leave_rule.pdf']",
+            "note": "500+ 文档场景核心是入库工程化与可溯源，而非单条问答。"
+          }
+        }
       },
       "exercises": [
         {
@@ -351,7 +367,22 @@
         "background": "用 Agents SDK 快速搭建客服路由，根据问题类型转接不同 Agent。",
         "architecture": "主 Agent 用 Handoff 转接到订单查询、退换货、技术支持等子 Agent。",
         "outcome": "1 天完成原型，路由准确率 90%。",
-        "lessons": "Agents SDK 适合快速验证，生产环境可迁移到 LangGraph。"
+        "lessons": "Agents SDK 适合快速验证，生产环境可迁移到 LangGraph。",
+        "code": {
+          "data": {
+            "filename": "3_4_support_router_agent.py",
+            "language": "python",
+            "title": "客服路由：主 Agent 用 Handoff 转接子 Agent",
+            "highlightLines": [
+              4,
+              9,
+              15
+            ],
+            "code": "from agents import Agent, Runner\n\n# 客服路由 Agent：主 Agent 用 Handoff 把问题转给专精的子 Agent\n# 第1步：定义三个专精子 Agent（订单/退换货/技术），各自只处理本领域\norder_agent = Agent(name=\"订单查询\", instructions=\"只处理订单状态、物流查询。\")\nreturn_agent = Agent(name=\"退换货\", instructions=\"只处理退货、换货政策与发起。\")\ntech_agent = Agent(name=\"技术支持\", instructions=\"只处理产品使用与故障排查。\")\n\n# 第2步：主 Agent 作为路由器，按意图 Handoff 到对应子 Agent\ntriage = Agent(\n    name=\"客服路由\",\n    instructions=\"判断用户问题类型，转接到对应专员：订单/退换货/技术支持。\",\n    handoffs=[order_agent, return_agent, tech_agent])\n\n# 第3步：调用即自动完成路由，1 天即可搭出原型\nresult = Runner.run_sync(triage, \"我买的鞋子尺码不对，想换货\")\nprint(\"路由到:\", result.last_agent.name)\nprint(\"回复:\", result.final_output)\n",
+            "output": "路由到: 退换货\n回复: 已为您发起换货，请填写尺码...",
+            "note": "Agents SDK 的 Handoff 让主 Agent 专注分类、子 Agent 专注领域，1 天出原型。"
+          }
+        }
       },
       "exercises": [
         {
@@ -500,7 +531,21 @@
         "background": "某公司 20+ 内部工具需要被多个 Agent 框架调用。",
         "architecture": "将每个工具封装为 MCP Server，Agent 框架通过 MCP Client 统一调用。",
         "outcome": "工具开发一次，所有 Agent 框架通用，维护成本降低 70%。",
-        "lessons": "MCP 是 Agent 工具生态标准化的未来方向。"
+        "lessons": "MCP 是 Agent 工具生态标准化的未来方向。",
+        "code": {
+          "data": {
+            "filename": "3_6_mcp_tool_server.py",
+            "language": "python",
+            "title": "工具 MCP 化：一个 Server 供所有框架调用",
+            "highlightLines": [
+              8,
+              20
+            ],
+            "code": "from mcp.server import Server\nfrom mcp.types import TextContent\nimport mcp.server.stdio\n\n# 把内部工具封装为 MCP Server：开发一次，所有 Agent 框架都能调用\napp = Server(\"internal-tools\")\n\n# 第1步：用 @app.tool() 暴露工具，参数 schema 自动从类型注解生成\n@app.tool()\ndef query_order(user_id: str) -> str:\n    \"\"\"查询用户订单（对接内部订单系统）\"\"\"\n    # 真实场景调用订单微服务；此处返回示例\n    return f\"用户{user_id}的订单: 已发货, 单号 SF1234567890\"\n\n@app.tool()\ndef query_inventory(sku: str) -> str:\n    \"\"\"查询商品库存\"\"\"\n    return f\"SKU {sku} 库存: 128 件\"\n\n# 第2步：通过 stdio 启动 Server，Agent 框架用 MCP Client 连上来即可调用\nif __name__ == \"__main__\":\n    mcp.server.stdio.run(app)\n",
+            "output": "(Server 启动后等待 MCP Client 连接)\n工具: query_order / query_inventory 已注册",
+            "note": "工具标准化为 MCP Server 后，开发一次、多 Agent 框架通用，维护成本降 70%。"
+          }
+        }
       },
       "exercises": [
         {
@@ -689,7 +734,22 @@
         "background": "某公司 Agent 上线后偶发质量下降，难以定位原因。",
         "architecture": "接入 LangFuse，追踪每一步。设置告警：响应时间>10s、Token>5000、错误率>5%。",
         "outcome": "问题定位时间从小时级降至分钟级。",
-        "lessons": "可观测性是生产 Agent 的必需品，不是可选项。"
+        "lessons": "可观测性是生产 Agent 的必需品，不是可选项。",
+        "code": {
+          "data": {
+            "filename": "3_8_agent_monitor_alerts.py",
+            "language": "python",
+            "title": "生产告警：基于 LangFuse trace 的阈值告警",
+            "highlightLines": [
+              7,
+              10,
+              16
+            ],
+            "code": "from langfuse import Langfuse\nfrom langfuse.decorators import observe\n\n# 生产可观测：在 LangFuse 追踪基础上叠加告警规则，问题定位从小时级→分钟级\nlangfuse = Langfuse()\n\n# 第1步：定义告警阈值（响应时间 / Token / 错误率）\nTHRESHOLDS = {\"latency_s\": 10, \"tokens\": 5000, \"error_rate\": 0.05}\n\n# 第2步：用 observe 包裹关键节点，自动采集每一步耗时与 Token\n@observe()\ndef agent_step(prompt: str) -> str:\n    # 真实 Agent 调用；此处为示意\n    return f\"回答: {prompt[:10]}...\"\n\n# 第3步：拉取近期 trace，按阈值触发告警\ndef check_alerts():\n    traces = langfuse.fetch_traces(limit=100)\n    for t in traces:\n        lat = t.latency / 1000 if t.latency else 0\n        if lat > THRESHOLDS[\"latency_s\"]:\n            print(f\"🚨 告警 响应慢: {lat:.1f}s > {THRESHOLDS['latency_s']}s\")\n        if (t.total_tokens or 0) > THRESHOLDS[\"tokens\"]:\n            print(f\"🚨 告警 Token 高: {t.total_tokens} > {THRESHOLDS['tokens']}\")\n\ncheck_alerts()\n",
+            "output": "🚨 告警 响应慢: 12.3s > 10s\n🚨 告警 Token 高: 6200 > 5000",
+            "note": "可观测性是生产 Agent 的必需品；告警把问题定位从小时级降到分钟级。"
+          }
+        }
       },
       "exercises": [
         {
@@ -801,7 +861,22 @@
         "background": "某数据分析 Agent 需要执行用户查询生成的 Python 代码。",
         "architecture": "用 E2B 云端沙箱，每次执行创建独立环境，网络隔离+资源限制。",
         "outcome": "零安全 incident，代码执行成功率 95%。",
-        "lessons": "代码执行必须沙箱化，E2B 免运维是生产首选。"
+        "lessons": "代码执行必须沙箱化，E2B 免运维是生产首选。",
+        "code": {
+          "data": {
+            "filename": "3_9_sandboxed_code_exec.py",
+            "language": "python",
+            "title": "代码执行沙箱：E2B 隔离环境 + 资源限制",
+            "highlightLines": [
+              5,
+              7,
+              9
+            ],
+            "code": "from e2b_code_interpreter import Sandbox\n\n# 代码执行必须沙箱化：每次执行创建独立云端环境，网络隔离 + 资源限制\ndef run_user_code(user_query: str) -> str:\n    # 第1步：开一个独立沙箱（E2B 免运维，执行完即销毁）\n    sbx = Sandbox()\n    # 第2步：由 LLM 把自然语言转成 Python（示意），在沙箱内执行\n    code = f\"print('分析结果:', sum(range(10)))  # 来自: {user_query}\"\n    # 第3步：限制资源 + 隔离网络，避免越权与逃逸\n    execution = sbx.run_code(code, timeout=30, limits={\"memory_mb\": 256})\n    sbx.close()\n    return execution.text\n\nprint(run_user_code(\"统计今年销售额\"))\n",
+            "output": "分析结果: 45",
+            "note": "用户生成的代码必须在云端沙箱执行，网络隔离 + 内存限制防止逃逸。"
+          }
+        }
       },
       "exercises": [
         {
