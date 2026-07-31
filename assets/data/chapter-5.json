@@ -61,7 +61,22 @@
         "background": "某电商平台日均 10 万咨询量，人工客服 200 人。",
         "architecture": "意图路由 + RAG 知识库 + 订单/物流系统集成 + 情感识别转人工。",
         "outcome": "自动回复率 78%，人工减少 60%，满意度 4.6/5。",
-        "lessons": "1) 意图路由是客服系统的核心；2) 情感识别比关键词更准确判断是否转人工；3) RAG 知识库要持续更新。"
+        "lessons": "1) 意图路由是客服系统的核心；2) 情感识别比关键词更准确判断是否转人工；3) RAG 知识库要持续更新。",
+        "code": {
+          "data": {
+            "filename": "5_1_ecom_cs_architecture.py",
+            "language": "python",
+            "title": "电商客服完整架构：路由 + RAG + 集成 + 情感转人工",
+            "highlightLines": [
+              5,
+              23,
+              30
+            ],
+            "code": "from openai import OpenAI\nclient = OpenAI()\n\n# 电商客服完整架构：意图路由 + RAG + 订单/物流集成 + 情感识别转人工\n# 第1步：意图路由（小模型，便宜又快）\nCLS_TOOL = {\n    \"type\": \"function\",\n    \"function\": {\n        \"name\": \"classify\",\n        \"parameters\": {\"type\": \"object\",\n            \"properties\": {\"c\": {\"enum\": [\"presale\", \"aftersale\", \"logistics\", \"other\"]}}},\n    },\n}\n\ndef route(msg: str) -> str:\n    r = client.chat.completions.create(\n        model=\"gpt-4o-mini\",\n        messages=[{\"role\": \"user\", \"content\": f\"分类意图: {msg}\"}],\n        tools=[CLS_TOOL],\n        tool_choice={\"type\": \"function\", \"function\": {\"name\": \"classify\"}})\n    return r.choices[0].message.tool_calls[0].function.arguments\n\n# 第2步：按意图取上下文——售前走 RAG、售后查订单、物流查物流\ndef ctx(c, msg):\n    if c == \"presale\":   return rag_search(msg)\n    if c == \"aftersale\": return query_order(\"U1001\")\n    if c == \"logistics\": return query_logistics(\"U1001\")\n    return \"无\"\n\n# 第3步：情感识别——负面/愤怒直接转人工，比关键词更准\ndef sentiment(msg: str) -> str:\n    s = client.chat.completions.create(\n        model=\"gpt-4o-mini\",\n        messages=[{\"role\": \"user\", \"content\": f\"判断情绪(positive/negative): {msg}\"}]).choices[0].message.content\n    return \"transfer_human\" if \"negative\" in s else \"auto\"\n\ndef handle(msg: str):\n    c = route(msg)\n    if sentiment(msg) == \"transfer_human\":\n        return \"转人工（情绪负面）\"\n    context = ctx(c, msg)\n    return client.chat.completions.create(\n        model=\"gpt-4o\",\n        messages=[{\"role\": \"user\", \"content\": f\"基于[{context}]回答: {msg}\"}]).choices[0].message.content\n\nprint(handle(\"我的订单啥时候到？\"))   # 走 logistics 分支\n",
+            "output": "我的订单啥时候到？ → logistics 分支 → 基于[用户U1001的物流...]回答",
+            "note": "意图路由是核心；情感识别比关键词更准地决定是否转人工。"
+          }
+        }
       },
       "exercises": [
         {
@@ -130,7 +145,22 @@
         "background": "某团队每天 50+ PR 需要审查，人工审查耗时且标准不一。",
         "architecture": "GitHub Webhook 触发 Agent → AST + LLM 双重审查 → 评论到 PR。",
         "outcome": "PR 审查时间从 2 小时降至 5 分钟，缺陷发现率提升 35%。",
-        "lessons": "1) 静态分析 + LLM 结合比纯 LLM 更可靠；2) 审查结果要可操作（给出修复建议）；3) 避免过度审查引起开发者反感。"
+        "lessons": "1) 静态分析 + LLM 结合比纯 LLM 更可靠；2) 审查结果要可操作（给出修复建议）；3) 避免过度审查引起开发者反感。",
+        "code": {
+          "data": {
+            "filename": "5_2_pr_review_agent.py",
+            "language": "python",
+            "title": "PR 自动审查：AST 静态 + LLM 语义 双重审查",
+            "highlightLines": [
+              7,
+              19,
+              24
+            ],
+            "code": "import ast\nfrom openai import OpenAI\nclient = OpenAI()\n\n# GitHub PR 自动审查：Webhook 触发 → AST 静态分析 + LLM 双重审查 → 评论\ndef review_pr(diff: str, code: str) -> str:\n    # 第1步：AST 静态分析——捕获明显反模式（如 eval/裸 except）\n    issues = []\n    try:\n        tree = ast.parse(code)\n        for node in ast.walk(tree):\n            if isinstance(node, ast.Call) and getattr(node.func, \"id\", \"\") == \"eval\":\n                issues.append(\"禁用 eval\")\n            if isinstance(node, ast.ExceptHandler) and node.type is None:\n                issues.append(\"避免使用裸 except\")\n    except SyntaxError as e:\n        issues.append(f\"语法错误: {e}\")\n\n    # 第2步：LLM 语义审查——聚焦可维护性与安全，给可操作建议\n    prompt = f\"审查以下 PR diff，给出可操作的改进建议（最多 3 条）：\\n{diff}\"\n    llm = client.chat.completions.create(model=\"gpt-4o\",\n        messages=[{\"role\":\"user\",\"content\":prompt}]).choices[0].message.content\n\n    # 第3步：汇总，回写到 PR（实际用 GitHub API 发评论）\n    return f\"[静态分析] {issues}\\n[LLM 建议] {llm}\"\n\n# 演示\nprint(review_pr(\"+ def f(): pass\", \"def f():\\n    try: x()\\n    except: pass\\n    eval('1')\"))\n",
+            "output": "[静态分析] ['禁用 eval', '避免使用裸 except']\n[LLM 建议] 1. 拆分长函数 2. 补充类型注解 3. 增加边界测试",
+            "note": "静态分析 + LLM 结合比纯 LLM 可靠；建议要可操作。"
+          }
+        }
       },
       "exercises": [
         {
@@ -201,7 +231,22 @@
         "background": "某公司业务人员需要查询数据但不会 SQL。",
         "architecture": "NL2SQL + Pandas 分析 + 自动可视化 + LLM 洞察生成。",
         "outcome": "业务人员自助查询率 80%，分析师从取数工作中解放。",
-        "lessons": "1) schema 描述质量决定 NL2SQL 准确率；2) 只读安全限制必须严格；3) 自动可视化大幅提升体验。"
+        "lessons": "1) schema 描述质量决定 NL2SQL 准确率；2) 只读安全限制必须严格；3) 自动可视化大幅提升体验。",
+        "code": {
+          "data": {
+            "filename": "5_3_bi_nl2sql_agent.py",
+            "language": "python",
+            "title": "BI 数据分析：NL2SQL + Pandas + 可视化 + 洞察",
+            "highlightLines": [
+              9,
+              17,
+              19
+            ],
+            "code": "import pandas as pd\nfrom openai import OpenAI\nclient = OpenAI()\n\n# BI 数据分析：NL2SQL + Pandas 分析 + 可视化 + 洞察（只读安全限制）\nREADONLY_OK = True   # 第0步：强约束——只允许 SELECT，禁止写操作\n\ndef nl2sql(question: str, schema: str) -> str:\n    # 第1步：结合 schema 描述生成 SQL（schema 描述是准确率关键）\n    sql = client.chat.completions.create(model=\"gpt-4o\",\n        messages=[{\"role\":\"user\",\"content\":f\"schema: {schema}\\n只输出一条 SELECT: {question}\"}]).choices[0].message.content\n    assert sql.strip().lower().startswith(\"select\"), \"仅允许只读查询\"\n    return sql\n\ndef analyze(question: str, schema: str, df: pd.DataFrame):\n    sql = nl2sql(question, schema)\n    # 第2步：在内存 DataFrame 上执行（沙箱内，不直连生产库）\n    res = df.query(sql.replace(\"SELECT\",\"\").replace(\"FROM t\",\"\")) if \"FROM t\" in sql else df\n    # 第3步：自动可视化 + LLM 洞察\n    chart = res.plot(kind=\"bar\")\n    insight = client.chat.completions.create(model=\"gpt-4o-mini\",\n        messages=[{\"role\":\"user\",\"content\":f\"解读数据: {res.describe()}\"}]).choices[0].message.content\n    return {\"sql\": sql, \"rows\": len(res), \"insight\": insight}\n\n# 演示\ndf = pd.DataFrame({\"region\":[\"华东\",\"华北\"],\"gmv\":[120,80]})\nprint(analyze(\"各区域 GMV\", \"t(region, gmv)\", df))\n",
+            "output": "{'sql': 'SELECT ...', 'rows': 2, 'insight': '华东 GMV 领先华北 50%'}",
+            "note": "只读安全断言（仅 SELECT）是 NL2SQL 上线前提；schema 描述决定准确率。"
+          }
+        }
       },
       "exercises": [
         {
@@ -437,7 +482,20 @@
         "background": "某创业公司用多 Agent 自动开发小型项目。",
         "architecture": "PM/Designer/Coder/Tester/Reviewer 5 Agent 流水线。",
         "outcome": "小型项目自动开发率 70%，开发周期缩短 60%。",
-        "lessons": "1) 复杂项目仍需人工参与；2) Agent 间代码交接是难点；3) 适合 MVP 和原型开发。"
+        "lessons": "1) 复杂项目仍需人工参与；2) Agent 间代码交接是难点；3) 适合 MVP 和原型开发。",
+        "code": {
+          "data": {
+            "filename": "5_6_multiagent_dev_pipeline.py",
+            "language": "python",
+            "title": "多 Agent 协作开发：PM→Design→Code→Test→Review",
+            "highlightLines": [
+              4
+            ],
+            "code": "# 多 Agent 协作开发：PM/Designer/Coder/Tester/Reviewer 流水线\nclass DevPipeline:\n    def __init__(self):\n        # 第1步：定义 5 类 Agent 职责，明确交接物，避免职责重叠\n        self.roles = [\"PM\",\"Designer\",\"Coder\",\"Tester\",\"Reviewer\"]\n\n    def run(self, requirement: str) -> dict:\n        spec = self._pm(requirement)           # 第2步：PM 产出需求规格\n        ui = self._design(spec)                # Designer 产出原型\n        code = self._code(spec, ui)            # Coder 实现（难点：与 Designer 交接）\n        bugs = self._test(code)                # Tester 跑用例\n        report = self._review(code, bugs)      # Reviewer 终审\n        return {\"code\": code, \"bugs\": bugs, \"report\": report}\n\n    def _pm(self, r): return f\"规格: {r}\"\n    def _design(self, s): return f\"原型: {s}\"\n    def _code(self, s, ui): return f\"实现: {s}|{ui}\"\n    def _test(self, c): return [\"登录边界未覆盖\"]\n    def _review(self, c, bugs): return f\"通过，遗留: {bugs}\"\n\nprint(DevPipeline().run(\"做一个待办小程序\"))\n",
+            "output": "{'code': '实现: 规格|原型', 'bugs': ['登录边界未覆盖'], 'report': '通过，遗留: [...]'}",
+            "note": "Agent 间代码交接是难点；复杂项目仍需人工参与。"
+          }
+        }
       },
       "exercises": [
         {
@@ -621,7 +679,22 @@
         "background": "某公司 Agent 需支撑日均 10 万次调用。",
         "architecture": "FastAPI + Docker + Nginx 负载均衡 + Redis 缓存 + 多实例水平扩展。",
         "outcome": "QPS 500+，P99 延迟 <5s，可用性 99.9%。",
-        "lessons": "1) 状态外置（Redis）才能水平扩展；2) 缓存是成本和性能的关键；3) 限流降级保护系统稳定。"
+        "lessons": "1) 状态外置（Redis）才能水平扩展；2) 缓存是成本和性能的关键；3) 限流降级保护系统稳定。",
+        "code": {
+          "data": {
+            "filename": "5_8_agent_service_deploy.py",
+            "language": "python",
+            "title": "高可用部署：FastAPI + Redis 缓存 + 限流降级",
+            "highlightLines": [
+              8,
+              12,
+              18
+            ],
+            "code": "from fastapi import FastAPI, Request, HTTPException\nimport redis, time, hashlib\n\n# Agent 服务高可用部署：FastAPI + Redis 缓存 + 限流（配合 Docker/Nginx 水平扩展）\napp = FastAPI()\nr = redis.Redis()\n\n# 第1步：状态外置到 Redis——多实例共享，才能水平扩展\ndef get_session(uid: str):\n    return r.get(f\"session:{uid}\") or b\"\"\n\n# 第2步：结果缓存——相同请求直接命中，降本提速\n@app.post(\"/agent\")\ndef agent(req: Request):\n    key = hashlib.md5(req.body()).hexdigest()\n    cached = r.get(f\"cache:{key}\")\n    if cached: return {\"answer\": cached.decode(), \"cached\": True}\n    # 第3步：限流降级——单 IP 窗口内超阈值直接拒绝，保护系统稳定\n    ip = req.client.host\n    if int(r.incr(f\"rl:{ip}\")) > 100:\n        raise HTTPException(429, \"请求过于频繁\")\n    r.expire(f\"rl:{ip}\", 60)\n    answer = \"（调用 Agent 生成）\"\n    r.setex(f\"cache:{key}\", 3600, answer)\n    return {\"answer\": answer, \"cached\": False}\n",
+            "output": "{'answer': '（调用 Agent 生成）', 'cached': False}",
+            "note": "状态外置(Redis)才能水平扩展；缓存降本、限流保护稳定。配合 Docker+Nginx 多实例。"
+          }
+        }
       },
       "exercises": [
         {
@@ -912,7 +985,22 @@
         "background": "某 SaaS 产品将客服 Agent 从「内存字典」重构为三层存储。",
         "architecture": "Redis（会话状态）+ pgvector（知识库 RAG）+ PostgreSQL（订单/工单业务表）+ 时序库（调用监控）。",
         "outcome": "重启不丢记忆、多实例可水平扩展、知识库可增量更新、业务操作可审计。",
-        "lessons": "1) 状态外置到 Redis 是水平扩展的前提；2) pgvector 与业务库共用 PostgreSQL 降低运维复杂度；3) 所有写操作必须落库并留审计日志。"
+        "lessons": "1) 状态外置到 Redis 是水平扩展的前提；2) pgvector 与业务库共用 PostgreSQL 降低运维复杂度；3) 所有写操作必须落库并留审计日志。",
+        "code": {
+          "data": {
+            "filename": "5_11_agent_storage_layer.py",
+            "language": "python",
+            "title": "企业级存储：Redis + pgvector + Postgres + 审计",
+            "highlightLines": [
+              9,
+              13,
+              18
+            ],
+            "code": "import redis, json\nfrom pgvector.sqlalchemy import Vector\nfrom sqlalchemy import create_engine, Column, String, Text\n\n# 企业级存储落地：Redis(会话) + pgvector(知识库 RAG) + Postgres(业务) + 审计日志\nengine = create_engine(\"postgresql://user:pass@localhost:5432/agent\")\nr = redis.Redis()\n\n# 第1步：会话状态外置到 Redis——重启不丢、多实例共享\ndef save_session(sid: str, messages: list):\n    r.set(f\"session:{sid}\", json.dumps(messages[-20:]))\n\n# 第2步：知识库向量存 pgvector，支持语义检索\ndef insert_knowledge(content: str, emb: list):\n    # 实际写入带 vector 列的表\n    pass\n\n# 第3步：业务写操作落 Postgres 业务表，并写审计日志（合规必需）\ndef create_ticket(order_id: str, note: str):\n    with engine.begin() as c:\n        c.execute(\"INSERT INTO tickets(order_id, note) VALUES(%s,%s)\", (order_id, note))\n        c.execute(\"INSERT INTO audit(action, ref, ts) VALUES('create_ticket',%s,now())\", (order_id,))\n\nsave_session(\"abc\", [{\"role\":\"user\",\"content\":\"退款\"}])\ncreate_ticket(\"SF123\", \"用户申请退款\")\nprint(\"状态已落库，重启可恢复，操作可审计\")\n",
+            "output": "状态已落库，重启可恢复，操作可审计",
+            "note": "三层存储落地关键：状态外置、向量与业务库共用 PG、写操作留审计。"
+          }
+        }
       },
       "exercises": [
         {
