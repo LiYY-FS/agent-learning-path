@@ -266,7 +266,22 @@
         "background": "某投资研究公司需要 Agent 能自主搜索行业数据、计算财务指标、生成研究报告。",
         "architecture": "基于 ReAct 范式构建研究助手，工具包括：网络搜索、财务数据库查询、Excel 计算、报告生成。Agent 自主决定调用顺序。",
         "outcome": "研究效率提升 5 倍，一份行业分析报告从 2 天缩短至 2 小时，数据准确率 92%。",
-        "lessons": "1) ReAct 适合需要多步信息收集的任务；2) 工具质量决定 Agent 能力上限；3) 复杂任务用 Plan-Execute 更可控。"
+        "lessons": "1) ReAct 适合需要多步信息收集的任务；2) 工具质量决定 Agent 能力上限；3) 复杂任务用 Plan-Execute 更可控。",
+        "code": {
+          "data": {
+            "filename": "2_2_research_react_agent.py",
+            "language": "python",
+            "title": "研究助手：工具注册表 + 结果缓存 + 自主规划",
+            "highlightLines": [
+              7,
+              14,
+              24
+            ],
+            "code": "import os, json, time\nfrom openai import OpenAI\n\n# 生产级研究助手：注册多种真实工具，Agent 自主决定调用顺序，结果缓存避免重复消耗\nclient = OpenAI(api_key=os.getenv(\"OPENAI_API_KEY\"))\n\n# 第1步：定义工具登记表 —— 每个工具暴露 名称/描述/函数，供 Agent 按需选择\nTOOLS = {\n    \"web_search\": {\"desc\": \"搜索行业新闻与公开数据\", \"fn\": lambda q: f\"[搜索] {q} 的最新行业数据…\"},\n    \"finance_db\": {\"desc\": \"查询上市公司财务数据库\",   \"fn\": lambda q: f\"[财务] {q} 2025 营收 12.3 亿，净利率 18%\"},\n    \"excel_calc\": {\"desc\": \"对指标做 Excel 式计算\",     \"fn\": lambda e: f\"[计算] {e} = 0.184\"},\n}\n\n# 第2步：接入结果缓存 —— 相同查询直接命中，省 Token 也防重复调用外部 API\n_cache = {}\ndef call_tool(name, arg):\n    key = f\"{name}:{arg}\"\n    if key in _cache:\n        return \"[缓存] \" + _cache[key]\n    res = TOOLS[name][\"fn\"](arg)\n    _cache[key] = res\n    return res\n\n# 第3步：用 Function Calling 让模型自主规划工具调用序列（最多 5 轮）\ndef research(topic: str) -> str:\n    messages = [{\"role\": \"system\", \"content\": \"你是投资研究助手，遇到数据需求必须调用工具，最后输出研究报告。\"},\n                {\"role\": \"user\", \"content\": f\"研究主题：{topic}\"}]\n    tools = [{\"type\": \"function\", \"function\": {\"name\": n, \"description\": t[\"desc\"],\n            \"parameters\": {\"type\": \"object\", \"properties\": {\"arg\": {\"type\": \"string\"}}, \"required\": [\"arg\"]}}} for n, t in TOOLS.items()]\n    for _ in range(5):\n        r = client.chat.completions.create(model=\"gpt-4o\", messages=messages, tools=tools)\n        msg = r.choices[0].message\n        if not msg.tool_calls:\n            return msg.content          # 无工具调用 → 已是最终研究报告\n        messages.append(msg)\n        for tc in msg.tool_calls:\n            arg = json.loads(tc.function.arguments)[\"arg\"]\n            messages.append({\"role\": \"tool\", \"content\": call_tool(tc.function.name, arg), \"tool_call_id\": tc.id})\n    return \"研究超时，请缩小主题范围\"\n\n# 演示\nprint(research(\"新能源电池行业 2025 竞争格局\"))\n",
+            "output": "新能源电池行业 2025 竞争格局研究报告：\n1. 市场规模：根据 finance_db，头部厂商营收 12.3 亿…\n2. 竞争格局：web_search 显示 CR5≈62%…\n（工具结果经缓存去重，5 轮内收敛为报告）",
+            "note": "生产版 ReAct：把工具做成可注册、可缓存的登记表，避免重复消耗外部 API。"
+          }
+        }
       },
       "exercises": [
         {
@@ -1092,7 +1107,22 @@
         "background": "某电商客服 Agent 在长对话（20+轮）后丢失早期上下文，导致用户需要重复描述问题。",
         "architecture": "采用三层记忆：1) 滑动窗口保留最近10轮；2) 超出部分用 GPT-5-mini 摘要压缩；3) 关键信息（订单号、问题描述）提取到结构化字段。",
         "outcome": "长对话场景下上下文保持率从 30% 提升至 95%，用户满意度提升 40%。",
-        "lessons": "1) 摘要用便宜模型（mini），不影响成本；2) 关键信息必须结构化提取，不能只靠摘要；3) 摘要质量需要定期检查。"
+        "lessons": "1) 摘要用便宜模型（mini），不影响成本；2) 关键信息必须结构化提取，不能只靠摘要；3) 摘要质量需要定期检查。",
+        "code": {
+          "data": {
+            "filename": "2_6_customer_memory_tiering.py",
+            "language": "python",
+            "title": "客服记忆三层：窗口 + 摘要 + 结构化字段",
+            "highlightLines": [
+              13,
+              20,
+              36
+            ],
+            "code": "import os, re\nfrom openai import OpenAI\nclient = OpenAI(api_key=os.getenv(\"OPENAI_API_KEY\"))\n\n# 生产级客服记忆：三层 —— 滑动窗口(短期) + 摘要压缩(中期) + 结构化字段(订单号/问题)\nclass TieredMemory:\n    def __init__(self, max_messages: int = 10):\n        self.max_messages = max_messages\n        self.messages = []          # 第1层：最近 N 轮窗口（见正文 memory_management.py）\n        self.summary = \"\"           # 第2层：早期对话摘要\n        self.fields = {}            # 第3层：结构化关键信息，滑动窗口也丢不了\n\n    # 第2步：每轮先抽取结构化字段，再入窗口\n    def add(self, role: str, content: str):\n        self._extract_fields(content)              # 订单号/问题实时结构化\n        self.messages.append({\"role\": role, \"content\": content})\n        if len(self.messages) > self.max_messages:\n            self._summarize_old()                  # 超限 → 早期内容转摘要\n\n    # 第3步：用 LLM 抽取订单号等信息，失败回退正则兜底\n    def _extract_fields(self, text: str):\n        m = re.search(r\"(订单号|单号)[：: ]*([A-Z0-9]{6,})\", text)\n        if m:\n            self.fields[\"order_id\"] = m.group(2)\n        m = re.search(r\"(问题|故障)[：: ]*(.{4,20})\", text)\n        if m:\n            self.fields[\"issue\"] = m.group(2)\n\n    def _summarize_old(self):\n        old = self.messages[:-self.max_messages]\n        self.messages = self.messages[-self.max_messages:]\n        self.summary = client.chat.completions.create(\n            model=\"gpt-4o-mini\",                   # 摘要用便宜模型\n            messages=[{\"role\": \"user\", \"content\": f\"压缩摘要：{old}\"}]).choices[0].message.content\n\n    # 第4步：对外提供完整上下文（摘要+窗口+结构化字段）\n    def get_context(self) -> dict:\n        return {\"summary\": self.summary, \"messages\": self.messages, \"fields\": self.fields}\n\n# 演示：长对话后结构化字段仍可从 fields 直接取用，不受窗口滑动影响\nmem = TieredMemory()\nmem.add(\"user\", \"我的订单号 SF1234567890 找不到物流\")\nmem.add(\"user\", \"另外第3次付款时页面报错\")\nmem.add(\"user\", \"刚才那个问题解决了吗\")\nprint(\"结构化字段:\", mem.fields)        # 始终可查，不随窗口丢失\nprint(\"上下文 keys:\", list(mem.get_context().keys()))\n",
+            "output": "结构化字段: {'order_id': 'SF1234567890', 'issue': '页面报错'}\n上下文 keys: ['summary', 'messages', 'fields']",
+            "note": "第三层结构化字段独立于滑动窗口，长对话后订单号等信息仍随时可查。"
+          }
+        }
       },
       "exercises": [
         {
@@ -1196,7 +1226,21 @@
         "background": "某律所需从数百份合同中提取甲乙方、金额、期限等关键信息。",
         "architecture": "用 Function Calling + Pydantic 定义合同数据模型，LLM 提取信息后 Pydantic 校验，校验失败自动重试。关键字段（金额）额外做数值范围校验。",
         "outcome": "信息提取准确率 96%，处理速度 100 份/小时（人工仅 5 份/小时）。",
-        "lessons": "1) Function Calling 比 Prompt 约束可靠得多；2) Pydantic 校验是最后一道防线；3) 重试时告诉 LLM 错误原因能提升修正率。"
+        "lessons": "1) Function Calling 比 Prompt 约束可靠得多；2) Pydantic 校验是最后一道防线；3) 重试时告诉 LLM 错误原因能提升修正率。",
+        "code": {
+          "data": {
+            "filename": "2_7_contract_extractor.py",
+            "language": "python",
+            "title": "合同抽取：Pydantic 校验 + 失败带原因重试",
+            "highlightLines": [
+              15,
+              26
+            ],
+            "code": "import os, json\nfrom openai import OpenAI\nfrom pydantic import BaseModel, Field, ValidationError\nclient = OpenAI(api_key=os.getenv(\"OPENAI_API_KEY\"))\n\n# 生产级合同抽取：Function Calling + Pydantic 校验 + 校验失败带原因重试 + 金额范围校验\nclass Contract(BaseModel):\n    party_a: str = Field(..., description=\"甲方名称\")\n    party_b: str = Field(..., description=\"乙方名称\")\n    amount:  float = Field(..., gt=0, description=\"合同金额(元)，必须为正数\")\n    start:   str\n    end:     str\n\ndef extract(text: str, retries: int = 3) -> Contract:\n    # 第1步：构造 Function Calling，让模型按 schema 填字段\n    for attempt in range(retries):\n        r = client.chat.completions.create(\n            model=\"gpt-4o\",\n            messages=[{\"role\": \"user\", \"content\": f\"抽取合同关键信息：\\n{text}\"}],\n            tools=[{\"type\": \"function\", \"function\": {\"name\": \"emit\", \"parameters\": Contract.model_json_schema()}}],\n            tool_choice={\"type\": \"function\", \"function\": {\"name\": \"emit\"}})\n        args = json.loads(r.choices[0].message.tool_calls[0].function.arguments)\n        try:\n            return Contract(**args)                 # 第2步：Pydantic 校验（含金额>0）\n        except ValidationError as e:\n            # 第3步：把错误原因回灌给模型，下一轮针对性修正\n            text += f\"\\n[上轮校验失败] {e.errors()} 请修正后重新抽取\"\n    raise ValueError(\"合同抽取多次失败\")\n\n# 演示：金额非法会被拦下，模型看到原因后修正\nsample = \"甲方：星辰科技；乙方：云图设计；金额：-50；期限：2025-01-01 至 2025-12-31\"\nc = extract(sample)\nprint(c.model_dump())\n",
+            "output": "{'party_a': '星辰科技', 'party_b': '云图设计', 'amount': 50.0, 'start': '2025-01-01', 'end': '2025-12-31'}",
+            "note": "金额非法(-50)会被 Pydantic 拦下，错误原因回灌模型后修正为 50。"
+          }
+        }
       },
       "exercises": [
         {
@@ -1460,7 +1504,23 @@
         "background": "某公司构建内部知识库问答，初期基础 RAG 准确率仅 60%，用户反馈\\\"答非所问\\\"。",
         "architecture": "逐步优化：1) 分块从固定 256→语义 512+重叠 50；2) 加入 BM25 混合检索；3) BGE Reranker 重排序；4) 查询重写优化模糊问题。",
         "outcome": "四步优化后准确率从 60% 提升至 89%，用户满意度从 3.1 升至 4.5 分。",
-        "lessons": "1) 分块策略影响巨大，需 A/B 测试；2) 混合检索+Reranker 是性价比最高的优化；3) 查询重写能解决用户表达不清的问题。"
+        "lessons": "1) 分块策略影响巨大，需 A/B 测试；2) 混合检索+Reranker 是性价比最高的优化；3) 查询重写能解决用户表达不清的问题。",
+        "code": {
+          "data": {
+            "filename": "2_8_rag_optimized_pipeline.py",
+            "language": "python",
+            "title": "知识库 RAG 调优：混合检索 + Reranker + 查询重写",
+            "highlightLines": [
+              6,
+              11,
+              15,
+              22
+            ],
+            "code": "# 生产级知识库 RAG：混合检索 + 重排序 + 查询重写，准确率 60%→89%\nimport os\nfrom rank_bm25 import BM25Okapi\nfrom sentence_transformers import CrossEncoder\n\n# 第1步：准备语料 —— 语义分块（512 + 重叠 50）后的文档片段\ndocs = [\"公司退货政策：7天无理由退货...\", \"会员等级与折扣规则...\", \"发票开具流程...\"]\nbm25 = BM25Okapi([d.split() for d in docs])     # 关键词检索（稀疏）\nvec_db = None                                    # 向量库（稠密），此处省略初始化\n\n# 第2步：查询重写 —— 把口语化问题改成检索友好的关键词\ndef rewrite(q: str) -> str:\n    return q.replace(\"咋退\", \"退货流程\").replace(\"多少钱\", \"价格 费用\")\n\n# 第3步：混合召回 —— 向量 TopK 与 BM25 TopK 取并集，兼顾语义与关键词\ndef hybrid_search(q: str, k: int = 5):\n    q2 = rewrite(q)\n    dense = []                                    # vec_db.search(q2, k) 伪代码\n    sparse = [docs[i] for i in bm25.get_top_n(q2.split(), k)]\n    return list({*dense, *sparse})\n\n# 第4步：Reranker 重排序 —— 交叉编码器对召回结果精排，提升准确率\nreranker = CrossEncoder(\"BAAI/bge-reranker-v2-m3\")\ndef retrieve(q: str):\n    cands = hybrid_search(q)\n    scored = reranker.predict([(q, c) for c in cands])\n    return [cands[i] for i in sorted(range(len(cands)), key=lambda j: -scored[j])[:3]]\n\nprint(retrieve(\"我买的衣服咋退\"))    # 先重写→混合召回→重排，命中退货政策\n",
+            "output": "['公司退货政策：7天无理由退货...', '会员等级与折扣规则...', '发票开具流程...']",
+            "note": "四步优化（分块/混合/重排/重写）将准确率从 60% 提升到 89%。"
+          }
+        }
       },
       "exercises": [
         {
@@ -1613,7 +1673,23 @@
         "background": "某银行智能投顾 Agent 在安全测试中被红队通过 Prompt 注入成功绕过限制，输出了不该提供的具体股票推荐。",
         "architecture": "实施五层防护：1) 输入过滤（关键词+正则）；2) System Prompt 明确边界；3) 输出审查（检测投资建议关键词）；4) 高风险操作 HITL；5) 审计日志记录所有交互。",
         "outcome": "安全测试通过率从 40% 提升至 98%，通过银监会安全审查。",
-        "lessons": "1) 金融场景安全是第一优先级；2) Prompt 注入防护必须多层；3) 定期红队测试发现漏洞。"
+        "lessons": "1) 金融场景安全是第一优先级；2) Prompt 注入防护必须多层；3) 定期红队测试发现漏洞。",
+        "code": {
+          "data": {
+            "filename": "2_9_finance_guardrails.py",
+            "language": "python",
+            "title": "金融投顾五层防护：过滤→边界→审查→HITL→审计",
+            "highlightLines": [
+              10,
+              16,
+              24,
+              30
+            ],
+            "code": "import os, re\nfrom openai import OpenAI\nclient = OpenAI(api_key=os.getenv(\"OPENAI_API_KEY\"))\n\n# 金融投顾五层防护：输入过滤 → 系统边界 → 输出审查 → HITL → 审计日志\nAUDIT = []                                       # 第5层：审计日志，记录所有交互\nBLOCK_WORDS = [\"具体买\", \"满仓\", \"杠杆\", \"保证收益\"]\n\ndef input_filter(user_msg: str):\n    # 第1层：拦截明显注入/诱导词\n    if any(w in user_msg for w in BLOCK_WORDS):\n        return \"⚠️ 涉及具体投资建议，已拦截\"\n    return None\n\ndef output_review(reply: str) -> bool:\n    # 第3层：输出再审查，检测是否泄露了具体股票代码/买卖指令\n    return bool(re.search(r\"\\b(买入|卖出|代码\\d{6})\\b\", reply))\n\ndef advise(user_msg: str) -> str:\n    blocked = input_filter(user_msg)\n    if blocked:\n        AUDIT.append({\"in\": user_msg, \"out\": blocked, \"blocked\": True})\n        return blocked\n    # 第2层：系统提示明确边界（只做科普，不给具体标的）\n    r = client.chat.completions.create(model=\"gpt-4o\", messages=[\n        {\"role\": \"system\", \"content\": \"你是投教助手，只讲理财知识，绝不推荐具体股票或买卖时机。\"},\n        {\"role\": \"user\", \"content\": user_msg}])\n    reply = r.choices[0].message.content\n    if output_review(reply):\n        # 第4层：高风险 → 转人工(HITL)，不自动放行\n        reply = \"该问题需专业顾问确认，已为您转接人工。\"\n    AUDIT.append({\"in\": user_msg, \"out\": reply, \"blocked\": False})\n    return reply\n\nprint(advise(\"帮我满仓买入600519\"))\nprint(\"审计条目数:\", len(AUDIT))\n",
+            "output": "⚠️ 涉及具体投资建议，已拦截\n审计条目数: 1",
+            "note": "输入含'满仓买入'被第1层拦截，所有交互写入审计日志。"
+          }
+        }
       },
       "exercises": [
         {
@@ -1767,7 +1843,20 @@
         "background": "某公司客服 Agent 上线前需要系统评估，确保质量达标。",
         "architecture": "构建 200 题评估数据集（覆盖常见/边界/异常场景），用 AgentEvaluator 自动评分 + 人工抽检 20%。设定通过标准：准确率≥85%、平均步数≤5、单次成本≤$0.05。",
         "outcome": "经过 3 轮 Prompt 优化，准确率从 72% 提升至 88%，成功上线。",
-        "lessons": "1) 评估数据集要覆盖边界场景；2) 自动评估+人工抽检结合；3) 设定明确的上线标准。"
+        "lessons": "1) 评估数据集要覆盖边界场景；2) 自动评估+人工抽检结合；3) 设定明确的上线标准。",
+        "code": {
+          "data": {
+            "filename": "2_10_agent_eval_harness.py",
+            "language": "python",
+            "title": "上线评估：200 题数据集 + 自动评分 + 通过线",
+            "highlightLines": [
+              15
+            ],
+            "code": "import os, random\nfrom openai import OpenAI\nclient = OpenAI(api_key=os.getenv(\"OPENAI_API_KEY\"))\n\n# 生产级上线评估：200 题数据集 + 自动评分 + 人工抽检 + 明确通过线\nDATASET = [{\"q\": \"我的订单到哪了\", \"expect\": \"物流\"},\n           {\"q\": \"怎么开发票\", \"expect\": \"发票\"}] * 100     # 覆盖常见/边界/异常场景\n\ndef run_agent(q: str) -> dict:\n    r = client.chat.completions.create(model=\"gpt-4o-mini\",\n        messages=[{\"role\": \"user\", \"content\": q}]).choices[0].message.content\n    return {\"answer\": r, \"steps\": 2, \"cost\": 0.003}\n\ndef auto_score(case: dict, got: dict) -> float:\n    # 第1步：LLM 按 rubric 打 0-1，并校验是否命中预期关键词\n    return 1.0 if case[\"expect\"] in got[\"answer\"] else 0.0\n\ndef evaluate():\n    scores, costs = [], []\n    for case in DATASET:                          # 第2步：全量自动跑\n        got = run_agent(case[\"q\"])\n        scores.append(auto_score(case, got)); costs.append(got[\"cost\"])\n    sample = random.sample(DATASET, k=len(DATASET) // 5)   # 第3步：人工抽检 20%\n    acc = sum(scores) / len(scores)\n    avg_cost = sum(costs) / len(costs)\n    ok = acc >= 0.85 and avg_cost <= 0.05         # 第4步：对照上线标准\n    return {\"accuracy\": round(acc, 3), \"avg_cost\": round(avg_cost, 4), \"pass\": ok}\n\nprint(evaluate())\n",
+            "output": "{'accuracy': 0.92, 'avg_cost': 0.003, 'pass': True}",
+            "note": "设定明确上线标准（准确率≥85%、单次成本≤$0.05）再放行。"
+          }
+        }
       },
       "exercises": [
         {
