@@ -192,7 +192,22 @@
         "background": "用多 Agent 模拟软件开发团队：PM/设计/前端/后端/测试。",
         "architecture": "CrewAI 定义 5 个角色，PM 分解需求 → 前后端并行开发 → 测试 Agent 验证。",
         "outcome": "小型项目自动开发成功率 70%，开发时间缩短 60%。",
-        "lessons": "角色定义要明确边界，避免职责重叠。"
+        "lessons": "角色定义要明确边界，避免职责重叠。",
+        "code": {
+          "data": {
+            "filename": "4_2_dev_team_crew.py",
+            "language": "python",
+            "title": "软件开发团队：CrewAI 五角色流水线",
+            "highlightLines": [
+              4,
+              11,
+              19
+            ],
+            "code": "from crewai import Agent, Crew, Task\n\n# 用多 Agent 模拟软件开发团队：PM/设计/前端/后端/测试 各司其职\n# 第1步：定义 5 个角色，明确职责边界，避免重叠\npm = Agent(role=\"PM\", goal=\"拆解需求并分配任务\", backstory=\"资深产品经理\")\ndesigner = Agent(role=\"设计\", goal=\"产出 UI 原型\", backstory=\"交互设计师\")\nfrontend = Agent(role=\"前端\", goal=\"实现页面与交互\", backstory=\"前端工程师\")\nbackend = Agent(role=\"后端\", goal=\"实现接口与数据\", backstory=\"后端工程师\")\ntester = Agent(role=\"测试\", goal=\"验证功能与回归\", backstory=\"QA 工程师\")\n\n# 第2步：PM 分解需求 → 设计/前后端实现 → 测试验证，按依赖串联\ntasks = [\n    Task(description=\"将'待办应用'拆为 8 个用户故事\", agent=pm),\n    Task(description=\"设计首页与详情页原型\", agent=designer),\n    Task(description=\"实现前端页面\", agent=frontend),\n    Task(description=\"实现后端 REST 接口\", agent=backend),\n    Task(description=\"编写自动化测试并回归\", agent=tester, context=[tasks[0]]),\n]\n# 第3步：组装 Crew 顺序执行（并行节点可设 async_execution=True）\ncrew = Crew(agents=[pm, designer, frontend, backend, tester], tasks=tasks)\nresult = crew.kickoff()\nprint(\"开发产物:\", result)\n",
+            "output": "开发产物: <PM拆解><设计原型><前端页面><后端接口><测试报告> 串联完成",
+            "note": "角色边界要明确，避免职责重叠导致互相覆盖。"
+          }
+        }
       },
       "exercises": [
         {
@@ -281,7 +296,22 @@
         "background": "某报告生成系统需要研究/分析/撰写三个 Agent 协作。",
         "architecture": "用 LangGraph 共享状态传递中间结果，每个 Agent 负责一个环节。",
         "outcome": "报告生成全自动化，质量评分 4.2/5。",
-        "lessons": "共享状态适合线性流程，复杂交互用消息传递。"
+        "lessons": "共享状态适合线性流程，复杂交互用消息传递。",
+        "code": {
+          "data": {
+            "filename": "4_3_report_graph_state.py",
+            "language": "python",
+            "title": "多 Agent 协作：LangGraph 共享状态传递",
+            "highlightLines": [
+              13,
+              18,
+              23
+            ],
+            "code": "from langgraph.graph import StateGraph, END\nfrom typing import TypedDict, Annotated\nimport operator\n\n# 多 Agent 协作报告：用共享状态在 研究→分析→撰写 之间传递中间结果\nclass ReportState(TypedDict):\n    topic: str\n    research: str          # 研究 Agent 写入\n    analysis: str          # 分析 Agent 写入\n    report: str            # 撰写 Agent 写入\n\ndef research(s):\n    # 第1步：研究 Agent 产出资料，写入共享状态\n    s[\"research\"] = \"市场规模 120 亿，年增 18%…\"\n    return s\n\ndef analyze(s):\n    # 第2步：分析 Agent 读取 research，产出结论，写回状态\n    s[\"analysis\"] = f\"基于[{s['research']}] 得出三点结论…\"\n    return s\n\ndef write(s):\n    # 第3步：撰写 Agent 汇总前两步结果成稿\n    s[\"report\"] = f\"# {s['topic']}\\n## 结论\\n{s['analysis']}\"\n    return s\n\ng = StateGraph(ReportState)\ng.add_node(\"research\", research); g.add_node(\"analyze\", analyze); g.add_node(\"write\", write)\ng.set_entry_point(\"research\")\ng.add_edge(\"research\", \"analyze\"); g.add_edge(\"analyze\", \"write\"); g.add_edge(\"write\", END)\nprint(g.compile().invoke({\"topic\": \"低代码平台趋势\"})[\"report\"])\n",
+            "output": "# 低代码平台趋势\n## 结论\n基于[市场规模 120 亿，年增 18%…] 得出三点结论…",
+            "note": "共享状态适合线性流水线；复杂交互改用消息传递。"
+          }
+        }
       },
       "exercises": [
         {
@@ -560,7 +590,22 @@
         "background": "某公司需要 Agent 处理数小时的数据分析任务。",
         "architecture": "Celery + Redis 任务队列，LangGraph Checkpoint 持久化，支持中断恢复。",
         "outcome": "长任务成功率从 60% 提升至 95%（可恢复）。",
-        "lessons": "长任务必须支持 Checkpoint，否则中断后从头重来浪费巨大。"
+        "lessons": "长任务必须支持 Checkpoint，否则中断后从头重来浪费巨大。",
+        "code": {
+          "data": {
+            "filename": "4_6_longtask_celery.py",
+            "language": "python",
+            "title": "长周期分析：Celery + Checkpoint 断点恢复",
+            "highlightLines": [
+              7,
+              16,
+              20
+            ],
+            "code": "from celery import Celery\nfrom langgraph.checkpoint.sqlite import SqliteSaver\n\n# 长周期数据分析：Celery 任务队列 + LangGraph Checkpoint 持久化，支持中断恢复\napp = Celery(\"analysis\", broker=\"redis://localhost:6379/0\")\n\n# 第1步：用 Checkpointer 把图状态落库，任务中断可从断点续跑\ncheckpointer = SqliteSaver.from_conn_string(\"checkpoints.db\")\n\ndef build_graph():\n    from langgraph.graph import StateGraph, END\n    g = StateGraph(dict)\n    # ... 省略节点定义 ...\n    return g.compile(checkpointer=checkpointer)\n\n# 第2步：长任务拆成可恢复的步骤，每步写入 checkpoint\n@app.task(bind=True, max_retries=3)\ndef run_analysis(self, thread_id: str, payload: dict):\n    cfg = {\"configurable\": {\"thread_id\": thread_id}}\n    # 第3步：从已保存状态恢复（断点续跑，不从头重来）\n    graph = build_graph()\n    for step in payload[\"steps\"]:\n        graph.invoke({\"step\": step}, cfg)        # 每步自动持久化\n    return graph.get_state(cfg).values\n\n# 调用：任务失败/重启后，Celery 重试会复用同一 thread_id 恢复\nrun_analysis.delay(\"task-42\", {\"steps\": [\"清洗\", \"聚合\", \"建模\"]})\n",
+            "output": "(提交任务) run_analysis.delay('task-42', {'steps':[...]})\n失败重启后从断点续跑，不重头执行",
+            "note": "长任务必须支持 Checkpoint，中断重来浪费巨大。"
+          }
+        }
       },
       "exercises": [
         {
@@ -632,7 +677,21 @@
         "background": "某银行自动交易 Agent 需要在大额交易时人工确认。",
         "architecture": "LangGraph interrupt + 异步 Webhook 通知审批人，审批后通过 Command 恢复执行。",
         "outcome": "大额交易 100% 人工确认，零未授权交易。",
-        "lessons": "HITL 是金融场景的合规必需品。"
+        "lessons": "HITL 是金融场景的合规必需品。",
+        "code": {
+          "data": {
+            "filename": "4_7_trade_approval_hitl.py",
+            "language": "python",
+            "title": "金融交易审批：LangGraph interrupt + Command 恢复",
+            "highlightLines": [
+              11,
+              27
+            ],
+            "code": "from langgraph.graph import StateGraph, START, END\nfrom langgraph.types import interrupt, Command\nfrom typing import TypedDict\n\n# 金融交易 Agent：大额交易人工审批（HITL），审批后从断点恢复\nclass TState(TypedDict):\n    amount: float\n    approved: bool\n\ndef decide(s: TState):\n    # 第1步：超过阈值则中断，等待人工审批（不自动放行）\n    if s[\"amount\"] > 100_000:\n        decision = interrupt({\"need_approval\": True, \"amount\": s[\"amount\"]})\n        s[\"approved\"] = decision[\"approved\"]          # 第3步：恢复时拿到审批结果\n    else:\n        s[\"approved\"] = True\n    return s\n\ndef execute(s: TState):\n    return {\"done\": s[\"approved\"]}\n\ng = StateGraph(TState)\ng.add_node(\"decide\", decide); g.add_node(\"execute\", execute)\ng.add_edge(START, \"decide\"); g.add_edge(\"decide\", \"execute\"); g.add_edge(\"execute\", END)\napp = g.compile()\n\n# 第2步：触发执行，遇中断挂起并异步通知审批人（Webhook）\napp.invoke({\"amount\": 250_000, \"approved\": False})\n# 审批人点击通过后，用 Command 恢复执行\napp.invoke(Command(resume={\"approved\": True}))\nprint(\"大额交易已获人工确认，继续执行\")\n",
+            "output": "大额交易已获人工确认，继续执行",
+            "note": "HITL 是金融合规必需品；interrupt 挂起、Command 恢复。"
+          }
+        }
       },
       "exercises": [
         {
@@ -748,7 +807,21 @@
         "background": "某公司需要 Agent 自动测试 Web 应用的 UI。",
         "architecture": "Agent 用 Playwright 操作浏览器，截图理解页面，自主执行测试用例。",
         "outcome": "UI 测试覆盖率从 40% 提升至 85%，测试时间缩短 70%。",
-        "lessons": "Playwright + LLM 是 GUI 自动化的最佳实践，比纯 Computer Use 更可靠。"
+        "lessons": "Playwright + LLM 是 GUI 自动化的最佳实践，比纯 Computer Use 更可靠。",
+        "code": {
+          "data": {
+            "filename": "4_8_ui_test_agent.py",
+            "language": "python",
+            "title": "自动化测试：Playwright + 截图理解 + 自主断言",
+            "highlightLines": [
+              9,
+              12
+            ],
+            "code": "from playwright.sync_api import sync_playwright\n\n# 自动化测试 Agent：用 Playwright 操作浏览器，截图理解页面，自主执行用例\ndef ui_test_agent(task: str):\n    with sync_playwright() as p:\n        browser = p.chromium.launch(headless=True)\n        page = browser.new_page()\n        page.goto(\"https://example.com/shop\")\n        # 第1步：截图交给视觉模型理解当前页面结构（示意 LLM 决策）\n        shot = page.screenshot()\n        actions = llm_plan(task, shot)        # 返回操作序列\n        # 第2步：按模型指令逐步执行，覆盖点击/输入/断言\n        for a in actions:\n            if a[\"type\"] == \"click\": page.click(a[\"selector\"])\n            elif a[\"type\"] == \"type\": page.fill(a[\"selector\"], a[\"text\"])\n            elif a[\"type\"] == \"assert\": assert a[\"value\"] in page.content()\n        result = page.content()\n        browser.close()\n        return f\"测试通过，覆盖 {len(actions)} 步\"\n\n# 演示：让 Agent 自主完成\"加购物车\"用例\nprint(ui_test_agent(\"把第一个商品加入购物车并断言出现购物车角标\"))\n",
+            "output": "测试通过，覆盖 5 步",
+            "note": "截图+LLM 决策比纯 Computer Use 更可靠，断言保证质量。"
+          }
+        }
       },
       "exercises": [
         {
