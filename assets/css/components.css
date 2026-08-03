@@ -1008,6 +1008,7 @@
   padding: var(--space-xl);
   margin: var(--space-lg) 0;
   text-align: center;
+  position: relative;  /* 锚定全屏按钮 */
 }
 
 .mermaid-container__title {
@@ -1034,6 +1035,137 @@
 .mermaid svg .cluster-label,
 .mermaid svg .label {
   font-family: "Inter", "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif !important;
+}
+
+/* === Mermaid 全屏查看按钮（容器右上角） === */
+.mermaid-fullscreen-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 12px;
+  font-size: var(--fs-xs);
+  font-family: inherit;
+  color: var(--text-secondary);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  z-index: 2;
+  line-height: 1;
+}
+
+.mermaid-fullscreen-btn:hover {
+  color: #fff;
+  background: var(--accent-purple);
+  border-color: var(--accent-purple);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+}
+
+.mermaid-fullscreen-btn:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+.mermaid-fullscreen-btn span:first-child {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* === Mermaid 全屏 Overlay === */
+body.mermaid-fullscreen-open {
+  overflow: hidden;
+}
+
+.mermaid-fullscreen-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(8, 12, 24, 0.96);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 24px;
+  animation: mermaidFsFadeIn 0.18s ease-out;
+}
+
+@keyframes mermaidFsFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.mermaid-fullscreen-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 14px;
+}
+
+.mermaid-fullscreen-title {
+  color: #f5f7fb;
+  font-size: var(--fs-base);
+  font-weight: var(--fw-medium);
+  flex: 0 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mermaid-fullscreen-hint {
+  color: rgba(245, 247, 251, 0.5);
+  font-size: var(--fs-xs);
+  flex: 1 1 auto;
+  text-align: right;
+}
+
+.mermaid-fullscreen-close {
+  flex: 0 0 auto;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: transparent;
+  color: #f5f7fb;
+  font-size: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mermaid-fullscreen-close:hover {
+  background: var(--accent-red);
+  border-color: var(--accent-red);
+  transform: rotate(90deg);
+}
+
+.mermaid-fullscreen-content {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+  padding: 10px;
+}
+
+/* 全屏下 SVG 自然尺寸展示（脱离容器 max-width:100% 限制） */
+.mermaid-fullscreen-content svg {
+  max-width: 96vw;
+  max-height: calc(100vh - 120px);
+  width: auto;
+  height: auto;
+}
+
+.mermaid-fullscreen-empty {
+  color: rgba(245, 247, 251, 0.6);
+  font-size: var(--fs-sm);
 }
 
 /* === 表格组件 === */

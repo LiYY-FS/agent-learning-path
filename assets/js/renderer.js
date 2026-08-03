@@ -171,6 +171,19 @@ const Renderer = {
       const title = Utils.createElement('div', 'mermaid-container__title', data.title);
       container.appendChild(title);
     }
+
+    // 全屏按钮：放在容器右上角，点击克隆 SVG 到全屏 overlay 以自然尺寸展示
+    const fsBtn = Utils.createElement('button', 'mermaid-fullscreen-btn');
+    fsBtn.type = 'button';
+    fsBtn.innerHTML = '<span aria-hidden="true">⛶</span><span>全屏</span>';
+    fsBtn.title = '全屏查看图表（Esc 退出）';
+    fsBtn.setAttribute('aria-label', '全屏查看图表');
+    container.appendChild(fsBtn);
+    fsBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      openMermaidFullscreen(container, data.title || '');
+    });
+
     const mermaidDiv = Utils.createElement('div', 'mermaid');
     mermaidDiv.textContent = data.code || '';
     // 关键：将原始源码存入 dataset，渲染时优先读取 dataset.code，
@@ -640,3 +653,94 @@ const Renderer = {
     return fragment;
   },
 };
+
+/* ============================================
+   Mermaid 全屏查看器
+   - 把已渲染的 SVG 克隆到一个全屏 overlay，以自然尺寸展示
+   - ESC / 点击 ✕ / 点击遮罩外部 均可退出
+   - 锁 body 滚动避免背景跟动
+   ============================================ */
+function openMermaidFullscreen(sourceContainer, title) {
+  // 防止重复打开
+  if (document.querySelector('.mermaid-fullscreen-overlay')) return;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'mermaid-fullscreen-overlay';
+  overlay.setAttribute('role', 'dialog');
+  overlay.setAttribute('aria-modal', 'true');
+  overlay.setAttribute('aria-label', title || '图表全屏查看');
+
+  const header = document.createElement('div');
+  header.className = 'mermaid-fullscreen-header';
+
+  const titleEl = document.createElement('span');
+  titleEl.className = 'mermaid-fullscreen-title';
+  titleEl.textContent = title || '图表';
+  header.appendChild(titleEl);
+
+  const hint = document.createElement('span');
+  hint.className = 'mermaid-fullscreen-hint';
+  hint.textContent = '按 Esc 或点击空白处退出';
+  header.appendChild(hint);
+
+  const closeBtn = document.createElement('button');
+  closeBtn.className = 'mermaid-fullscreen-close';
+  closeBtn.type = 'button';
+  closeBtn.innerHTML = '✕';
+  closeBtn.setAttribute('aria-label', '关闭全屏');
+  header.appendChild(closeBtn);
+
+  overlay.appendChild(header);
+
+  const content = document.createElement('div');
+  content.className = 'mermaid-fullscreen-content';
+
+  // 优先克隆已渲染的 SVG；未渲染就克隆 .mermaid 源节点（含源码）
+  const svg = sourceContainer.querySelector('.mermaid svg');
+  const source = svg || sourceContainer.querySelector('.mermaid');
+  if (source) {
+    const clone = source.cloneNode(true);
+    // 移除 mermaid 防重入标记，确保全屏环境下可独立重渲
+    if (clone.classList && clone.classList.contains('mermaid')) {
+      clone.removeAttribute('data-mermaid-rendered');
+    }
+    content.appendChild(clone);
+  } else {
+    const msg = document.createElement('p');
+    msg.className = 'mermaid-fullscreen-empty';
+    msg.textContent = '图表源未找到';
+    content.appendChild(msg);
+  }
+  overlay.appendChild(content);
+
+  document.body.appendChild(overlay);
+  document.body.classList.add('mermaid-fullscreen-open');
+
+  const close = () => {
+    if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+    document.body.classList.remove('mermaid-fullscreen-open');
+    document.removeEventListener('keydown', onKey);
+    // 把焦点还给触发按钮
+    if (sourceBtn) sourceBtn.focus();
+  };
+  const onKey = (e) => {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      close();
+    }
+  };
+
+  // 记住触发按钮，关闭时归还焦点
+  const sourceBtn = sourceContainer.querySelector('.mermaid-fullscreen-btn');
+  document.addEventListener('keydown', onKey);
+  closeBtn.addEventListener('click', close);
+  overlay.addEventListener('click', (e) => {
+    // 点击遮罩空白处关闭（点击内容区不关）
+    if (e.target === overlay || e.target === content) close();
+  });
+  // 默认聚焦到关闭按钮，便于键盘操作
+  setTimeout(() => closeBtn.focus(), 0);
+}
+
+// 暴露给 MermaidInit 主题切换时重渲染使用（如有需要可在主题切换后重开全屏视图）
+window.openMermaidFullscreen = openMermaidFullscreen;
