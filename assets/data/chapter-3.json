@@ -189,20 +189,92 @@
     },
     {
       "id": "3.2",
-      "title": "LangChain 实战",
+      "title": "LangChain 核心与实战",
       "subtitle": "掌握 LangChain 核心 API，搭建 RAG Agent",
       "estimatedMinutes": 35,
       "difficulty": 3,
       "objectives": [
-        "掌握 LangChain 核心抽象",
-        "能用 LCEL 搭建 Chain",
-        "实现 LangChain RAG Agent"
+        "说清 langchain-core / langchain / partner / community 四类包的职责边界，知道什么场景该用、什么场景不该用",
+        "掌握 LCEL 管道语法，以及 invoke / batch / stream / 异步四种调用方式",
+        "用 Pydantic 让模型直接输出结构化对象，替代脆弱的字符串正则解析",
+        "独立搭出 Loader → Splitter → Embedding → Retriever → Chain 的完整 RAG 链路",
+        "用 RunnableWithMessageHistory 实现多会话隔离的多轮对话记忆",
+        "用 @tool + create_tool_calling_agent 构建能自主调用工具的 Agent",
+        "掌握流式输出、事件追踪与 Token 成本核算，能定位线上问题"
       ],
       "content": [
         {
           "type": "knowledgePoint",
-          "title": "LangChain 核心概念",
+          "title": "为什么是 LangChain：定位与生态版图",
           "content": [
+            {
+              "type": "paragraph",
+              "text": "直接调 OpenAI SDK 也能写 Agent，为什么还要 LangChain？因为真实项目里，**换模型、换向量库、加重试、加流式、加追踪**这些需求会把裸调用代码撑成一团意大利面。LangChain 的价值不是「让你少写几行」，而是把这些横切关注点抽象成**统一接口**：换厂商只改一行 `ChatOpenAI` → `ChatAnthropic`，加重试只需 `.with_retry()`。"
+            },
+            {
+              "type": "paragraph",
+              "text": "很多人对 LangChain 的差评来自 0.1 时代的「巨石包」。0.3 之后它已拆成四层，**装什么、依赖什么，你完全可控**："
+            },
+            {
+              "type": "mermaid",
+              "data": {
+                "title": "LangChain 0.3 生态分层",
+                "code": "flowchart TB\n  subgraph CORE[\"langchain-core：稳定内核\"]\n    C1[Runnable 协议]\n    C2[Prompt / Message]\n    C3[OutputParser]\n  end\n  subgraph MAIN[\"langchain：编排层\"]\n    M1[Agent 构造器]\n    M2[经典 Chain 封装]\n  end\n  subgraph PART[\"合作方包：各家独立发版\"]\n    P1[langchain-openai]\n    P2[langchain-anthropic]\n    P3[langchain-chroma]\n  end\n  subgraph COMM[\"langchain-community：社区集成\"]\n    K1[数百种 Loader]\n    K2[各类 VectorStore]\n  end\n  CORE --> MAIN\n  CORE --> PART\n  CORE --> COMM\n  MAIN --> APP[你的应用]\n  PART --> APP\n  COMM --> APP"
+              }
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "包名",
+                  "职责",
+                  "什么时候会用到"
+                ],
+                "rows": [
+                  [
+                    "`langchain-core`",
+                    "Runnable 协议、消息、Prompt、Parser 等基础抽象，接口几乎不变",
+                    "永远会装上，是其他所有包的依赖"
+                  ],
+                  [
+                    "`langchain`",
+                    "Agent 构造器、经典 Chain 等编排逻辑",
+                    "要用 `create_tool_calling_agent` / `AgentExecutor` 时"
+                  ],
+                  [
+                    "`langchain-openai` 等",
+                    "各厂商模型接入，独立版本号，厂商改 API 不影响内核",
+                    "接哪家模型就装哪个"
+                  ],
+                  [
+                    "`langchain-community`",
+                    "社区贡献的数百种 Loader / VectorStore / 工具",
+                    "接冷门数据源时（质量参差，需自测）"
+                  ],
+                  [
+                    "`langgraph`",
+                    "有状态、可循环、可中断的图编排",
+                    "流程复杂到 LCEL 表达不了时，见 3.3"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "什么时候不该用 LangChain",
+              "text": "① 只是单轮问答、没有工具和检索 —— 直接用官方 SDK 更轻；② 需要**循环、分支、人工中断、断点续跑** —— 用 LangGraph（3.3），LCEL 是有向无环的管道，表达不了回边；③ 团队完全不接受第三方抽象层 —— 那就照 LangChain 的分层思路自己实现，思想比框架更重要。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "五个核心概念",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "先建立词汇表。后面所有代码都是这五个概念的排列组合，**其中 LCEL 是把其余四者黏合起来的胶水**："
+            },
             {
               "type": "table",
               "data": {
@@ -225,7 +297,7 @@
                   [
                     "**Memory**",
                     "对话记忆",
-                    "ConversationBufferMemory"
+                    "RunnableWithMessageHistory（旧 ConversationBufferMemory 已废弃）"
                   ],
                   [
                     "**Tool**",
@@ -241,66 +313,461 @@
               }
             },
             {
+              "type": "callout",
+              "variant": "note",
+              "title": "一句话记住 Runnable",
+              "text": "LangChain 里几乎所有对象（Prompt、模型、Parser、Retriever、甚至整条 Chain）都实现了同一个 `Runnable` 协议——都有 `invoke/batch/stream/ainvoke`。正因为接口统一，它们才能用 `|` 任意拼接，而且拼出来的结果**仍然是一个 Runnable**，可以继续拼。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "LCEL：用管道把组件串起来",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "LCEL（LangChain Expression Language）用 Python 的 `|` 运算符做组合。它不是语法糖，而是让你**免费获得**批量并发、流式、异步、重试、降级这五种能力——这些如果手写，每一项都要几十行样板代码。"
+            },
+            {
               "type": "code",
               "data": {
-                "filename": "langchain_rag.py",
+                "filename": "3_2_lcel_basics.py",
                 "language": "python",
-                "title": "LangChain RAG Agent 实现",
+                "title": "LCEL 管道语法：四种调用 + 三个组合原语 + 生产加固",
                 "highlightLines": [
+                  12,
                   15,
-                  19,
+                  16,
+                  18,
+                  25,
+                  36,
+                  42,
+                  43,
+                  48,
+                  49
+                ],
+                "code": "import asyncio\n\nfrom langchain_core.output_parsers import StrOutputParser\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_core.runnables import RunnableLambda, RunnableParallel, RunnablePassthrough\nfrom langchain_openai import ChatOpenAI\n\nllm = ChatOpenAI(model=\"gpt-4o-mini\", temperature=0)\nprompt = ChatPromptTemplate.from_template(\"用一句话解释：{topic}\")\n\n# ① 最小管道：| 的含义就是「左边的输出，喂给右边」，代码结构 == 执行顺序\nchain = prompt | llm | StrOutputParser()\n\n# ② 任何 Runnable 都自带四种调用方式，不必自己写 for 循环或异步封装\nprint(\"invoke:\", chain.invoke({\"topic\": \"向量数据库\"}))\nprint(\"batch :\", chain.batch([{\"topic\": \"RAG\"}, {\"topic\": \"Agent\"}]))  # 内部自动并发\n\nfor piece in chain.stream({\"topic\": \"LCEL\"}):  # 逐块吐出，前端打字机效果\n    print(piece, end=\"\", flush=True)\nprint()\n\n\nasync def demo_async():\n    \"\"\"异步版：FastAPI 等 async 服务里用 a 前缀方法，避免阻塞事件循环。\"\"\"\n    text = await chain.ainvoke({\"topic\": \"Function Calling\"})\n    print(\"ainvoke:\", text)\n\n\nasyncio.run(demo_async())\n\n# ③ 三个组合原语，覆盖 90% 的编排需求\ntranslate = ChatPromptTemplate.from_template(\"翻译成英文：{text}\") | llm | StrOutputParser()\nsummarize = ChatPromptTemplate.from_template(\"一句话总结：{text}\") | llm | StrOutputParser()\n\n# RunnableParallel：两个分支同时跑，总耗时 = max(A, B) 而不是 A + B\nboth = RunnableParallel(english=translate, digest=summarize)\nprint(both.invoke({\"text\": \"LangChain 用管道语法把 LLM 应用拆成可复用组件。\"}))\n\n# RunnablePassthrough.assign：保留原始输入，再追加新字段\n# RunnableLambda：把任意普通 Python 函数塞进管道，做纯计算/格式化\npipeline = (\n    RunnablePassthrough.assign(length=RunnableLambda(lambda x: len(x[\"text\"])))\n    | RunnableLambda(lambda x: f'{x[\"text\"]}（{x[\"length\"]} 字）')\n)\nprint(pipeline.invoke({\"text\": \"管道即执行顺序\"}))\n\n# ④ 生产必备：自动重试 + 降级备用模型，一行挂上去，不用改业务代码\nrobust = chain.with_retry(stop_after_attempt=3).with_fallbacks(\n    [prompt | ChatOpenAI(model=\"gpt-4o\") | StrOutputParser()]\n)\nprint(\"robust:\", robust.invoke({\"topic\": \"重试与降级\"}))\n",
+                "output": "invoke: 向量数据库是专门存储和检索高维向量、支持相似度搜索的数据库。\nbatch : ['RAG 是先检索外部知识再让模型生成答案的技术。', 'Agent 是能自主决策并调用工具完成目标的 AI 系统。']\nLCEL 是 LangChain 用 | 运算符组合组件的表达式语言。\nainvoke: Function Calling 让模型按结构化格式返回要调用的函数与参数。\n{'english': 'LangChain uses pipe syntax to split LLM applications into reusable components.', 'digest': 'LangChain 用管道语法实现 LLM 应用的组件化。'}\n管道即执行顺序（7 字）\nrobust: 重试与降级让链路在模型抖动时依然可用。"
+              }
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "调用方式",
+                  "语义",
+                  "典型场景"
+                ],
+                "rows": [
+                  [
+                    "`invoke(x)`",
+                    "同步单次，返回完整结果",
+                    "后台脚本、简单 HTTP 接口"
+                  ],
+                  [
+                    "`batch([x1, x2])`",
+                    "批量并发，内部自动并行调度",
+                    "离线跑一批数据、批量打标"
+                  ],
+                  [
+                    "`stream(x)`",
+                    "流式逐块返回",
+                    "聊天界面打字机效果"
+                  ],
+                  [
+                    "`ainvoke` / `abatch` / `astream`",
+                    "上述三者的异步版本",
+                    "FastAPI 等 async 服务，避免阻塞"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "调试技巧",
+              "text": "管道拼错时报错信息会很长。用 `chain.get_graph().print_ascii()` 可以把整条链路画成 ASCII 图，一眼看出数据流向和每个节点的输入输出类型，比逐行读 traceback 快得多（需先 `pip install grandalf`，否则会报 ImportError）。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "Prompt 模板与结构化输出",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "新手最容易踩的坑，是让模型「返回 JSON」然后自己写正则去解析——模型多输出一个 markdown 围栏、少一个逗号，整条链路就崩。正确做法是用 **`with_structured_output(PydanticModel)`**：底层走 Function Calling，由 SDK 保证你拿到的是一个**已校验的 Python 对象**，字段类型、枚举范围、数值区间全部由 Pydantic 兜底。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "3_2_prompt_structured.py",
+                "language": "python",
+                "title": "多角色模板 + Pydantic 结构化输出",
+                "highlightLines": [
+                  12,
+                  13,
+                  14,
+                  15,
+                  16,
+                  28,
+                  31,
+                  32,
+                  33,
+                  38
+                ],
+                "code": "from typing import Literal\n\nfrom langchain_core.messages import AIMessage, HumanMessage\nfrom langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder\nfrom langchain_openai import ChatOpenAI\nfrom pydantic import BaseModel, Field\n\nllm = ChatOpenAI(model=\"gpt-4o-mini\", temperature=0)\n\n# ① 多角色模板：system 定人设，MessagesPlaceholder 预留一个「历史消息」插槽，\n#    运行时把整个消息列表塞进去，比手工拼接字符串安全得多\nchat_prompt = ChatPromptTemplate.from_messages([\n    (\"system\", \"你是{role}，回答控制在 50 字内。\"),\n    MessagesPlaceholder(\"history\"),\n    (\"human\", \"{question}\"),\n])\n\nrendered = chat_prompt.invoke({\n    \"role\": \"资深 Python 工程师\",\n    \"history\": [HumanMessage(\"我在学 LangChain\"), AIMessage(\"很好，先掌握 LCEL\")],\n    \"question\": \"下一步该学什么？\",\n})\nprint(\"渲染出的消息条数:\", len(rendered.to_messages()))\n\n\n# ② 结构化输出：与其让模型吐 JSON 字符串再正则解析（一改格式就崩），\n#    不如声明 Pydantic 模型，让 SDK 走 Function Calling 直接回填对象\nclass Ticket(BaseModel):\n    \"\"\"客服工单分类结果。字段说明会作为 schema 描述发给模型。\"\"\"\n\n    category: Literal[\"售前\", \"物流\", \"售后\", \"投诉\"] = Field(description=\"工单类别\")\n    urgency: int = Field(description=\"紧急度 1-5，5 最紧急\", ge=1, le=5)\n    summary: str = Field(description=\"20 字以内的摘要\")\n\n\nextractor = (\n    ChatPromptTemplate.from_template(\"把这条用户消息转成工单：{msg}\")\n    | llm.with_structured_output(Ticket)\n)\n\nticket = extractor.invoke({\"msg\": \"上周买的手机屏幕碎了，客服一直没人理，今天必须给我处理！\"})\nprint(type(ticket).__name__, \"|\", ticket.category, \"| 紧急度\", ticket.urgency, \"|\", ticket.summary)\n",
+                "output": "渲染出的消息条数: 4\nTicket | 售后 | 紧急度 5 | 手机屏幕破损且客服未响应"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "Field(description=...) 不是注释",
+              "text": "Pydantic 的 `description` 会被转成 JSON Schema 发给模型，是**模型理解字段含义的唯一依据**。写「工单类别」远不如写「工单类别，售前指下单前咨询，售后指已收货后的问题」有效。抽取质量不好时，先改 description，再考虑换模型。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "RAG 全流程：从文档到可溯源的答案",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "RAG（检索增强生成）是 LangChain 最主流的用法：**先从你自己的文档里检索相关片段，再连同问题一起交给模型**，从而让模型回答私有知识、并且可以标注出处。整条链路固定是五步："
+            },
+            {
+              "type": "mermaid",
+              "data": {
+                "title": "RAG 链路：离线建库 + 在线问答",
+                "code": "flowchart LR\n  A[原始文档] --> B[Loader 加载]\n  B --> C[Splitter 分块]\n  C --> D[Embedding 向量化]\n  D --> E[(VectorStore 向量库)]\n  Q[用户提问] --> R[Retriever 检索]\n  E --> R\n  R --> P[Prompt 拼接上下文]\n  P --> L[LLM 生成]\n  L --> O[带出处的答案]"
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "3_2_rag_pipeline.py",
+                "language": "python",
+                "title": "LangChain RAG 全流程：加载 → 分块 → 建库 → 检索 → 生成",
+                "highlightLines": [
                   20,
                   21,
                   22,
-                  23,
-                  24
+                  40,
+                  43,
+                  61,
+                  62,
+                  72,
+                  73,
+                  74
                 ],
-                "code": "import os\nfrom langchain_openai import ChatOpenAI\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_core.output_parsers import StrOutputParser\nfrom langchain_community.vectorstores import Chroma\nfrom langchain_openai import OpenAIEmbeddings\nfrom langchain_community.document_loaders import DirectoryLoader, TextLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n\n# ===================== 配置区（请自行填写，或设置环境变量）=====================\n# 方式一（推荐）：在终端先设置环境变量，再运行本脚本\n#   export OPENAI_API_KEY=\"sk-你的密钥\"\n#   export OPENAI_BASE_URL=\"https://api.openai.com/v1\"   # 官方地址，或任意兼容 OpenAI 的中转地址\n#   export OPENAI_MODEL=\"gpt-4o\"\n# 方式二（仅本地测试，切勿提交到 Git）：直接把下面的值改成你的真实信息\n\n# 第1步：读取密钥等配置 —— 优先读环境变量，缺失时给占位默认值，\n# 这样既能本地测试，又避免把密钥硬编码提交到仓库造成泄露\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")  # ← 模型名称，按需替换（如 gpt-4o-mini）\n\n\n# 1. 加载并分块文档\n\n# 第2步：加载文档 —— 用 DirectoryLoader 批量读取目录里的 Markdown 文件，\n# 把原始文件统一成可处理的 Document 列表，省去逐个打开的重复代码\nloader = DirectoryLoader(\"./docx\", glob=\"**/*.md\", loader_cls=TextLoader)\ndocs = loader.load()\n\n# 第3步：切分文档 —— chunk_size 控制每块字符数，太大检索不精准、\n# 太小会丢失上下文；chunk_overlap 让相邻块重叠，保留跨块语义衔接\nsplitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)\nchunks = splitter.split_documents(docs)\n\n# 2. 创建向量索引\n\n# 第4步：建向量库 —— 把文本块转成向量存入 Chroma，后续才能按语义检索\nvectorstore = Chroma.from_documents(chunks, OpenAIEmbeddings())\n\n# 第5步：取检索器 —— k=5 表示每次取最相关的 5 块，平衡召回与噪声\nretriever = vectorstore.as_retriever(search_kwargs={\"k\": 5})\n\n# 3. LCEL 构建 RAG Chain\n\n# 第6步：初始化模型 —— 用上面读到的密钥和地址创建 ChatOpenAI 实例\nllm = ChatOpenAI(model=MODEL, api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)\n\n# 第7步：设计提示词模板 —— 用 {context} 与 {question} 占位符，\n# 运行时把检索内容和用户问题填进去，约束模型基于上下文回答\nprompt = ChatPromptTemplate.from_template(\"\"\"\n基于以下上下文回答问题。如果上下文不包含答案，说\"我无法回答\"。\n\n上下文: {context}\n问题: {question}\n回答:\"\"\")\n\n# LCEL 管道语法\n\n# 第8步：组装 RAG 链 —— 用 LCEL 的 | 管道把“检索+提问+模型+解析”串起来，\n# 数据按左到右流动，代码结构即执行顺序，易读也好维护\nrag_chain = (\n    {\"context\": retriever, \"question\": lambda x: x[\"question\"]}\n    | prompt\n    | llm\n    | StrOutputParser()\n)\n\n# 4. 查询\n\n# 第9步：执行查询 —— invoke 传入问题，链路自动先检索再生成最终答案\nresult = rag_chain.invoke({\"question\": \"公司的退货政策是什么？\"})\nprint(result)",
+                "code": "import os\nfrom operator import itemgetter\n\nfrom langchain_chroma import Chroma\nfrom langchain_community.document_loaders import DirectoryLoader, TextLoader\nfrom langchain_core.output_parsers import StrOutputParser\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_openai import ChatOpenAI, OpenAIEmbeddings\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\n\n# ===================== 配置区（请自行填写，或设置环境变量）=====================\n# 方式一（推荐）：在终端先设置环境变量，再运行本脚本\n#   export OPENAI_API_KEY=\"sk-你的密钥\"\n#   export OPENAI_BASE_URL=\"https://api.openai.com/v1\"   # 官方地址，或任意兼容 OpenAI 的中转地址\n#   export OPENAI_MODEL=\"gpt-4o\"\n# 方式二（仅本地测试，切勿提交到 Git）：直接把下面的值改成你的真实信息\n\n# 第1步：读取密钥等配置 —— 优先读环境变量，缺失时给占位默认值，\n# 这样既能本地测试，又避免把密钥硬编码提交到仓库造成泄露\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")  # ← 模型名称，按需替换（如 gpt-4o-mini）\n\n\n# 1. 加载并分块文档\n\n# 第2步：加载文档 —— 用 DirectoryLoader 批量读取目录里的 Markdown 文件，\n# 把原始文件统一成可处理的 Document 列表，省去逐个打开的重复代码\nloader = DirectoryLoader(\"./docs\", glob=\"**/*.md\", loader_cls=TextLoader)\ndocs = loader.load()\n\n# 第3步：切分文档 —— chunk_size 控制每块字符数，太大检索不精准、\n# 太小会丢失上下文；chunk_overlap 让相邻块重叠，保留跨块语义衔接\nsplitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)\nchunks = splitter.split_documents(docs)\n\n# 2. 创建向量索引\n\n# 第4步：建向量库 —— 把文本块转成向量存入 Chroma，后续才能按语义检索\nvectorstore = Chroma.from_documents(chunks, OpenAIEmbeddings())\n\n# 第5步：取检索器 —— k=5 表示每次取最相关的 5 块，平衡召回与噪声\nretriever = vectorstore.as_retriever(search_kwargs={\"k\": 5})\n\n# 3. LCEL 构建 RAG Chain\n\n# 第6步：初始化模型 —— 用上面读到的密钥和地址创建 ChatOpenAI 实例\nllm = ChatOpenAI(model=MODEL, api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)\n\n# 第7步：设计提示词模板 —— 用 {context} 与 {question} 占位符，\n# 运行时把检索内容和用户问题填进去，约束模型基于上下文回答\nprompt = ChatPromptTemplate.from_template(\"\"\"\n基于以下上下文回答问题。如果上下文不包含答案，说\"我无法回答\"。\n\n上下文: {context}\n问题: {question}\n回答:\"\"\")\n\n# 第8步：把 Document 列表拼成纯文本 —— 少了这一步，{context} 会被填入\n# Document(page_content=..., metadata=...) 的 repr，元数据噪声会污染提示词\ndef format_docs(docs):\n    return \"\\n\\n\".join(doc.page_content for doc in docs)\n\n\n# LCEL 管道语法\n\n# 第9步：组装 RAG 链 —— 关键细节：retriever 只接受「字符串查询」，\n# 而这条链的入参是 {\"question\": ...} 字典，所以必须先用 itemgetter 取出字符串。\n# 直接写 {\"context\": retriever} 会把整个字典喂给 retriever，运行时必然报错\nrag_chain = (\n    {\n        \"context\": itemgetter(\"question\") | retriever | format_docs,\n        \"question\": itemgetter(\"question\"),\n    }\n    | prompt\n    | llm\n    | StrOutputParser()\n)\n\n# 4. 查询\n\n# 第10步：执行查询 —— invoke 传入问题，链路自动先检索再生成最终答案\nresult = rag_chain.invoke({\"question\": \"公司的退货政策是什么？\"})\nprint(result)",
                 "output": "7天内无理由退货，15天内质量问题可换货。"
               }
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "参数",
+                  "调大的后果",
+                  "调小的后果",
+                  "建议起点"
+                ],
+                "rows": [
+                  [
+                    "`chunk_size`",
+                    "单块信息杂，检索命中但答非所问",
+                    "语义被切断，模型看不到完整逻辑",
+                    "中文 300–500 字符"
+                  ],
+                  [
+                    "`chunk_overlap`",
+                    "冗余增加、存储和检索成本上升",
+                    "跨块的句子被割裂",
+                    "chunk_size 的 10%–20%"
+                  ],
+                  [
+                    "检索 `k`",
+                    "噪声进入上下文，稀释关键信息且更贵",
+                    "召回不足，答案缺内容",
+                    "3–5，再按评测调"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "RAG 效果差，八成不是模型的锅",
+              "text": "排查顺序永远是：**先看检索回来的片段对不对**（把 `retriever.invoke(问题)` 的结果打印出来），再看 Prompt 有没有正确拼接，最后才怀疑模型。绝大多数「AI 胡说八道」的根因是检索阶段就没召回正确的片段。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "多轮对话：会话隔离的记忆管理",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "模型本身是**无状态**的——每次调用都是一次全新的对话。所谓「记忆」，本质就是把历史消息重新塞回 Prompt。难点不在于存，而在于**多用户互不串台**，以及**历史太长时如何裁剪**。"
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "别再用 ConversationBufferMemory",
+              "text": "老教程里的 `ConversationBufferMemory` / `ConversationChain` 在 0.3 中已标记废弃，它们无法与 LCEL 管道良好组合。现在的标准做法是 **`RunnableWithMessageHistory`**：它按 `session_id` 管理历史，天然支持多会话隔离，且能直接包住任意 LCEL 链。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "3_2_chat_memory.py",
+                "language": "python",
+                "title": "RunnableWithMessageHistory：多会话隔离的对话记忆",
+                "highlightLines": [
+                  16,
+                  19,
+                  22,
+                  23,
+                  27,
+                  28,
+                  29,
+                  30,
+                  31,
+                  32,
+                  39
+                ],
+                "code": "from langchain_core.chat_history import BaseChatMessageHistory, InMemoryChatMessageHistory\nfrom langchain_core.output_parsers import StrOutputParser\nfrom langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder\nfrom langchain_core.runnables.history import RunnableWithMessageHistory\nfrom langchain_openai import ChatOpenAI\n\nprompt = ChatPromptTemplate.from_messages([\n    (\"system\", \"你是简洁的助手，回答不超过 30 字。\"),\n    MessagesPlaceholder(\"history\"),   # 历史消息会被自动注入这里\n    (\"human\", \"{input}\"),\n])\nchain = prompt | ChatOpenAI(model=\"gpt-4o-mini\") | StrOutputParser()\n\n# 会话仓库：key 是 session_id，实现了多用户互不串台。\n# 生产环境把下面这个 dict 换成 Redis / Postgres 版本即可，接口不变。\n_STORE: dict[str, BaseChatMessageHistory] = {}\n\n\ndef get_history(session_id: str) -> BaseChatMessageHistory:\n    \"\"\"按会话 id 取历史；没有就新建一个空的。\"\"\"\n    if session_id not in _STORE:\n        _STORE[session_id] = InMemoryChatMessageHistory()\n    return _STORE[session_id]\n\n\n# 包一层，chain 就自动获得「调用前读历史、调用后写历史」的能力\nbot = RunnableWithMessageHistory(\n    chain,\n    get_history,\n    input_messages_key=\"input\",\n    history_messages_key=\"history\",\n)\n\ncfg = {\"configurable\": {\"session_id\": \"user-42\"}}\nprint(bot.invoke({\"input\": \"我叫小李，在做电商客服 Agent\"}, config=cfg))\nprint(bot.invoke({\"input\": \"我刚才说我叫什么？\"}, config=cfg))  # 答得出「小李」说明记忆生效\n\n# 换个 session_id 就是另一个人，历史完全隔离\nother = bot.invoke({\"input\": \"我叫什么？\"}, config={\"configurable\": {\"session_id\": \"user-99\"}})\nprint(\"新会话:\", other)\nprint(\"user-42 历史条数:\", len(get_history(\"user-42\").messages))\n",
+                "output": "你好小李，做电商客服 Agent 很有前景。\n你叫小李。\n新会话: 抱歉，我不知道你的名字。\nuser-42 历史条数: 4"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "历史裁剪是必修课",
+              "text": "对话到第 30 轮时，若每次都发全量历史，单轮成本会涨到第 1 轮的十几倍。生产上至少要做一种裁剪：**保留最近 N 轮**（最简单）、**按 token 预算截断**（`trim_messages`）、或**把久远历史压缩成摘要**再放进 system 提示。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "工具调用与 Agent：让模型自己决定下一步",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "到这里为止的链路都是**你写死流程**：先检索、再生成。Agent 的不同在于——**流程由模型决定**。你只提供一组工具，模型自己判断该不该调、调哪个、调几次、什么时候收尾。这就是 3.1 里说的「自主性」在 LangChain 里的落地方式。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "3_2_tool_agent.py",
+                "language": "python",
+                "title": "@tool + create_tool_calling_agent：能自主调工具的 Agent",
+                "highlightLines": [
+                  11,
+                  12,
+                  13,
+                  19,
+                  20,
+                  21,
+                  27,
+                  34,
+                  37,
+                  40
+                ],
+                "code": "# 注：本节基于 LangChain 0.3.x；1.x 中该模块已迁移至 langchain_classic.agents\nfrom langchain.agents import AgentExecutor, create_tool_calling_agent\nfrom langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder\nfrom langchain_core.tools import tool\nfrom langchain_openai import ChatOpenAI\n\n\n# ① @tool 把普通函数变成模型可调用的工具：\n#    函数名 -> 工具名，docstring -> 给模型看的用途说明，类型注解 -> 参数 schema。\n#    docstring 写得含糊，模型就选不对工具，这是 Agent 最常见的失败原因。\n@tool\ndef get_stock(symbol: str) -> str:\n    \"\"\"查询股票当前价格。symbol 为股票代码，例如 AAPL、TSLA。\"\"\"\n    quotes = {\"AAPL\": 228.5, \"TSLA\": 415.2}\n    price = quotes.get(symbol.upper())\n    return f\"{symbol.upper()} 当前价 {price} 美元\" if price else f\"未收录 {symbol}\"\n\n\n@tool\ndef calc(expression: str) -> str:\n    \"\"\"计算数学表达式，仅支持数字和 + - * / ( ) 运算符。\"\"\"\n    if not set(expression) <= set(\"0123456789+-*/(). \"):\n        return \"表达式含非法字符，已拒绝执行\"\n    return str(eval(expression))  # 演示用；生产请换 asteval 等安全求值库\n\n\ntools = [get_stock, calc]\n\n# ② agent_scratchpad 是必需插槽：存放「已经调了哪些工具、各自返回了什么」，\n#    模型靠它判断任务是否完成、下一步该干什么。漏了这个插槽 Agent 会原地打转。\nprompt = ChatPromptTemplate.from_messages([\n    (\"system\", \"你是投资助手。需要数据时必须调用工具，绝不凭空编造价格。\"),\n    (\"human\", \"{input}\"),\n    MessagesPlaceholder(\"agent_scratchpad\"),\n])\n\nagent = create_tool_calling_agent(ChatOpenAI(model=\"gpt-4o\", temperature=0), tools, prompt)\n\n# ③ max_iterations 是保险丝：防止模型陷入「调工具 -> 不满意 -> 再调」的死循环烧钱\nexecutor = AgentExecutor(agent=agent, tools=tools, verbose=True, max_iterations=5)\n\nresult = executor.invoke({\"input\": \"买 10 股 AAPL 需要多少钱？\"})\nprint(\"最终回答:\", result[\"output\"])\n",
+                "output": "> Entering new AgentExecutor chain...\nInvoking: `get_stock` with `{'symbol': 'AAPL'}`\nAAPL 当前价 228.5 美元\nInvoking: `calc` with `{'expression': '228.5*10'}`\n2285.0\n买 10 股 AAPL 需要 2285.0 美元。\n> Finished chain.\n最终回答: 买 10 股 AAPL 需要 2285.0 美元。"
+              }
+            },
+            {
+              "type": "list",
+              "items": [
+                "**工具描述决定成败**：`docstring` 是模型选工具的唯一依据。写清楚「做什么、输入什么、什么情况下不该用」，比换更强的模型有效得多。",
+                "**参数要有类型注解**：注解会被转成 JSON Schema，缺注解模型就得靠猜，容易传错类型。",
+                "**永远设 `max_iterations`**：没有保险丝的 Agent 会在失败工具上反复重试，直到烧穿预算。",
+                "**工具内部要自己兜底**：工具抛异常会中断整个 Agent，应该 `return` 一段错误说明，让模型知道失败了并换个思路。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "流式输出、事件追踪与成本控制",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Demo 能跑通和能上线之间，隔着三件事：**用户等得起吗**（流式）、**出问题能定位吗**（追踪）、**这钱花得起吗**（成本）。LangChain 对这三件事都有内建支持。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "3_2_stream_debug.py",
+                "language": "python",
+                "title": "stream / astream_events / get_openai_callback",
+                "highlightLines": [
+                  15,
+                  16,
+                  24,
+                  25,
+                  26,
+                  33,
+                  34,
+                  35
+                ],
+                "code": "import asyncio\n\nfrom langchain_community.callbacks.manager import get_openai_callback\nfrom langchain_core.output_parsers import StrOutputParser\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_openai import ChatOpenAI\n\nchain = (\n    ChatPromptTemplate.from_template(\"写一句关于 {topic} 的话\")\n    | ChatOpenAI(model=\"gpt-4o-mini\")\n    | StrOutputParser()\n)\n\n# ① stream：首字延迟从「等全文生成完」降到几百毫秒，聊天类产品的体验分水岭\nfor chunk in chain.stream({\"topic\": \"可观测性\"}):\n    print(chunk, end=\"\", flush=True)\nprint()\n\n\n# ② astream_events：不只拿最终文本，还能拿到链路里每个节点的开始/结束事件。\n#    「正在检索文档…」「正在调用工具…」这类进度提示全靠它实现。\nasync def trace_events():\n    \"\"\"打印链路事件流，用于定位「到底卡在哪一步」。\"\"\"\n    async for ev in chain.astream_events({\"topic\": \"调试\"}, version=\"v2\"):\n        if ev[\"event\"] in (\"on_chat_model_start\", \"on_chat_model_end\"):\n            print(\"EVENT\", ev[\"event\"], \"|\", ev[\"name\"])\n\n\nasyncio.run(trace_events())\n\n# ③ 成本核算：把调用包在回调里，直接拿到 token 数与美元花费，\n#    上线前务必先跑一遍，别等账单来了才发现每轮对话都在重发全量历史\nwith get_openai_callback() as cb:\n    chain.invoke({\"topic\": \"成本控制\"})\n    print(f\"tokens={cb.total_tokens} 提问={cb.prompt_tokens} \"\n          f\"回答={cb.completion_tokens} 花费=${cb.total_cost:.6f}\")\n",
+                "output": "可观测性让系统的内部状态变得可以被外部观察和度量。\nEVENT on_chat_model_start | ChatOpenAI\nEVENT on_chat_model_end | ChatOpenAI\ntokens=42 提问=18 回答=24 花费=$0.000017"
+              }
+            },
+            {
+              "type": "paragraph",
+              "text": "本地打印之外，生产环境建议接 **LangSmith**：设两个环境变量即可自动上报——新版命名是 `LANGSMITH_TRACING=true` 与 `LANGSMITH_API_KEY=...`，旧版 `LANGCHAIN_TRACING_V2` / `LANGCHAIN_API_KEY` 仍向后兼容。接上后能看到每一次调用的完整链路、每个节点耗时、Prompt 原文与 Token 消耗。可观测性的系统化方案见 3.8。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "现象",
+                  "根因",
+                  "解法"
+                ],
+                "rows": [
+                  [
+                    "`ImportError: cannot import name ...`",
+                    "0.1 → 0.3 大量类迁移到 `langchain-core` 或合作方包",
+                    "按报错提示换新包名，别新旧版本混装"
+                  ],
+                  [
+                    "`ConversationBufferMemory` 报 deprecated",
+                    "旧 Memory 体系已被替换",
+                    "改用 `RunnableWithMessageHistory`"
+                  ],
+                  [
+                    "RAG 答非所问",
+                    "chunk 过大导致检索不精准，或 `k` 太小召回不足",
+                    "先打印检索结果，再调 `chunk_size` / `k`"
+                  ],
+                  [
+                    "Agent 反复调同一个工具停不下来",
+                    "工具 docstring 模糊，模型判断不了任务是否完成",
+                    "写清工具边界 + 设 `max_iterations`"
+                  ],
+                  [
+                    "账单突然暴涨",
+                    "每轮都把全量历史重发一遍",
+                    "裁剪历史 + 用 `get_openai_callback` 常态化监控"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "note",
+              "title": "学完这一节，你应该能……",
+              "text": "① 看懂任意一条 LCEL 管道的数据流向；② 独立搭出带记忆、带工具、带检索的对话应用；③ 遇到问题知道先看检索结果、再看事件流、最后看模型。如果你的流程需要循环或人工中断，下一站是 3.3 LangGraph。"
             }
           ]
         }
       ],
       "enterpriseCase": {
         "title": "用 LangChain 搭建企业文档问答",
-        "background": "某公司有 500+ 内部文档需要构建问答系统。",
-        "architecture": "用 LangChain LCEL 构建 RAG Chain，ChromaDB 存向量，RecursiveCharacterTextSplitter 分块。",
-        "outcome": "问答准确率 85%，响应时间 <3s。",
-        "lessons": "LangChain LCEL 语法简洁，适合快速搭建 RAG 原型。",
+        "background": "某集团有 500+ 份内部制度文档（PDF，累计数千页），分散在 HR、行政、财务等多个部门，员工查「年假怎么算」「报销额度多少」这类问题要不厌其烦地翻文件。需要一个能直接基于文档作答、并且每条答案都能回溯到具体出处的问答系统。",
+        "architecture": "用 LangChain LCEL 搭建 RAG 管道：DirectoryLoader(PyPDFLoader) 按页加载 PDF → RecursiveCharacterTextSplitter 切块（512 + 重叠 50）→ 内容 md5 去重避免重复入库 → ChromaDB 存向量 → retriever 只接收字符串查询（用 itemgetter 从入参字典取出问题）→ format_docs 把 Document 列表拼成纯文本后喂给模型，最终答案附带来源文件名，做到可溯源。",
+        "outcome": "一次性入库 512 篇 / 3180 页，去重后 12310 个有效块；年假、报销、休假等高频问题回答准确，且每条答案都标注了引用来源文件（如 hr_policy.pdf），员工可直接核对原文，响应时间在秒级。",
+        "lessons": "① 内容哈希（md5）去重比内置 hash() 更稳：后者受 PYTHONHASHSEED 影响，跨进程结果漂移会生成重复向量。② retriever 只吃字符串，dict 入参必须用 itemgetter 取出问题再喂，否则运行时报错。③ format_docs 把 Document 列表拼成纯文本，避免把元数据 repr 塞进提示词污染上下文。④ 让答案带「来源文件名」是企业问答被信任的关键，比单纯追求准确率更重要。",
         "code": {
           "data": {
             "filename": "3_2_enterprise_docqa_pipeline.py",
             "language": "python",
             "title": "文档问答生产管线：批量入库 + 去重 + 出处引用",
             "highlightLines": [
-              9,
-              16,
-              24,
-              29
+              13,
+              19,
+              26,
+              27,
+              28,
+              33,
+              35,
+              47,
+              48
             ],
-            "code": "from langchain_community.document_loaders import DirectoryLoader, PyPDFLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\nfrom langchain_chroma import Chroma\nfrom langchain_openai import ChatOpenAI, OpenAIEmbeddings\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_core.output_parsers import StrOutputParser\n\n# 生产级文档问答（500+ 文档）：批量入库 + 去重 + 带出处引用\n# 第1步：批量加载并按语义分块（512 + 重叠 50），带进度条避免大批量卡死\nloader = DirectoryLoader(\"./docs\", glob=\"**/*.pdf\", loader_cls=PyPDFLoader)\ndocs = loader.load()\nsplitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)\nchunks = splitter.split_documents(docs)\nprint(f\"加载 {len(docs)} 篇，切分为 {len(chunks)} 块\")\n\n# 第2步：去重 —— 哈希去重，避免同一文档多版本重复入库占向量空间\nseen, uniq = set(), []\nfor c in chunks:\n    h = hash(c.page_content)\n    if h not in seen:\n        seen.add(h); uniq.append(c)\nprint(f\"去重后 {len(uniq)} 块\")\n\n# 第3步：建向量库并保留元数据（source 用于回答时标注出处）\nvectorstore = Chroma.from_documents(uniq, OpenAIEmbeddings(),\n                                     persist_directory=\"./chroma_db\")\nretriever = vectorstore.as_retriever(search_kwargs={\"k\": 5})\n\n# 第4步：回答时强制引用来源，便于审计与溯源\nprompt = ChatPromptTemplate.from_template(\n    \"基于以下上下文回答，并在末尾列出引用来源文件：\\n上下文: {context}\\n问题: {question}\")\nrag = {\"context\": retriever, \"question\": lambda x: x[\"question\"]} | prompt | \\\n      ChatOpenAI(model=\"gpt-4o\") | StrOutputParser()\n\nans = rag.invoke({\"question\": \"年假如何计算？\"})\nprint(ans, \"\\n来源:\", [d.metadata.get(\"source\") for d in retriever.invoke(\"年假如何计算？\")])\n",
-            "output": "加载 512 篇，切分为 3094 块\n去重后 3040 块\n回答...\n来源: ['hr_policy.pdf', 'leave_rule.pdf']",
+            "code": "import hashlib\nfrom operator import itemgetter\n\nfrom langchain_community.document_loaders import DirectoryLoader, PyPDFLoader\nfrom langchain_text_splitters import RecursiveCharacterTextSplitter\nfrom langchain_chroma import Chroma\nfrom langchain_openai import ChatOpenAI, OpenAIEmbeddings\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_core.output_parsers import StrOutputParser\n\n# 生产级文档问答（500+ 文档）：批量入库 + 去重 + 带出处引用\n# 第1步：批量加载并按语义分块（512 + 重叠 50），带进度条避免大批量卡死\nloader = DirectoryLoader(\"./docs\", glob=\"**/*.pdf\", loader_cls=PyPDFLoader, show_progress=True)\ndocs = loader.load()\nsplitter = RecursiveCharacterTextSplitter(chunk_size=512, chunk_overlap=50)\nchunks = splitter.split_documents(docs)\n# 注意 PyPDFLoader 是按「页」产出 Document 的，len(docs) 是总页数；\n# 篇数要按 metadata 里的 source 去重统计，别把页数当篇数汇报\nprint(f\"加载 {len({d.metadata['source'] for d in docs})} 篇 / {len(docs)} 页，切分为 {len(chunks)} 块\")\n\n# 第2步：内容哈希去重，避免同一文档多版本重复入库占用向量空间。\n# 用 md5 而非内置 hash()：后者受 PYTHONHASHSEED 影响，跨进程结果不稳定，\n# 会导致今天去重完的库明天重跑又生成一批重复向量\nseen, uniq = set(), []\nfor c in chunks:\n    h = hashlib.md5(c.page_content.encode(\"utf-8\")).hexdigest()\n    if h not in seen:\n        seen.add(h)\n        uniq.append(c)\nprint(f\"去重后 {len(uniq)} 块\")\n\n# 第3步：建向量库并保留元数据（source 用于回答时标注出处）\nvectorstore = Chroma.from_documents(uniq, OpenAIEmbeddings(),\n                                     persist_directory=\"./chroma_db\")\nretriever = vectorstore.as_retriever(search_kwargs={\"k\": 5})\n\n# 第4步：回答时强制引用来源，便于审计与溯源\nprompt = ChatPromptTemplate.from_template(\n    \"基于以下上下文回答，并在末尾列出引用来源文件：\\n上下文: {context}\\n问题: {question}\")\n\ndef format_docs(docs):\n    return \"\\n\\n\".join(doc.page_content for doc in docs)\n\n\n# 第5步：组装链路 —— retriever 只吃字符串，必须用 itemgetter 从入参字典里\n# 取出问题再喂给它；直接把 retriever 放进字典会让它收到 dict 而报错\nrag = {\"context\": itemgetter(\"question\") | retriever | format_docs,\n       \"question\": itemgetter(\"question\")} | prompt | \\\n      ChatOpenAI(model=\"gpt-4o\") | StrOutputParser()\n\nquestion = \"年假如何计算？\"\nans = rag.invoke({\"question\": question})\nprint(ans, \"\\n来源:\", sorted({d.metadata.get(\"source\") for d in retriever.invoke(question)}))  # 演示简化：此处二次检索仅用于展示来源，生产可改 RunnableParallel 一次检索复用\n",
+            "output": "加载 512 篇 / 3180 页，切分为 12480 块\n去重后 12310 块\n年假按入职满 1 年起算，每满 1 年增加 1 天，上限 15 天。\n来源: ['hr_policy.pdf', 'leave_rule.pdf']",
             "note": "500+ 文档场景核心是入库工程化与可溯源，而非单条问答。"
           }
         }
       },
       "exercises": [
         {
+          "title": "LCEL 热身：并行双语摘要",
+          "description": "用 RunnableParallel 同时生成一段文本的中文摘要和英文翻译，并用 time 模块对比「并行」与「先后两次 invoke」的耗时差异。",
+          "hints": "RunnableParallel(zh=chain_a, en=chain_b)，两个分支共用同一个输入字典"
+        },
+        {
+          "title": "结构化抽取：简历转对象",
+          "description": "定义一个 Resume 的 Pydantic 模型（姓名、年限、技能列表、期望薪资区间），用 with_structured_output 把一段自由格式的简历文本抽成对象，并处理「字段缺失」的情况。",
+          "hints": "用 Optional[str] 表示可缺失字段；给每个 Field 写清楚 description"
+        },
+        {
           "title": "实现 LangChain RAG Agent",
-          "description": "用 LangChain 搭建一个带工具调用能力的 RAG Agent。",
-          "hints": "用 create_tool_calling_agent"
+          "description": "用 LangChain 搭建一个带工具调用能力的 RAG Agent：把向量检索包装成一个 @tool，让 Agent 自己决定要不要查文档。",
+          "hints": "用 create_tool_calling_agent；把 retriever.invoke 包进 @tool 函数里"
+        },
+        {
+          "title": "综合：带记忆的客服 Agent",
+          "description": "组合本节所有能力，做一个客服 Agent：多轮记忆（会话隔离）+ 订单查询工具 + 知识库检索 + 流式输出，并统计每轮对话的 Token 花费。",
+          "hints": "RunnableWithMessageHistory 包住 AgentExecutor；用 astream_events 输出进度"
         }
       ],
       "resources": [
         {
+          "type": "doc",
+          "title": "LangChain 官方文档（Python）",
+          "url": "https://python.langchain.com/docs/introduction/",
+          "note": "从这里入门，Tutorials 部分可直接跟做"
+        },
+        {
+          "type": "doc",
+          "title": "LCEL 概念详解",
+          "url": "https://python.langchain.com/docs/concepts/lcel/",
+          "note": "Runnable 协议与管道组合的权威说明"
+        },
+        {
+          "type": "doc",
+          "title": "How to: 结构化输出",
+          "url": "https://python.langchain.com/docs/how_to/structured_output/",
+          "note": "with_structured_output 的各种用法与限制"
+        },
+        {
+          "type": "doc",
+          "title": "How to: 为 Chain 添加消息历史",
+          "url": "https://python.langchain.com/docs/how_to/message_history/",
+          "note": "RunnableWithMessageHistory 官方指南"
+        },
+        {
+          "type": "tool",
+          "title": "LangSmith 追踪平台",
+          "url": "https://smith.langchain.com/",
+          "note": "两个环境变量即可接入，排查链路问题必备"
+        },
+        {
+          "type": "tool",
+          "title": "LangChain GitHub 仓库",
+          "url": "https://github.com/langchain-ai/langchain",
+          "note": "看 issue 与 CHANGELOG，判断版本迁移风险"
+        },
+        {
           "type": "course",
           "title": "LangChain for LLM Application Development",
-          "url": "https://www.deeplearning.ai/short-courses/"
+          "url": "https://www.deeplearning.ai/short-courses/langchain-for-llm-application-development/",
+          "note": "DeepLearning.AI 免费短课，一小时过完全貌"
         }
       ],
       "quiz": [
-        "ch3-3.2-q1"
+        "ch3-3.2-q1",
+        "ch3-3.2-q2",
+        "ch3-3.2-q3",
+        "ch3-3.2-q4",
+        "ch3-3.2-q5"
       ]
     },
     {

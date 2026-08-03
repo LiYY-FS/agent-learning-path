@@ -1196,6 +1196,118 @@
       "explanation": "LCEL（LangChain Expression Language）是 LangChain 的管道语法，用 | 操作符串联组件，如 prompt | model | parser。"
     },
     {
+      "id": "ch3-3.2-q2",
+      "chapter": "ch3",
+      "section": "3.2",
+      "type": "single",
+      "difficulty": 2,
+      "question": "想让模型返回一个字段类型可校验的对象，而不是自己写正则解析 JSON 字符串，应该用？",
+      "options": [
+        {
+          "key": "A",
+          "text": "StrOutputParser()"
+        },
+        {
+          "key": "B",
+          "text": "llm.with_structured_output(PydanticModel)",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "在提示词里写「请返回 JSON」"
+        },
+        {
+          "key": "D",
+          "text": "json.loads(response.content)"
+        }
+      ],
+      "explanation": "with_structured_output 底层走 Function Calling，由 SDK 保证返回已通过 Pydantic 校验的对象。仅在提示词里要求返回 JSON，模型多输出一个 markdown 围栏就会解析失败。"
+    },
+    {
+      "id": "ch3-3.2-q3",
+      "chapter": "ch3",
+      "section": "3.2",
+      "type": "single",
+      "difficulty": 3,
+      "question": "使用 RunnableWithMessageHistory 时，config 里的 session_id 起什么作用？",
+      "options": [
+        {
+          "key": "A",
+          "text": "标识调用哪个模型"
+        },
+        {
+          "key": "B",
+          "text": "区分不同会话的历史，实现多用户互不串台",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "控制历史保留的轮数上限"
+        },
+        {
+          "key": "D",
+          "text": "指定历史存储在内存还是 Redis"
+        }
+      ],
+      "explanation": "session_id 是历史仓库的 key。换一个 session_id 就是一段全新的对话，这正是多用户隔离的实现方式。保留轮数需要另外做裁剪（如 trim_messages）。"
+    },
+    {
+      "id": "ch3-3.2-q4",
+      "chapter": "ch3",
+      "section": "3.2",
+      "type": "single",
+      "difficulty": 3,
+      "question": "用 create_tool_calling_agent 构建 Agent 时，prompt 中为什么必须包含 agent_scratchpad 插槽？",
+      "options": [
+        {
+          "key": "A",
+          "text": "用来存放系统提示词"
+        },
+        {
+          "key": "B",
+          "text": "用来存放用户的历史对话"
+        },
+        {
+          "key": "C",
+          "text": "用来存放已调用工具及其返回结果，模型据此判断下一步",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "用来限制工具调用次数"
+        }
+      ],
+      "explanation": "agent_scratchpad 承载「已经调了哪些工具、各自返回了什么」的中间步骤。缺了它，模型每轮都像第一次执行，会陷入重复调用同一工具的死循环。"
+    },
+    {
+      "id": "ch3-3.2-q5",
+      "chapter": "ch3",
+      "section": "3.2",
+      "type": "single",
+      "difficulty": 3,
+      "question": "RAG 应用出现「答非所问」时，正确的排查顺序是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "先换更强的模型，再调提示词，最后看检索"
+        },
+        {
+          "key": "B",
+          "text": "先打印检索回来的片段，再看提示词拼接，最后才怀疑模型",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "先加大 chunk_size，再加大 k，最后换向量库"
+        },
+        {
+          "key": "D",
+          "text": "先看模型温度参数，再看 Embedding 维度"
+        }
+      ],
+      "explanation": "绝大多数「AI 胡说八道」的根因在检索阶段就没召回正确片段。用 retriever.invoke(问题) 打印结果是成本最低、信息量最大的第一步；模型是最后才该被怀疑的环节。"
+    },
+    {
       "id": "ch3-3.3-q1",
       "chapter": "ch3",
       "section": "3.3",
