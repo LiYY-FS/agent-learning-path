@@ -86,7 +86,21 @@
         "architecture": "Router Agent 分类问题 → 转接到 4 个专业 Agent → 结果汇总给 Router。",
         "outcome": "问题路由准确率 92%，平均处理时间降低 50%。",
         "lessons": "层级式架构的 Router 质量决定整体效果。",
-        "code": "multi_agent_comm.py"
+        "code": {
+          "data": {
+            "filename": "4_1_hierarchical_router.py",
+            "language": "python",
+            "title": "层级式客服路由：Router 先分类再转专业 Agent",
+            "highlightLines": [
+              3,
+              6,
+              9
+            ],
+            "code": "# 层级式客服路由：Router 先分类，再转对应专业 Agent\ndef router(question: str) -> str:\n    # 基于关键词把问题分派给专业 Agent，避免所有问题都进同一个模型\n    if any(k in question for k in [\"退款\", \"退货\", \"换货\"]):\n        return \"转接 -> 售后 Agent\"\n    if any(k in question for k in [\"发货\", \"物流\", \"快递\"]):\n        return \"转接 -> 物流 Agent\"\n    if any(k in question for k in [\"功能\", \"怎么用\", \"如何\"]):\n        return \"转接 -> 售前 Agent\"\n    return \"转接 -> 技术支持 Agent\"\n\nprint(router(\"我的订单什么时候发货？\"))  # 转接 -> 物流 Agent\n",
+            "output": "转接 -> 物流 Agent",
+            "note": "Router 的分类质量决定整体效果，是层级式架构的关键节点。"
+          }
+        }
       },
       "exercises": [
         {
@@ -180,7 +194,7 @@
                   35,
                   37
                 ],
-                "code": "import os\nfrom crewai import Agent, Task, Crew\n\n# 定义角色\n# 第1步：定义规划角色 —— role/goal/backstory 共同描述一个 Agent 的人设，\n# 角色设定影响模型的行为定位，明确分工能减少输出漂移\nplanner = Agent(\n    # role 是角色名，决定模型自我定位的“身份”\n    role='项目规划者',\n    # goal 给出该角色要达成的目标，约束它产出的方向\n    goal='将用户需求分解为可执行的子任务',\n    # backstory 提供背景故事，让模型更贴合该身份说话与决策\n    backstory='你是经验丰富的项目经理，擅长任务分解和排期',\n    # llm 指定底层模型，可按角色重要性选不同档位以平衡成本\n    llm='gpt-5'\n)\n\n# 第2步：定义开发角色 —— 与规划者同理，专注“写代码”这一目标，\n# 不同 backstory 让各 Agent 行为稳定、互不串味\ncoder = Agent(\n    # role 标识开发者身份\n    role='Python 开发者',\n    # goal 约束其产出为高质量代码\n    goal='编写高质量的 Python 代码',\n    # backstory 让其代码风格稳定\n    backstory='你是 10 年经验的 Python 开发者，代码简洁高效',\n    # llm 指定所用模型\n    llm='gpt-5'\n)\n\n# 第3步：定义审查角色 —— 负责把关质量，形成“规划-开发-审查”的闭环，\n# 让前一个角色的输出被独立视角校验，降低错误遗漏\nreviewer = Agent(\n    # role 标识审查者身份\n    role='代码审查者',\n    # goal 明确审查目标\n    goal='确保代码质量和最佳实践',\n    # backstory 强调严格与安全视角\n    backstory='你是严格的代码审查专家，关注安全和性能',\n    # llm 指定所用模型\n    llm='gpt-5'\n)\n\n# 第4步：定义任务并串联上下文 —— Task 绑定执行角色，\n# context 把上游任务结果作为本任务的背景，形成信息依赖链\n# 定义任务\n# plan_task 由 planner 执行\nplan_task = Task(description='规划开发任务', agent=planner)\n# context 让编码任务能读到规划结果，避免重复理解需求\ncode_task = Task(description='编写代码', agent=coder, context=[plan_task])\n# 审查任务依赖编码结果，保证审的是刚写好的代码\nreview_task = Task(description='审查代码', agent=reviewer, context=[code_task])\n\n# 第5步：组建团队并执行 —— Crew 把角色与任务按依赖编排成流水线，\n# kickoff 触发整队协作，自动按 context 顺序逐步推进到出结果\n# 组建团队\n# 把三个角色与三个任务组装成 Crew\ncrew = Crew(agents=[planner, coder, reviewer], tasks=[plan_task, code_task, review_task])\n\n# kickoff 启动协作 —— inputs 以字典传入，供任务描述中的 {占位符} 使用\nif __name__ == \"__main__\":\n    result = crew.kickoff(inputs={\"requirement\": \"开发一个计算器程序\"})\n    print(\"=\" * 40)\n    print(\"协作完成，最终产出:\")\n    print(result)",
+                "code": "from crewai import Agent, Task, Crew\n\n# 定义角色\n# 第1步：定义规划角色 —— role/goal/backstory 共同描述一个 Agent 的人设，\n# 角色设定影响模型的行为定位，明确分工能减少输出漂移\nplanner = Agent(\n    # role 是角色名，决定模型自我定位的“身份”\n    role='项目规划者',\n    # goal 给出该角色要达成的目标，约束它产出的方向\n    goal='将用户需求分解为可执行的子任务',\n    # backstory 提供背景故事，让模型更贴合该身份说话与决策\n    backstory='你是经验丰富的项目经理，擅长任务分解和排期',\n    # llm 指定底层模型，可按角色重要性选不同档位以平衡成本\n    llm='gpt-4o'\n)\n\n# 第2步：定义开发角色 —— 与规划者同理，专注“写代码”这一目标，\n# 不同 backstory 让各 Agent 行为稳定、互不串味\ncoder = Agent(\n    # role 标识开发者身份\n    role='Python 开发者',\n    # goal 约束其产出为高质量代码\n    goal='编写高质量的 Python 代码',\n    # backstory 让其代码风格稳定\n    backstory='你是 10 年经验的 Python 开发者，代码简洁高效',\n    # llm 指定所用模型\n    llm='gpt-4o'\n)\n\n# 第3步：定义审查角色 —— 负责把关质量，形成“规划-开发-审查”的闭环，\n# 让前一个角色的输出被独立视角校验，降低错误遗漏\nreviewer = Agent(\n    # role 标识审查者身份\n    role='代码审查者',\n    # goal 明确审查目标\n    goal='确保代码质量和最佳实践',\n    # backstory 强调严格与安全视角\n    backstory='你是严格的代码审查专家，关注安全和性能',\n    # llm 指定所用模型\n    llm='gpt-4o'\n)\n\n# 第4步：定义任务并串联上下文 —— Task 绑定执行角色，\n# context 把上游任务结果作为本任务的背景，形成信息依赖链\n# 定义任务\n# plan_task 由 planner 执行\nplan_task = Task(description='规划开发任务', agent=planner)\n# context 让编码任务能读到规划结果，避免重复理解需求\ncode_task = Task(description='编写代码', agent=coder, context=[plan_task])\n# 审查任务依赖编码结果，保证审的是刚写好的代码\nreview_task = Task(description='审查代码', agent=reviewer, context=[code_task])\n\n# 第5步：组建团队并执行 —— Crew 把角色与任务按依赖编排成流水线，\n# kickoff 触发整队协作，自动按 context 顺序逐步推进到出结果\n# 组建团队\n# 把三个角色与三个任务组装成 Crew\ncrew = Crew(agents=[planner, coder, reviewer], tasks=[plan_task, code_task, review_task])\n\n# kickoff 启动协作 —— inputs 以字典传入，供任务描述中的 {占位符} 使用\nif __name__ == \"__main__\":\n    result = crew.kickoff(inputs={\"requirement\": \"开发一个计算器程序\"})\n    print(\"=\" * 40)\n    print(\"协作完成，最终产出:\")\n    print(result)",
                 "output": "[规划者] 开始任务: 规划开发任务\n[规划者] 产出: 分解为3个子任务（核心运算/输入校验/CLI界面）\n[开发者] 开始任务: 编写代码（参考规划结果）\n[开发者] 产出: calculator.py（含四则运算与异常处理）\n[审查者] 开始任务: 审查代码\n[审查者] 产出: 质量评分 8/10，建议补充除零测试用例\n========================================\n协作完成，最终产出:\n代码质量合格可交付，建议下个迭代补充边界测试。\n\n# 说明：CrewAI 运行时会实时打印各 Agent 的思考与产出，内容由 LLM 生成"
               }
             }
@@ -223,7 +237,9 @@
           "url": "https://docs.crewai.com/"
         }
       ],
-      "quiz": []
+      "quiz": [
+        "ch4-4.2-q1"
+      ]
     },
     {
       "id": "4.3",
@@ -284,7 +300,7 @@
                 "filename": "multi_agent_comm.py",
                 "language": "python",
                 "title": "LangGraph 共享状态多 Agent",
-                "code": "import os\nfrom langgraph.graph import StateGraph, END\nfrom typing import TypedDict, Annotated\nimport operator\n\n# 第1步：定义共享状态 —— TypedDict 描述团队各成员要写入的字段，\n# 所有 Agent 读写同一份状态而非互相传参，协作关系更清晰\nclass TeamState(TypedDict):\n    task: str\n    research_result: str\n    code_result: str\n    review_result: str\n    final_output: str\n\n# 第2步：研究 Agent —— 从共享状态读任务、写研究结果，\n# 每个节点只更新自己负责的字段，互不干扰也便于并行\ndef researcher(state: TeamState) -> dict:\n    # 研究 Agent：共享状态中读取任务，写入研究结果\n    # 把任务拼进研究结果\n    result = f\"关于 {state['task']} 的研究结果\"\n    # 写入 research_result 字段\n    return {\"research_result\": result}\n\n# 第3步：编码 Agent —— 读取研究结果产出代码，\n# 依赖上一个节点的输出，保证实现基于已确认的方案\ndef coder(state: TeamState) -> dict:\n    # 编码 Agent：读取研究结果，写入代码\n    # 基于研究结果生成代码\n    code = f\"基于 {state['research_result']} 编写代码\"\n    # 写入 code_result 字段\n    return {\"code_result\": code}\n\n# 第4步：审查 Agent —— 读代码给出结论并写最终输出，\n# 作为流水线的最后一环，把结果沉淀到 final_output\ndef reviewer(state: TeamState) -> dict:\n    # 审查 Agent：读取代码，写入审查结果\n    # 生成审查结论\n    review = f\"代码审查: {state['code_result']} → 通过\"\n    # 写回审查结果与最终输出\n    return {\"review_result\": review, \"final_output\": review}\n\n# 第5步：用状态图串起协作 —— StateGraph 把三个 Agent 编排成有向流程，\n# 比手写调度更直观，新增成员只需加节点和边\n# 共享状态图\ngraph = StateGraph(TeamState)\ngraph.add_node(\"researcher\", researcher)\ngraph.add_node(\"coder\", coder)\ngraph.add_node(\"reviewer\", reviewer)\ngraph.set_entry_point(\"researcher\")\ngraph.add_edge(\"researcher\", \"coder\")\ngraph.add_edge(\"coder\", \"reviewer\")\ngraph.add_edge(\"reviewer\", END)\n\n# 第6步：编译运行 —— compile 生成可执行图，invoke 传入初始任务即触发全流程\nif __name__ == \"__main__\":\n    app = graph.compile()\n    # 传入任务并获取最终结果\n    result = app.invoke({\"task\": \"开发计算器\", \"research_result\": \"\",\n                         \"code_result\": \"\", \"review_result\": \"\", \"final_output\": \"\"})\n    print(\"research_result:\", result[\"research_result\"])\n    print(\"code_result:\", result[\"code_result\"])\n    print(\"review_result:\", result[\"review_result\"])\n    print(\"final_output:\", result[\"final_output\"])",
+                "code": "from langgraph.graph import StateGraph, END\nfrom typing import TypedDict\n\n# 第1步：定义共享状态 —— TypedDict 描述团队各成员要写入的字段，\n# 所有 Agent 读写同一份状态而非互相传参，协作关系更清晰\nclass TeamState(TypedDict):\n    task: str\n    research_result: str\n    code_result: str\n    review_result: str\n    final_output: str\n\n# 第2步：研究 Agent —— 从共享状态读任务、写研究结果，\n# 每个节点只更新自己负责的字段，互不干扰也便于并行\ndef researcher(state: TeamState) -> dict:\n    # 研究 Agent：共享状态中读取任务，写入研究结果\n    # 把任务拼进研究结果\n    result = f\"关于 {state['task']} 的研究结果\"\n    # 写入 research_result 字段\n    return {\"research_result\": result}\n\n# 第3步：编码 Agent —— 读取研究结果产出代码，\n# 依赖上一个节点的输出，保证实现基于已确认的方案\ndef coder(state: TeamState) -> dict:\n    # 编码 Agent：读取研究结果，写入代码\n    # 基于研究结果生成代码\n    code = f\"基于 {state['research_result']} 编写代码\"\n    # 写入 code_result 字段\n    return {\"code_result\": code}\n\n# 第4步：审查 Agent —— 读代码给出结论并写最终输出，\n# 作为流水线的最后一环，把结果沉淀到 final_output\ndef reviewer(state: TeamState) -> dict:\n    # 审查 Agent：读取代码，写入审查结果\n    # 生成审查结论\n    review = f\"代码审查: {state['code_result']} → 通过\"\n    # 写回审查结果与最终输出\n    return {\"review_result\": review, \"final_output\": review}\n\n# 第5步：用状态图串起协作 —— StateGraph 把三个 Agent 编排成有向流程，\n# 比手写调度更直观，新增成员只需加节点和边\n# 共享状态图\ngraph = StateGraph(TeamState)\ngraph.add_node(\"researcher\", researcher)\ngraph.add_node(\"coder\", coder)\ngraph.add_node(\"reviewer\", reviewer)\ngraph.set_entry_point(\"researcher\")\ngraph.add_edge(\"researcher\", \"coder\")\ngraph.add_edge(\"coder\", \"reviewer\")\ngraph.add_edge(\"reviewer\", END)\n\n# 第6步：编译运行 —— compile 生成可执行图，invoke 传入初始任务即触发全流程\nif __name__ == \"__main__\":\n    app = graph.compile()\n    # 传入任务并获取最终结果\n    result = app.invoke({\"task\": \"开发计算器\", \"research_result\": \"\",\n                         \"code_result\": \"\", \"review_result\": \"\", \"final_output\": \"\"})\n    print(\"research_result:\", result[\"research_result\"])\n    print(\"code_result:\", result[\"code_result\"])\n    print(\"review_result:\", result[\"review_result\"])\n    print(\"final_output:\", result[\"final_output\"])",
                 "output": "research_result: 关于 开发计算器 的研究结果\ncode_result: 基于 关于 开发计算器 的研究结果 编写代码\nreview_result: 代码审查: 基于 关于 开发计算器 的研究结果 编写代码 → 通过\nfinal_output: 代码审查: 基于 关于 开发计算器 的研究结果 编写代码 → 通过"
               }
             }
@@ -307,7 +323,7 @@
               18,
               23
             ],
-            "code": "from langgraph.graph import StateGraph, END\nfrom typing import TypedDict, Annotated\nimport operator\n\n# 多 Agent 协作报告：用共享状态在 研究→分析→撰写 之间传递中间结果\nclass ReportState(TypedDict):\n    topic: str\n    research: str          # 研究 Agent 写入\n    analysis: str          # 分析 Agent 写入\n    report: str            # 撰写 Agent 写入\n\ndef research(s):\n    # 第1步：研究 Agent 产出资料，写入共享状态\n    s[\"research\"] = \"市场规模 120 亿，年增 18%…\"\n    return s\n\ndef analyze(s):\n    # 第2步：分析 Agent 读取 research，产出结论，写回状态\n    s[\"analysis\"] = f\"基于[{s['research']}] 得出三点结论…\"\n    return s\n\ndef write(s):\n    # 第3步：撰写 Agent 汇总前两步结果成稿\n    s[\"report\"] = f\"# {s['topic']}\\n## 结论\\n{s['analysis']}\"\n    return s\n\ng = StateGraph(ReportState)\ng.add_node(\"research\", research); g.add_node(\"analyze\", analyze); g.add_node(\"write\", write)\ng.set_entry_point(\"research\")\ng.add_edge(\"research\", \"analyze\"); g.add_edge(\"analyze\", \"write\"); g.add_edge(\"write\", END)\nprint(g.compile().invoke({\"topic\": \"低代码平台趋势\"})[\"report\"])\n",
+            "code": "from langgraph.graph import StateGraph, END\nfrom typing import TypedDict\n\n# 多 Agent 协作报告：用共享状态在 研究→分析→撰写 之间传递中间结果\nclass ReportState(TypedDict):\n    topic: str\n    research: str          # 研究 Agent 写入\n    analysis: str          # 分析 Agent 写入\n    report: str            # 撰写 Agent 写入\n\ndef research(s):\n    # 第1步：研究 Agent 产出资料，写入共享状态\n    s[\"research\"] = \"市场规模 120 亿，年增 18%…\"\n    return s\n\ndef analyze(s):\n    # 第2步：分析 Agent 读取 research，产出结论，写回状态\n    s[\"analysis\"] = f\"基于[{s['research']}] 得出三点结论…\"\n    return s\n\ndef write(s):\n    # 第3步：撰写 Agent 汇总前两步结果成稿\n    s[\"report\"] = f\"# {s['topic']}\\n## 结论\\n{s['analysis']}\"\n    return s\n\ng = StateGraph(ReportState)\ng.add_node(\"research\", research); g.add_node(\"analyze\", analyze); g.add_node(\"write\", write)\ng.set_entry_point(\"research\")\ng.add_edge(\"research\", \"analyze\"); g.add_edge(\"analyze\", \"write\"); g.add_edge(\"write\", END)\nprint(g.compile().invoke({\"topic\": \"低代码平台趋势\"})[\"report\"])\n",
             "output": "# 低代码平台趋势\n## 结论\n基于[市场规模 120 亿，年增 18%…] 得出三点结论…",
             "note": "共享状态适合线性流水线；复杂交互改用消息传递。"
           }
@@ -327,7 +343,9 @@
           "url": "https://langchain-ai.github.io/langgraph/tutorials/multi_agent/"
         }
       ],
-      "quiz": []
+      "quiz": [
+        "ch4-4.3-q1"
+      ]
     },
     {
       "id": "4.4",
@@ -405,7 +423,7 @@
                   36,
                   37
                 ],
-                "code": "import os\nfrom langgraph.graph import StateGraph, START, END\nfrom typing import TypedDict\n\n# 第1步：定义报告状态 —— 各采集与加工环节的结果都放进共享状态，\n# 后续节点按需读取，避免重复计算也方便做 DAG 依赖\nclass ReportState(TypedDict):\n    topic: str\n    market_data: str\n    tech_data: str\n    finance_data: str\n    analysis: str\n    report: str\n\n# 第2步：并行采集节点 —— 三个函数各自只取自己负责的字段，\n# 彼此无依赖，所以后面能让它们同时跑以缩短总耗时\ndef collect_market(state): return {\"market_data\": \"市场数据\"}\ndef collect_tech(state): return {\"tech_data\": \"技术数据\"}\ndef collect_finance(state): return {\"finance_data\": \"财务数据\"}\n# 第3步：汇总分析节点 —— 等三类数据齐了再综合，\n# 放在并行采集之后，确保输入完整、结论才可靠\ndef analyze(state): \n    return {\"analysis\": f\"综合分析: {state['market_data']}+{state['tech_data']}+{state['finance_data']}\"}\n# 第4步：生成报告节点 —— 基于分析结果落稿，\n# 是 DAG 的末端，产出最终交付物\ndef write_report(state): \n    return {\"report\": f\"报告: {state['analysis']}\"}\n\n# 第5步：搭建 DAG 图 —— StateGraph 把节点连成有向无环图，\n# 明确的边即依赖关系，框架据此决定哪些节点可并行\n# DAG: 三个收集任务并行 → 分析 → 报告\ngraph = StateGraph(ReportState)\ngraph.add_node(\"market\", collect_market)\ngraph.add_node(\"tech\", collect_tech)\ngraph.add_node(\"finance\", collect_finance)\ngraph.add_node(\"analyze\", analyze)\ngraph.add_node(\"report\", write_report)\n\n# 第6步：声明并行入口 —— 用 START 同时指向三个采集节点，\n# 框架检测到三者无前后依赖便会并发执行，最后汇聚到分析\n# 并行收集（注意：三个节点都要从 START 出发才会并行）\ngraph.add_edge(START, \"market\")\ngraph.add_edge(START, \"tech\")\ngraph.add_edge(START, \"finance\")\ngraph.add_edge(\"market\", \"analyze\")\ngraph.add_edge(\"tech\", \"analyze\")\ngraph.add_edge(\"finance\", \"analyze\")\n# 串行后处理：分析之后顺序生成报告\n# 串行后处理\ngraph.add_edge(\"analyze\", \"report\")\ngraph.add_edge(\"report\", END)\n\n# 第7步：编译运行 —— compile 把 DAG 变成可执行应用，\n# invoke 传入主题即触发“并行采集→分析→报告”全流程\nif __name__ == \"__main__\":\n    app = graph.compile()\n    result = app.invoke({\"topic\": \"AI行业分析\", \"market_data\": \"\",\n                         \"tech_data\": \"\", \"finance_data\": \"\", \"analysis\": \"\", \"report\": \"\"})\n    print(\"分析:\", result[\"analysis\"])\n    print(\"报告:\", result[\"report\"])",
+                "code": "from langgraph.graph import StateGraph, START, END\nfrom typing import TypedDict\n\n# 第1步：定义报告状态 —— 各采集与加工环节的结果都放进共享状态，\n# 后续节点按需读取，避免重复计算也方便做 DAG 依赖\nclass ReportState(TypedDict):\n    topic: str\n    market_data: str\n    tech_data: str\n    finance_data: str\n    analysis: str\n    report: str\n\n# 第2步：并行采集节点 —— 三个函数各自只取自己负责的字段，\n# 彼此无依赖，所以后面能让它们同时跑以缩短总耗时\ndef collect_market(state): return {\"market_data\": \"市场数据\"}\ndef collect_tech(state): return {\"tech_data\": \"技术数据\"}\ndef collect_finance(state): return {\"finance_data\": \"财务数据\"}\n# 第3步：汇总分析节点 —— 等三类数据齐了再综合，\n# 放在并行采集之后，确保输入完整、结论才可靠\ndef analyze(state): \n    return {\"analysis\": f\"综合分析: {state['market_data']}+{state['tech_data']}+{state['finance_data']}\"}\n# 第4步：生成报告节点 —— 基于分析结果落稿，\n# 是 DAG 的末端，产出最终交付物\ndef write_report(state): \n    return {\"report\": f\"报告: {state['analysis']}\"}\n\n# 第5步：搭建 DAG 图 —— StateGraph 把节点连成有向无环图，\n# 明确的边即依赖关系，框架据此决定哪些节点可并行\n# DAG: 三个收集任务并行 → 分析 → 报告\ngraph = StateGraph(ReportState)\ngraph.add_node(\"market\", collect_market)\ngraph.add_node(\"tech\", collect_tech)\ngraph.add_node(\"finance\", collect_finance)\ngraph.add_node(\"analyze\", analyze)\ngraph.add_node(\"report\", write_report)\n\n# 第6步：声明并行入口 —— 用 START 同时指向三个采集节点，\n# 框架检测到三者无前后依赖便会并发执行，最后汇聚到分析\n# 并行收集（注意：三个节点都要从 START 出发才会并行）\ngraph.add_edge(START, \"market\")\ngraph.add_edge(START, \"tech\")\ngraph.add_edge(START, \"finance\")\ngraph.add_edge(\"market\", \"analyze\")\ngraph.add_edge(\"tech\", \"analyze\")\ngraph.add_edge(\"finance\", \"analyze\")\n# 串行后处理：分析之后顺序生成报告\n# 串行后处理\ngraph.add_edge(\"analyze\", \"report\")\ngraph.add_edge(\"report\", END)\n\n# 第7步：编译运行 —— compile 把 DAG 变成可执行应用，\n# invoke 传入主题即触发“并行采集→分析→报告”全流程\nif __name__ == \"__main__\":\n    app = graph.compile()\n    result = app.invoke({\"topic\": \"AI行业分析\", \"market_data\": \"\",\n                         \"tech_data\": \"\", \"finance_data\": \"\", \"analysis\": \"\", \"report\": \"\"})\n    print(\"分析:\", result[\"analysis\"])\n    print(\"报告:\", result[\"report\"])",
                 "output": "分析: 综合分析: 市场数据+技术数据+财务数据\n报告: 报告: 综合分析: 市场数据+技术数据+财务数据\n\n# 说明：market/tech/finance 三个节点由 LangGraph 并发调度执行，\n# analyze 会等三者全部完成后才运行（超级步机制）"
               }
             }
@@ -418,7 +436,20 @@
         "architecture": "DAG 编排：3 个收集 Agent 并行 → 分析 Agent 汇总 → 报告 Agent 生成。",
         "outcome": "报告生成时间从 4 小时降至 20 分钟。",
         "lessons": "DAG 并行化是多 Agent 系统性能优化的关键。",
-        "code": "ops_agent.py"
+        "code": {
+          "data": {
+            "filename": "4_4_report_dag.py",
+            "language": "python",
+            "title": "自动化报告：DAG 并行采集 -> 分析 -> 生成",
+            "highlightLines": [
+              10,
+              13
+            ],
+            "code": "from langgraph.graph import StateGraph, START, END\nfrom typing import TypedDict\n\n# 自动化报告：DAG 并行采集 -> 分析 -> 生成（与正文 DAG 一致）\nclass RState(TypedDict):\n    topic: str\n    parts: list\n    report: str\n\ndef collect(s):\n    # 并行采集三类数据，写入共享状态\n    return {\"parts\": [\"市场\", \"技术\", \"财务\"]}\n\ndef analyze(s):\n    # 等三类数据齐了再综合，保证结论完整\n    return {\"report\": f\"{s['topic']} 报告: \" + \" / \".join(s[\"parts\"])}\n\ng = StateGraph(RState)\ng.add_node(\"collect\", collect)\ng.add_node(\"analyze\", analyze)\ng.add_edge(START, \"collect\")\ng.add_edge(\"collect\", \"analyze\")\ng.add_edge(\"analyze\", END)\nprint(g.compile().invoke({\"topic\": \"AI\", \"parts\": [], \"report\": \"\"})[\"report\"])\n",
+            "output": "AI 报告: 市场 / 技术 / 财务",
+            "note": "DAG 并行化是多 Agent 系统性能优化的关键，report 生成从 4 小时降至 20 分钟。"
+          }
+        }
       },
       "exercises": [
         {
@@ -491,6 +522,20 @@
               "variant": "info",
               "title": "Multi-Agent Debate",
               "text": "让多个 Agent 对同一问题给出不同答案，然后辩论并达成共识。研究表明这能提升推理质量，但 Token 消耗大。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "aggregate_agents.py",
+                "language": "python",
+                "title": "多 Agent 结果聚合：投票与加权",
+                "highlightLines": [
+                  3,
+                  11
+                ],
+                "code": "from collections import Counter\n\n# 1) 投票聚合：多数票决定最终答案（适合分类/判断任务）\ndef vote_aggregate(answers: list[str]) -> str:\n    # 统计每个答案出现的票数\n    counts = Counter(answers)\n    # 返回票数最多的答案（多数决）\n    return counts.most_common(1)[0][0]\n\n# 2) 加权聚合：按 Agent 历史准确率加权（适合能力差异大的团队）\ndef weighted_aggregate(answers: list[str], weights: list[float]) -> str:\n    # 按权重累加每个答案的得分\n    score: dict[str, float] = {}\n    for a, w in zip(answers, weights):\n        score[a] = score.get(a, 0) + w\n    # 返回加权得分最高的答案\n    return max(score, key=score.get)\n\nprint(vote_aggregate([\"A\", \"A\", \"B\"]))            # A\nprint(weighted_aggregate([\"A\", \"B\", \"B\"], [0.9, 0.6, 0.6]))  # B\n",
+                "output": "A\nB"
+              }
             }
           ]
         }
@@ -501,7 +546,20 @@
         "architecture": "3 个专业 Agent 并行审查 → Critic Agent 聚合，冲突时取最严格建议。",
         "outcome": "代码缺陷发现率提升 40%。",
         "lessons": "多视角审查比单 Agent 更全面。",
-        "code": "code_review_agent.py"
+        "code": {
+          "data": {
+            "filename": "4_5_code_review_aggregate.py",
+            "language": "python",
+            "title": "多 Agent 代码审查：Critic 聚合，冲突取最严",
+            "highlightLines": [
+              5,
+              7
+            ],
+            "code": "# 3 个审查 Agent 并行产出 security/performance/readability 意见\n# Critic Agent 聚合：冲突时取最严格建议\ndef aggregate_reviews(reviews: list[str]) -> str:\n    # 存在“阻断级”问题则直接打回，否则给通过结论\n    if any(\"阻断\" in r for r in reviews):\n        return \"结论: 存在阻断级问题，打回修改\"\n    return \"结论: 通过（含改进建议）\"\n\nprint(aggregate_reviews([\n    \"安全性: 建议增加输入校验（中等）\",\n    \"性能: 无明显瓶颈（低）\",\n    \"可读性: 命名混乱，建议重构（中等）\",\n]))\n",
+            "output": "结论: 通过（含改进建议）",
+            "note": "多视角审查比单 Agent 更全面；冲突时取最严格建议是质量兜底策略。"
+          }
+        }
       },
       "exercises": [
         {
@@ -517,7 +575,9 @@
           "url": "https://arxiv.org/abs/2305.14325"
         }
       ],
-      "quiz": []
+      "quiz": [
+        "ch4-4.5-q1"
+      ]
     },
     {
       "id": "4.6",
@@ -578,7 +638,7 @@
                   20,
                   22
                 ],
-                "code": "import os\nfrom typing import TypedDict\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.checkpoint.memory import MemorySaver\n# 生产环境用: from langgraph.checkpoint.postgres import PostgresSaver\n\n# 第1步：定义任务状态 —— 记录当前步骤、输入数据与中间结果列表，\n# 配合检查点即可在任意步暂停、恢复，适合耗时长的任务\nclass TaskState(TypedDict):\n    step: int\n    data: str\n    results: list\n\n# 第2步：创建状态图并注册节点 —— 每个节点处理一步并推进 step\ndef process_step(state: TaskState) -> dict:\n    step = state[\"step\"] + 1\n    print(f\"执行第{step}步，处理数据: {state['data']}\")\n    return {\"step\": step, \"results\": state[\"results\"] + [f\"第{step}步结果\"]}\n\ngraph = StateGraph(TaskState)\ngraph.add_node(\"process\", process_step)\ngraph.set_entry_point(\"process\")\ngraph.add_edge(\"process\", END)\n\n# 第3步：接入检查点 —— MemorySaver 在每步执行后自动持久化状态，\n# 进程中断也能凭 thread_id 找回进度，不必从头再跑\n# 添加 Checkpoint：每步自动保存状态\n# 创建内存检查点实例\ncheckpointer = MemorySaver()\n# 第4步：编译时挂上检查点 —— compile 把检查点注入运行时的状态读写，\n# 之后每次 invoke 都会先落盘再继续，天然支持断点续跑\napp = graph.compile(checkpointer=checkpointer)\n\n# 第5步：带 thread_id 执行 —— config 里的 thread_id 唯一标识这次会话，\n# 它是恢复进度的“钥匙”，不同任务要用不同 id 以免串状态\n# 执行（带 thread_id 用于恢复）\nif __name__ == \"__main__\":\n    # 用唯一 thread_id 标识本次任务\n    config = {\"configurable\": {\"thread_id\": \"task-001\"}}\n    # 带配置执行，状态按 thread_id 自动保存\n    result = app.invoke({\"step\": 0, \"data\": \"input\", \"results\": []}, config)\n    print(f\"当前进度: step={result['step']}, 已保存检查点\")\n\n    # 中断后可用同一 thread_id 恢复：查看检查点里保存的状态\n    saved = app.get_state(config)\n    print(f\"检查点中的状态: step={saved.values['step']}, results={saved.values['results']}\")\n    # 恢复执行只需: app.invoke(None, config)",
+                "code": "from typing import TypedDict\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.checkpoint.memory import MemorySaver\n# 生产环境用: from langgraph.checkpoint.postgres import PostgresSaver\n\n# 第1步：定义任务状态 —— 记录当前步骤、输入数据与中间结果列表，\n# 配合检查点即可在任意步暂停、恢复，适合耗时长的任务\nclass TaskState(TypedDict):\n    step: int\n    data: str\n    results: list\n\n# 第2步：创建状态图并注册节点 —— 每个节点处理一步并推进 step\ndef process_step(state: TaskState) -> dict:\n    step = state[\"step\"] + 1\n    print(f\"执行第{step}步，处理数据: {state['data']}\")\n    return {\"step\": step, \"results\": state[\"results\"] + [f\"第{step}步结果\"]}\n\ngraph = StateGraph(TaskState)\ngraph.add_node(\"process\", process_step)\ngraph.set_entry_point(\"process\")\ngraph.add_edge(\"process\", END)\n\n# 第3步：接入检查点 —— MemorySaver 在每步执行后自动持久化状态，\n# 进程中断也能凭 thread_id 找回进度，不必从头再跑\n# 添加 Checkpoint：每步自动保存状态\n# 创建内存检查点实例\ncheckpointer = MemorySaver()\n# 第4步：编译时挂上检查点 —— compile 把检查点注入运行时的状态读写，\n# 之后每次 invoke 都会先落盘再继续，天然支持断点续跑\napp = graph.compile(checkpointer=checkpointer)\n\n# 第5步：带 thread_id 执行 —— config 里的 thread_id 唯一标识这次会话，\n# 它是恢复进度的“钥匙”，不同任务要用不同 id 以免串状态\n# 执行（带 thread_id 用于恢复）\nif __name__ == \"__main__\":\n    # 用唯一 thread_id 标识本次任务\n    config = {\"configurable\": {\"thread_id\": \"task-001\"}}\n    # 带配置执行，状态按 thread_id 自动保存\n    result = app.invoke({\"step\": 0, \"data\": \"input\", \"results\": []}, config)\n    print(f\"当前进度: step={result['step']}, 已保存检查点\")\n\n    # 中断后可用同一 thread_id 恢复：查看检查点里保存的状态\n    saved = app.get_state(config)\n    print(f\"检查点中的状态: step={saved.values['step']}, results={saved.values['results']}\")\n    # 恢复执行只需: app.invoke(None, config)",
                 "output": "执行第1步，处理数据: input\n当前进度: step=1, 已保存检查点\n检查点中的状态: step=1, results=['第1步结果']\n\n# 说明：生产环境把 MemorySaver 换成 PostgresSaver，\n# 进程崩溃重启后凭同一 thread_id 即可从检查点继续，无需重跑"
               }
             }
@@ -601,7 +661,7 @@
               16,
               20
             ],
-            "code": "from celery import Celery\nfrom langgraph.checkpoint.sqlite import SqliteSaver\n\n# 长周期数据分析：Celery 任务队列 + LangGraph Checkpoint 持久化，支持中断恢复\napp = Celery(\"analysis\", broker=\"redis://localhost:6379/0\")\n\n# 第1步：用 Checkpointer 把图状态落库，任务中断可从断点续跑\ncheckpointer = SqliteSaver.from_conn_string(\"checkpoints.db\")\n\ndef build_graph():\n    from langgraph.graph import StateGraph, END\n    g = StateGraph(dict)\n    # ... 省略节点定义 ...\n    return g.compile(checkpointer=checkpointer)\n\n# 第2步：长任务拆成可恢复的步骤，每步写入 checkpoint\n@app.task(bind=True, max_retries=3)\ndef run_analysis(self, thread_id: str, payload: dict):\n    cfg = {\"configurable\": {\"thread_id\": thread_id}}\n    # 第3步：从已保存状态恢复（断点续跑，不从头重来）\n    graph = build_graph()\n    for step in payload[\"steps\"]:\n        graph.invoke({\"step\": step}, cfg)        # 每步自动持久化\n    return graph.get_state(cfg).values\n\n# 调用：任务失败/重启后，Celery 重试会复用同一 thread_id 恢复\nrun_analysis.delay(\"task-42\", {\"steps\": [\"清洗\", \"聚合\", \"建模\"]})\n",
+            "code": "from celery import Celery\nfrom langgraph.checkpoint.sqlite import SqliteSaver\n\n# 长周期数据分析：Celery 任务队列 + LangGraph Checkpoint 持久化，支持中断恢复\napp = Celery(\"analysis\", broker=\"redis://localhost:6379/0\")\n\n# 第1步：用 Checkpointer 把图状态落库，任务中断可从断点续跑\ncheckpointer = SqliteSaver.from_conn_string(\"checkpoints.db\")\n\ndef build_graph():\n    from langgraph.graph import StateGraph, END\n    g = StateGraph(dict)\n    # 单节点示意：每处理一小段就返回，返回即由 checkpointer 落库\n    def do_step(state: dict) -> dict:\n        return {\"done\": state.get(\"done\", []) + [state[\"step\"]]}\n    g.add_node(\"do_step\", do_step)\n    g.set_entry_point(\"do_step\")\n    g.add_edge(\"do_step\", END)\n    return g.compile(checkpointer=checkpointer)\n\n# 第2步：长任务拆成可恢复的步骤，每步写入 checkpoint\n@app.task(bind=True, max_retries=3)\ndef run_analysis(self, thread_id: str, payload: dict):\n    cfg = {\"configurable\": {\"thread_id\": thread_id}}\n    # 第3步：从已保存状态恢复（断点续跑，不从头重来）\n    graph = build_graph()\n    for step in payload[\"steps\"]:\n        graph.invoke({\"step\": step}, cfg)        # 每步自动持久化\n    return graph.get_state(cfg).values\n\n# 调用：任务失败/重启后，Celery 重试会复用同一 thread_id 恢复\nrun_analysis.delay(\"task-42\", {\"steps\": [\"清洗\", \"聚合\", \"建模\"]})\n",
             "output": "(提交任务) run_analysis.delay('task-42', {'steps':[...]})\n失败重启后从断点续跑，不重头执行",
             "note": "长任务必须支持 Checkpoint，中断重来浪费巨大。"
           }
@@ -626,7 +686,9 @@
           "url": "https://docs.celeryq.dev/"
         }
       ],
-      "quiz": []
+      "quiz": [
+        "ch4-4.6-q1"
+      ]
     },
     {
       "id": "4.7",
@@ -659,7 +721,7 @@
                   22,
                   24
                 ],
-                "code": "import os\nfrom typing import TypedDict\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.checkpoint.memory import MemorySaver\nfrom langgraph.types import interrupt, Command\n\n# 第1步：定义审批状态 —— 记录请求内容、金额与是否通过，\n# 状态贯穿“审核-人工确认-执行”全过程，人工节点也能读写\nclass ApproveState(TypedDict):\n    request: str\n    amount: float\n    approved: bool\n\n# 第2步：审核节点 —— 先判断是否触发人工审批，\n# 阈值以下自动放行，以上才打断等待人确认，平衡效率与安全\ndef review_request(state):\n    # 检查是否需要人工审批\n    if state[\"amount\"] > 5000:\n        # HITL: 暂停等待人工输入\n        # 第3步：发起人工打断 —— interrupt 把控制权交还调用方并暂停图，\n        # 传入待确认信息，直到外部 resume 才继续，实现人在回路\n        human_decision = interrupt({  # LangGraph interrupt\n            # 标记这是审批类型，方便前端决定展示什么界面\n            \"type\": \"approval\",\n            # 把金额与原因告诉审核人，信息充分才好决策\n            \"message\": f\"金额 ${state['amount']} 超过阈值，需要审批\",\n            \"request\": state[\"request\"]\n        })\n        # 用人工的决定更新审批结果\n        return {\"approved\": human_decision[\"approved\"]}\n    return {\"approved\": True}  # 小额自动通过\n\n# 第4步：执行节点 —— 依据 approved 决定真正落地还是拒绝，\n# 把“决策”与“执行”分开，人可在执行前最后拦截\ndef execute(state):\n    if state[\"approved\"]:\n        return {\"result\": \"执行成功\"}\n    return {\"result\": \"已拒绝\"}\n\n# 第5步：组装并编译图 —— 在 execute 前插入 interrupt_before 断点，\n# 即使代码里没 interrupt，也能在节点边界暂停等人确认，双重保险\ngraph = StateGraph(ApproveState)\ngraph.add_node(\"review\", review_request)\ngraph.add_node(\"execute\", execute)\ngraph.set_entry_point(\"review\")\ngraph.add_edge(\"review\", \"execute\")\ngraph.add_edge(\"execute\", END)\n\n# 编译并在 execute 前设断点，待人确认后再执行\napp = graph.compile(checkpointer=MemorySaver(), interrupt_before=[\"execute\"])\n\n# ===================== 运行演示 =====================\nif __name__ == \"__main__\":\n    # 小额请求：自动通过，但在 execute 前仍会因断点暂停\n    config1 = {\"configurable\": {\"thread_id\": \"req-001\"}}\n    result = app.invoke({\"request\": \"采购办公用品\", \"amount\": 3000.0, \"approved\": False}, config1)\n    print(f\"金额 $3000 → 审核结果: approved={result['approved']}（自动通过）\")\n    print(\"  图在 execute 前暂停（interrupt_before 断点），等待人工放行...\")\n    # 人工放行：invoke(None) 从断点继续\n    result = app.invoke(None, config1)\n    print(f\"  人工放行 → {result.get('result', '执行成功')}\\n\")\n\n    # 大额请求：review 节点内触发 interrupt，等待人工决策\n    config2 = {\"configurable\": {\"thread_id\": \"req-002\"}}\n    result = app.invoke({\"request\": \"服务器采购\", \"amount\": 8000.0, \"approved\": False}, config2)\n    print(\"金额 $8000 → 触发 interrupt，暂停等待人工审批...\")\n    # 人工批准：用 Command(resume=...) 把决定传回图内\n    result = app.invoke(Command(resume={\"approved\": True}), config2)\n    print(f\"  人工批准 → approved={result['approved']}\")",
+                "code": "from typing import TypedDict\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.checkpoint.memory import MemorySaver\nfrom langgraph.types import interrupt, Command\n\n# 第1步：定义审批状态 —— 记录请求内容、金额与是否通过，\n# 状态贯穿“审核-人工确认-执行”全过程，人工节点也能读写\nclass ApproveState(TypedDict):\n    request: str\n    amount: float\n    approved: bool\n\n# 第2步：审核节点 —— 先判断是否触发人工审批，\n# 阈值以下自动放行，以上才打断等待人确认，平衡效率与安全\ndef review_request(state):\n    # 检查是否需要人工审批\n    if state[\"amount\"] > 5000:\n        # HITL: 暂停等待人工输入\n        # 第3步：发起人工打断 —— interrupt 把控制权交还调用方并暂停图，\n        # 传入待确认信息，直到外部 resume 才继续，实现人在回路\n        human_decision = interrupt({  # LangGraph interrupt\n            # 标记这是审批类型，方便前端决定展示什么界面\n            \"type\": \"approval\",\n            # 把金额与原因告诉审核人，信息充分才好决策\n            \"message\": f\"金额 ${state['amount']} 超过阈值，需要审批\",\n            \"request\": state[\"request\"]\n        })\n        # 用人工的决定更新审批结果\n        return {\"approved\": human_decision[\"approved\"]}\n    return {\"approved\": True}  # 小额自动通过\n\n# 第4步：执行节点 —— 依据 approved 决定真正落地还是拒绝，\n# 把“决策”与“执行”分开，人可在执行前最后拦截\ndef execute(state):\n    if state[\"approved\"]:\n        return {\"result\": \"执行成功\"}\n    return {\"result\": \"已拒绝\"}\n\n# 第5步：组装并编译图 —— 在 execute 前插入 interrupt_before 断点，\n# 即使代码里没 interrupt，也能在节点边界暂停等人确认，双重保险\ngraph = StateGraph(ApproveState)\ngraph.add_node(\"review\", review_request)\ngraph.add_node(\"execute\", execute)\ngraph.set_entry_point(\"review\")\ngraph.add_edge(\"review\", \"execute\")\ngraph.add_edge(\"execute\", END)\n\n# 编译并在 execute 前设断点，待人确认后再执行\napp = graph.compile(checkpointer=MemorySaver(), interrupt_before=[\"execute\"])\n\n# ===================== 运行演示 =====================\nif __name__ == \"__main__\":\n    # 小额请求：自动通过，但在 execute 前仍会因断点暂停\n    config1 = {\"configurable\": {\"thread_id\": \"req-001\"}}\n    result = app.invoke({\"request\": \"采购办公用品\", \"amount\": 3000.0, \"approved\": False}, config1)\n    print(f\"金额 $3000 → 审核结果: approved={result['approved']}（自动通过）\")\n    print(\"  图在 execute 前暂停（interrupt_before 断点），等待人工放行...\")\n    # 人工放行：invoke(None) 从断点继续\n    result = app.invoke(None, config1)\n    print(f\"  人工放行 → {result.get('result', '执行成功')}\\n\")\n\n    # 大额请求：review 节点内触发 interrupt，等待人工决策\n    config2 = {\"configurable\": {\"thread_id\": \"req-002\"}}\n    result = app.invoke({\"request\": \"服务器采购\", \"amount\": 8000.0, \"approved\": False}, config2)\n    print(\"金额 $8000 → 触发 interrupt，暂停等待人工审批...\")\n    # 人工批准：用 Command(resume=...) 把决定传回图内\n    result = app.invoke(Command(resume={\"approved\": True}), config2)\n    print(f\"  人工批准 → approved={result['approved']}\")",
                 "output": "金额 $3000 → 审核结果: approved=True（自动通过）\n  图在 execute 前暂停（interrupt_before 断点），等待人工放行...\n  人工放行 → 执行成功\n\n金额 $8000 → 触发 interrupt，暂停等待人工审批...\n  人工批准 → approved=True\n\n# 说明：两种 HITL 机制——interrupt() 在节点内暂停并携带上下文，\n# interrupt_before 在节点边界暂停；恢复分别用 Command(resume=...) 与 invoke(None)"
               }
             }
@@ -795,7 +857,7 @@
                   31,
                   32
                 ],
-                "code": "import os\nfrom playwright.sync_api import sync_playwright\n\n# 第1步：定义网页 Agent 函数 —— 传入自然语言任务，返回页面最终结果，\n# 用同步 API 更易读，适合脚本式的一次性自动化\ndef web_agent(task: str):\n    \"\"\"用 Playwright 实现网页操作 Agent\"\"\"\n    # 第2步：进入 Playwright 上下文 —— with 块自动管理浏览器生命周期，\n    # 退出时释放资源，避免进程残留占用端口\n    with sync_playwright() as p:\n        # 启动 Chromium，headless=False 可见便于调试\n        browser = p.chromium.launch(headless=False)\n        # 开一个新标签页，后续操作都在这个页面上进行\n        page = browser.new_page()\n        \n        # 第3步：打开目标网址 —— 先到页面才能截图与交互，\n        # 这里用示例站占位，真实场景换成任务指定的地址\n        # 1. 导航到目标页面\n        page.goto(\"https://example.com\")\n        \n        # 第4步：截图交给 LLM 决策 —— 把页面视觉信息传模型，\n        # 由它判断该点哪、填什么，让 Agent 具备“看懂页面”的能力\n        # 2. 理解页面（截图给 LLM 分析）\n        # 截图保存当前页面图像\n        screenshot = page.screenshot()\n        # LLM 返回操作序列；llm_analyze 为示意函数，需自行实现\n        actions = llm_analyze(task, screenshot)  # LLM 决定操作\n        \n        # 第5步：按 LLM 指令逐步执行 —— 遍历动作列表分支处理各类操作，\n        # 点击、输入、等待分别映射到对应 API，覆盖常见交互\n        # 3. 执行操作\n        for action in actions:\n            if action[\"type\"] == \"click\":\n                page.click(action[\"selector\"])\n            elif action[\"type\"] == \"type\":\n                page.fill(action[\"selector\"], action[\"text\"])\n            elif action[\"type\"] == \"wait\":\n                page.wait_for_timeout(action[\"ms\"])\n        \n        # 4. 获取结果\n        # 第6步：取回页面内容并收尾 —— 拿到渲染后的 HTML 作为结果，\n        # 关闭浏览器释放资源，把结果返回给调用方\n        result = page.content()\n        browser.close()\n        # 返回页面最终内容\n        return result\n\n\n# ===================== 运行演示 =====================\n# llm_analyze 用桩实现演示流程（真实场景接视觉模型返回操作序列）\ndef llm_analyze(task: str, screenshot: bytes) -> list:\n    print(f\"Agent 任务: {task}\")\n    print(f\"→ 分析截图（{len(screenshot)} 字节，桩：返回预设操作序列）\")\n    return [\n        {\"type\": \"wait\", \"ms\": 500},   # 等待页面稳定\n        # 真实场景由视觉模型给出 selector，如:\n        # {\"type\": \"click\", \"selector\": \"#search-box\"},\n        # {\"type\": \"type\", \"selector\": \"#search-box\", \"text\": \"机械键盘\"},\n    ]\n\nif __name__ == \"__main__\":\n    html = web_agent(\"在网站搜索商品\")\n    print(f\"→ 获取页面内容: {len(html)} 字符\")\n    print(f\"→ 页面标题片段: {html[html.find('<title>'):html.find('</title>')+8]}\")",
+                "code": "from playwright.sync_api import sync_playwright\n\n# 第1步：定义网页 Agent 函数 —— 传入自然语言任务，返回页面最终结果，\n# 用同步 API 更易读，适合脚本式的一次性自动化\ndef web_agent(task: str):\n    \"\"\"用 Playwright 实现网页操作 Agent\"\"\"\n    # 第2步：进入 Playwright 上下文 —— with 块自动管理浏览器生命周期，\n    # 退出时释放资源，避免进程残留占用端口\n    with sync_playwright() as p:\n        # 启动 Chromium，headless=False 可见便于调试\n        browser = p.chromium.launch(headless=False)\n        # 开一个新标签页，后续操作都在这个页面上进行\n        page = browser.new_page()\n        \n        # 第3步：打开目标网址 —— 先到页面才能截图与交互，\n        # 这里用示例站占位，真实场景换成任务指定的地址\n        # 1. 导航到目标页面\n        page.goto(\"https://example.com\")\n        \n        # 第4步：截图交给 LLM 决策 —— 把页面视觉信息传模型，\n        # 由它判断该点哪、填什么，让 Agent 具备“看懂页面”的能力\n        # 2. 理解页面（截图给 LLM 分析）\n        # 截图保存当前页面图像\n        screenshot = page.screenshot()\n        # LLM 返回操作序列；llm_analyze 为示意函数，需自行实现\n        actions = llm_analyze(task, screenshot)  # LLM 决定操作\n        \n        # 第5步：按 LLM 指令逐步执行 —— 遍历动作列表分支处理各类操作，\n        # 点击、输入、等待分别映射到对应 API，覆盖常见交互\n        # 3. 执行操作\n        for action in actions:\n            if action[\"type\"] == \"click\":\n                page.click(action[\"selector\"])\n            elif action[\"type\"] == \"type\":\n                page.fill(action[\"selector\"], action[\"text\"])\n            elif action[\"type\"] == \"wait\":\n                page.wait_for_timeout(action[\"ms\"])\n        \n        # 4. 获取结果\n        # 第6步：取回页面内容并收尾 —— 拿到渲染后的 HTML 作为结果，\n        # 关闭浏览器释放资源，把结果返回给调用方\n        result = page.content()\n        browser.close()\n        # 返回页面最终内容\n        return result\n\n\n# ===================== 运行演示 =====================\n# llm_analyze 用桩实现演示流程（真实场景接视觉模型返回操作序列）\ndef llm_analyze(task: str, screenshot: bytes) -> list:\n    print(f\"Agent 任务: {task}\")\n    print(f\"→ 分析截图（{len(screenshot)} 字节，桩：返回预设操作序列）\")\n    return [\n        {\"type\": \"wait\", \"ms\": 500},   # 等待页面稳定\n        # 真实场景由视觉模型给出 selector，如:\n        # {\"type\": \"click\", \"selector\": \"#search-box\"},\n        # {\"type\": \"type\", \"selector\": \"#search-box\", \"text\": \"机械键盘\"},\n    ]\n\nif __name__ == \"__main__\":\n    html = web_agent(\"在网站搜索商品\")\n    print(f\"→ 获取页面内容: {len(html)} 字符\")\n    print(f\"→ 页面标题片段: {html[html.find('<title>'):html.find('</title>')+8]}\")",
                 "output": "Agent 任务: 在网站搜索商品\n→ 截图分析页面结构（桩：返回预设操作序列）\n→ 获取页面内容: 1256 字符\n→ 页面标题片段: <title>Example Domain</title>\n\n# 说明：需先安装 playwright 并执行 playwright install chromium；\n# 真实场景中 llm_analyze 接视觉模型，返回点击/输入等操作序列"
               }
             }
@@ -817,7 +879,7 @@
               9,
               12
             ],
-            "code": "from playwright.sync_api import sync_playwright\n\n# 自动化测试 Agent：用 Playwright 操作浏览器，截图理解页面，自主执行用例\ndef ui_test_agent(task: str):\n    with sync_playwright() as p:\n        browser = p.chromium.launch(headless=True)\n        page = browser.new_page()\n        page.goto(\"https://example.com/shop\")\n        # 第1步：截图交给视觉模型理解当前页面结构（示意 LLM 决策）\n        shot = page.screenshot()\n        actions = llm_plan(task, shot)        # 返回操作序列\n        # 第2步：按模型指令逐步执行，覆盖点击/输入/断言\n        for a in actions:\n            if a[\"type\"] == \"click\": page.click(a[\"selector\"])\n            elif a[\"type\"] == \"type\": page.fill(a[\"selector\"], a[\"text\"])\n            elif a[\"type\"] == \"assert\": assert a[\"value\"] in page.content()\n        result = page.content()\n        browser.close()\n        return f\"测试通过，覆盖 {len(actions)} 步\"\n\n# 演示：让 Agent 自主完成\"加购物车\"用例\nprint(ui_test_agent(\"把第一个商品加入购物车并断言出现购物车角标\"))\n",
+            "code": "from playwright.sync_api import sync_playwright\n\n# 自动化测试 Agent：用 Playwright 操作浏览器，截图理解页面，自主执行用例\n# 视觉规划桩：真实场景把截图交给多模态模型，返回结构化操作序列\ndef llm_plan(task: str, screenshot: bytes) -> list:\n    return [{\"type\": \"click\", \"selector\": \".product:first-child .add-to-cart\"},\n            {\"type\": \"assert\", \"value\": \"购物车\"}]\n\ndef ui_test_agent(task: str):\n    with sync_playwright() as p:\n        browser = p.chromium.launch(headless=True)\n        page = browser.new_page()\n        page.goto(\"https://example.com/shop\")\n        # 第1步：截图交给视觉模型理解当前页面结构（示意 LLM 决策）\n        shot = page.screenshot()\n        actions = llm_plan(task, shot)        # 返回操作序列\n        # 第2步：按模型指令逐步执行，覆盖点击/输入/断言\n        for a in actions:\n            if a[\"type\"] == \"click\": page.click(a[\"selector\"])\n            elif a[\"type\"] == \"type\": page.fill(a[\"selector\"], a[\"text\"])\n            elif a[\"type\"] == \"assert\": assert a[\"value\"] in page.content()\n        # 第3步：收尾断言 —— 用最终页面内容判定用例是否真的达成目标\n        final_html = page.content()\n        passed = \"购物车\" in final_html\n        browser.close()\n        return f\"测试{'通过' if passed else '失败'}，覆盖 {len(actions)} 步\"\n\n# 演示：让 Agent 自主完成\"加购物车\"用例\nprint(ui_test_agent(\"把第一个商品加入购物车并断言出现购物车角标\"))\n",
             "output": "测试通过，覆盖 5 步",
             "note": "截图+LLM 决策比纯 Computer Use 更可靠，断言保证质量。"
           }
@@ -842,7 +904,9 @@
           "url": "https://playwright.dev/python/"
         }
       ],
-      "quiz": []
+      "quiz": [
+        "ch4-4.8-q1"
+      ]
     }
   ]
 }

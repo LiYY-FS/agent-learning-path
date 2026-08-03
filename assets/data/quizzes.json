@@ -1726,6 +1726,146 @@
         }
       ],
       "explanation": "Agent 生成的代码不可信，必须在沙箱中隔离执行：限制网络、内存、CPU，容器即毁，防止删文件、泄露数据或逃逸。"
+    },
+    {
+      "id": "ch4-4.2-q1",
+      "chapter": "ch4",
+      "section": "4.2",
+      "type": "single",
+      "difficulty": 3,
+      "question": "在 CrewAI 中，用哪个对象把多个角色（Agent）与任务（Task）编排成一条协作流水线？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Agent"
+        },
+        {
+          "key": "B",
+          "text": "Task"
+        },
+        {
+          "key": "C",
+          "text": "Crew",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "Tool"
+        }
+      ],
+      "explanation": "Crew 负责把 Agents 与 Tasks 按依赖关系组装并启动协作；Agent 定义角色，Task 定义任务。"
+    },
+    {
+      "id": "ch4-4.3-q1",
+      "chapter": "ch4",
+      "section": "4.3",
+      "type": "single",
+      "difficulty": 3,
+      "question": "多 Agent 之间通过共享状态对象（TypedDict）传递中间结果的方式，最适合哪种流程？",
+      "options": [
+        {
+          "key": "A",
+          "text": "任意复杂对话"
+        },
+        {
+          "key": "B",
+          "text": "线性流水线",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "群聊辩论"
+        },
+        {
+          "key": "D",
+          "text": "事件订阅"
+        }
+      ],
+      "explanation": "共享状态适合线性、依赖清晰的流水线；复杂交互或群聊更适合消息传递模式。"
+    },
+    {
+      "id": "ch4-4.5-q1",
+      "chapter": "ch4",
+      "section": "4.5",
+      "type": "single",
+      "difficulty": 3,
+      "question": "多个 Agent 给出不同的代码审查意见且相互冲突时，最稳妥的聚合策略是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "随机选一个"
+        },
+        {
+          "key": "B",
+          "text": "取最严格（Critic）建议",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "按多数票"
+        },
+        {
+          "key": "D",
+          "text": "忽略冲突"
+        }
+      ],
+      "explanation": "质量敏感的代码审查应以最严格建议兜底，避免中低风险项被多数票掩盖。"
+    },
+    {
+      "id": "ch4-4.6-q1",
+      "chapter": "ch4",
+      "section": "4.6",
+      "type": "single",
+      "difficulty": 4,
+      "question": "LangGraph 中支持长任务“断点恢复、中断后继续”的核心机制是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Handoff"
+        },
+        {
+          "key": "B",
+          "text": "Checkpoint / Persistence",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "interrupt"
+        },
+        {
+          "key": "D",
+          "text": "Mermaid"
+        }
+      ],
+      "explanation": "Checkpoint（如 MemorySaver/PostgresSaver）在每步后持久化状态，凭 thread_id 即可从断点恢复。"
+    },
+    {
+      "id": "ch4-4.8-q1",
+      "chapter": "ch4",
+      "section": "4.8",
+      "type": "single",
+      "difficulty": 3,
+      "question": "当目标操作已有可用的 API 时，Agent 应优先选择哪种方式？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Computer Use 截图操作 GUI"
+        },
+        {
+          "key": "B",
+          "text": "纯 API 调用",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "RPA 录屏回放"
+        },
+        {
+          "key": "D",
+          "text": "Playwright 截图理解"
+        }
+      ],
+      "explanation": "能用 API 就不要用 GUI：API 最快最可靠、成本低；GUI 自动化慢且脆弱。"
     }
   ],
   "chapterQuizzes": [
@@ -1787,7 +1927,12 @@
         "ch4-4.1-q1",
         "ch4-4.1-q2",
         "ch4-4.4-q1",
-        "ch4-4.7-q1"
+        "ch4-4.7-q1",
+        "ch4-4.2-q1",
+        "ch4-4.3-q1",
+        "ch4-4.5-q1",
+        "ch4-4.6-q1",
+        "ch4-4.8-q1"
       ],
       "passingScore": 70
     },

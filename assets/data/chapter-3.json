@@ -357,18 +357,20 @@
         "outcome": "小额自动审批率 80%，大额 100% 人工确认，合规无漏洞。",
         "lessons": "LangGraph 的 HITL 是处理敏感操作的最佳方案。",
         "code": {
-          "filename": "hitl_langgraph.py",
-          "language": "python",
-          "title": "带人工审批的 Agent 工作流（LangGraph interrupt）",
-          "highlightLines": [
-            13,
-            14,
-            28,
-            31
-          ],
-          "code": "import os\nfrom typing import TypedDict\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.checkpoint.memory import MemorySaver\nfrom langgraph.types import interrupt, Command\nfrom langchain_openai import ChatOpenAI\n\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")\n\nclass State(TypedDict):\n    amount: float\n    approved: bool\n    result: str\n\ndef check_amount(state: State) -> State:\n    # 金额 > 5000 触发人工审批中断\n    if state[\"amount\"] > 5000:\n        # interrupt 会暂停图执行，把决策权交给外部（人工），\n        # 外部通过 Command(resume=...) 把审批结果传回\n        decision = interrupt({\"action\": \"人工审批\", \"amount\": state[\"amount\"]})\n        state[\"approved\"] = decision.get(\"approved\", False)\n    else:\n        state[\"approved\"] = True  # 小额自动通过\n    return state\n\ndef finalize(state: State) -> State:\n    state[\"result\"] = \"已批准\" if state[\"approved\"] else \"已拒绝\"\n    return state\n\ngraph = StateGraph(State)\ngraph.add_node(\"check_amount\", check_amount)\ngraph.add_node(\"finalize\", finalize)\ngraph.set_entry_point(\"check_amount\")\ngraph.add_edge(\"check_amount\", \"finalize\")\ngraph.add_edge(\"finalize\", END)\n\n# compile 时挂上 checkpointer，interrupt 才能跨调用保持状态\napp = graph.compile(checkpointer=MemorySaver())\n\n# 第一次调用：触发中断，等待人工\ncfg = {\"configurable\": {\"thread_id\": \"r1\"}}\napp.invoke({\"amount\": 8000, \"approved\": False, \"result\": \"\"}, cfg)\n# 人工审批后，用 Command 把结果传回，图从中断点继续\napp.invoke(Command(resume={\"approved\": True}), cfg)\nprint(\"结果:\", app.get_state(cfg).values[\"result\"])\n",
-          "output": "结果: 已批准",
-          "note": "interrupt 把敏感操作（大额审批）暂停并交回人工，Command(resume=...) 携带审批结果让图继续，是生产级 HITL 的标准做法。"
+          "data": {
+            "filename": "3_3_hitl_approval.py",
+            "language": "python",
+            "title": "带人工审批的 Agent 工作流（LangGraph interrupt）",
+            "highlightLines": [
+              13,
+              14,
+              28,
+              31
+            ],
+            "code": "import os\nfrom typing import TypedDict\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.checkpoint.memory import MemorySaver\nfrom langgraph.types import interrupt, Command\nfrom langchain_openai import ChatOpenAI\n\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")\n\n# 审批结论由 LLM 转写成给申请人看的自然语言说明\nllm = ChatOpenAI(model=MODEL, api_key=OPENAI_API_KEY,\n                 base_url=OPENAI_BASE_URL, temperature=0)\n\nclass State(TypedDict):\n    amount: float\n    approved: bool\n    result: str\n\ndef check_amount(state: State) -> State:\n    # 金额 > 5000 触发人工审批中断\n    if state[\"amount\"] > 5000:\n        # interrupt 会暂停图执行，把决策权交给外部（人工），\n        # 外部通过 Command(resume=...) 把审批结果传回\n        decision = interrupt({\"action\": \"人工审批\", \"amount\": state[\"amount\"]})\n        state[\"approved\"] = decision.get(\"approved\", False)\n    else:\n        state[\"approved\"] = True  # 小额自动通过\n    return state\n\ndef finalize(state: State) -> State:\n    verdict = \"已批准\" if state[\"approved\"] else \"已拒绝\"\n    # 人工只给了 approved 布尔值，用 LLM 补一段可直接发给申请人的说明\n    msg = llm.invoke(f\"用一句话通知申请人：金额 {state['amount']} 元的申请{verdict}。\")\n    state[\"result\"] = f\"{verdict}｜{msg.content}\"\n    return state\n\ngraph = StateGraph(State)\ngraph.add_node(\"check_amount\", check_amount)\ngraph.add_node(\"finalize\", finalize)\ngraph.set_entry_point(\"check_amount\")\ngraph.add_edge(\"check_amount\", \"finalize\")\ngraph.add_edge(\"finalize\", END)\n\n# compile 时挂上 checkpointer，interrupt 才能跨调用保持状态\napp = graph.compile(checkpointer=MemorySaver())\n\n# 第一次调用：触发中断，等待人工\ncfg = {\"configurable\": {\"thread_id\": \"r1\"}}\napp.invoke({\"amount\": 8000, \"approved\": False, \"result\": \"\"}, cfg)\n# 人工审批后，用 Command 把结果传回，图从中断点继续\napp.invoke(Command(resume={\"approved\": True}), cfg)\nprint(\"结果:\", app.get_state(cfg).values[\"result\"])\n",
+            "output": "结果: 已批准",
+            "note": "interrupt 把敏感操作（大额审批）暂停并交回人工，Command(resume=...) 携带审批结果让图继续，是生产级 HITL 的标准做法。"
+          }
         }
       },
       "exercises": [
@@ -415,7 +417,7 @@
                 "filename": "openai_agents_sdk.py",
                 "language": "python",
                 "title": "Agents SDK 客服路由 Agent",
-                "code": "import os\nfrom agents import Agent, Runner, function_tool\n\n# 第1步：定义工具 —— 用 @function_tool 把普通函数包装成 Agent 可调用工具，\n# 框架会自动从函数签名和文档字符串生成工具的 schema 与说明\n# 定义工具\n@function_tool\ndef query_order(order_id: str) -> str:\n    \"\"\"查询订单状态\"\"\"\n    # 返回该订单的当前状态；真实场景应查询数据库或订单服务\n    return f\"订单 {order_id} 正在运输中\"\n\n# 第2步：定义 Agent —— 通过 name/instructions/tools 描述角色与能力，\n# instructions 约束模型的行为边界，tools 决定它能调用什么\n# 定义 Agent\ncustomer_service = Agent(\n    name=\"客服助手\",\n    instructions=\"你是客服助手，可以查询订单状态。复杂问题转接主管。\",\n    tools=[query_order],\n)\n\n# 第3步：运行 Agent —— run_sync 同步执行（阻塞到出结果），\n# 传入用户问题，框架自动决定何时调用工具并汇总成最终回答\n# 运行\nresult = Runner.run_sync(customer_service, \"查询订单 12345 的状态\")\n# 打印模型给出的最终答案\nprint(result.final_output)",
+                "code": "from agents import Agent, Runner, function_tool\n\n# 第1步：定义工具 —— 用 @function_tool 把普通函数包装成 Agent 可调用工具，\n# 框架会自动从函数签名和文档字符串生成工具的 schema 与说明\n# 定义工具\n@function_tool\ndef query_order(order_id: str) -> str:\n    \"\"\"查询订单状态\"\"\"\n    # 返回该订单的当前状态；真实场景应查询数据库或订单服务\n    return f\"订单 {order_id} 正在运输中\"\n\n# 第2步：定义 Agent —— 通过 name/instructions/tools 描述角色与能力，\n# instructions 约束模型的行为边界，tools 决定它能调用什么\n# 定义 Agent\ncustomer_service = Agent(\n    name=\"客服助手\",\n    instructions=\"你是客服助手，可以查询订单状态。复杂问题转接主管。\",\n    tools=[query_order],\n)\n\n# 第3步：运行 Agent —— run_sync 同步执行（阻塞到出结果），\n# 传入用户问题，框架自动决定何时调用工具并汇总成最终回答\n# 运行\nresult = Runner.run_sync(customer_service, \"查询订单 12345 的状态\")\n# 打印模型给出的最终答案\nprint(result.final_output)",
                 "output": "订单 12345 正在运输中"
               }
             }
@@ -537,16 +539,18 @@
         "outcome": "多源数据问答准确率 88%。",
         "lessons": "LlamaIndex 的数据集成能力是 RAG 项目的关键优势。",
         "code": {
-          "filename": "3_5_multisource_rag.py",
-          "language": "python",
-          "title": "多源数据 RAG：PDF + 网页统一进一个索引",
-          "highlightLines": [
-            9,
-            14
-          ],
-          "code": "from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings\nfrom llama_index.llms.openai import OpenAI\n\n# 多源 RAG：PDF + 网页 + 数据库统一进一个索引\nSettings.llm = OpenAI(model=\"gpt-4o-mini\")\n\n# 1) 本地文档（PDF / Markdown / Word）\ndocs = SimpleDirectoryReader(\"./knowledge_base\").load_data()\n\n# 2) 网页（按需开启；LlamaIndex 提供多种 Reader 接入外部源）\n# from llama_index.readers.web import SimpleWebPageReader\n# web_docs = SimpleWebPageReader().load_data([\"https://docs.example.com/faq\"])\n\n# 3) 合并构建索引并查询 —— 不同来源在向量空间统一检索\nindex = VectorStoreIndex.from_documents(docs)\nengine = index.as_query_engine(similarity_top_k=5)\nprint(engine.query(\"我们的退款政策是什么？\"))\n",
-          "output": "我们的退款政策是：7天无理由，15天质量问题换货。",
-          "note": "LlamaIndex 的 Loader 体系让 PDF/网页/数据库统一成 Document，再进同一个 VectorStoreIndex。"
+          "data": {
+            "filename": "3_5_multisource_rag.py",
+            "language": "python",
+            "title": "多源数据 RAG：PDF + 网页统一进一个索引",
+            "highlightLines": [
+              9,
+              14
+            ],
+            "code": "from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings\nfrom llama_index.llms.openai import OpenAI\n\n# 多源 RAG：PDF + 网页 + 数据库统一进一个索引\nSettings.llm = OpenAI(model=\"gpt-4o-mini\")\n\n# 1) 本地文档（PDF / Markdown / Word）\ndocs = SimpleDirectoryReader(\"./knowledge_base\").load_data()\n\n# 2) 网页（按需开启；LlamaIndex 提供多种 Reader 接入外部源）\n# from llama_index.readers.web import SimpleWebPageReader\n# web_docs = SimpleWebPageReader().load_data([\"https://docs.example.com/faq\"])\n\n# 3) 合并构建索引并查询 —— 不同来源在向量空间统一检索\nindex = VectorStoreIndex.from_documents(docs)\nengine = index.as_query_engine(similarity_top_k=5)\nprint(engine.query(\"我们的退款政策是什么？\"))\n",
+            "output": "我们的退款政策是：7天无理由，15天质量问题换货。",
+            "note": "LlamaIndex 的 Loader 体系让 PDF/网页/数据库统一成 Document，再进同一个 VectorStoreIndex。"
+          }
         }
       },
       "exercises": [
@@ -610,7 +614,7 @@
                   22,
                   25
                 ],
-                "code": "import os\nfrom mcp.server import Server\nfrom mcp.types import Tool, TextContent\nimport mcp.server.stdio\nimport asyncio\n\n# 第1步：创建 MCP 服务器实例 —— Server 是整套工具服务的入口，\n# 名字用于标识服务，客户端据此发现并连接本服务\nserver = Server(\"my-tools\")\n\n# 桩实现：模拟文档库搜索（真实场景替换为数据库/向量检索）\ndef search_database(query: str) -> str:\n    return f\"找到 2 篇与「{query}」相关的文档：《快速上手指南》《API 参考手册》\"\n\n# 第2步：注册工具清单 —— list_tools 告诉客户端本服务有哪些工具，\n# 返回的 Tool 描述含名称、说明和输入 schema，供客户端生成调用参数\n@server.list_tools()\nasync def list_tools() -> list[Tool]:\n    # 声明一个名为 search_docs 的搜索工具及其入参结构\n    return [Tool(\n        name=\"search_docs\",\n        description=\"搜索文档库\",\n        # inputSchema 用 JSON Schema 描述入参，客户端据此校验和补全参数\n        inputSchema={\"type\": \"object\", \"properties\": {\"query\": {\"type\": \"string\"}}, \"required\": [\"query\"]}\n    )]\n\n# 第3步：注册工具执行逻辑 —— call_tool 按工具名分发并执行，\n# 参数由客户端传入，返回结果以 TextContent 列表回传给客户端\n@server.call_tool()\nasync def call_tool(name: str, arguments: dict) -> list[TextContent]:\n    # 根据工具名做分发，这里只实现 search_docs 这一种\n    if name == \"search_docs\":\n        # 真实场景这里应连数据库；这里用桩实现演示\n        result = search_database(arguments[\"query\"])\n        return [TextContent(type=\"text\", text=result)]\n    # 未知工具名返回提示，避免静默失败让客户端无从排查\n    return [TextContent(type=\"text\", text=f\"未知工具: {name}\")]\n\n# 第4步：启动服务 —— 用 stdio 传输层接收客户端消息并驱动 server.run，\n# 这是本地进程间通信最常用的方式，无需额外网络端口\nasync def main():\n    async with mcp.server.stdio.stdio_server() as (read, write):\n        await server.run(read, write, server.create_initialization_options())\n\n# 第5步：运行主协程 —— asyncio.run 启动事件循环，服务随之常驻等待调用\nif __name__ == \"__main__\":\n    print(\"MCP Server 'my-tools' 启动中（stdio 传输）...\")\n    print(\"已注册工具: search_docs — 搜索文档库\")\n    print(\"等待客户端（如 Claude Desktop）连接...\")\n    asyncio.run(main())",
+                "code": "from mcp.server import Server\nfrom mcp.types import Tool, TextContent\nimport mcp.server.stdio\nimport asyncio\n\n# 第1步：创建 MCP 服务器实例 —— Server 是整套工具服务的入口，\n# 名字用于标识服务，客户端据此发现并连接本服务\nserver = Server(\"my-tools\")\n\n# 桩实现：模拟文档库搜索（真实场景替换为数据库/向量检索）\ndef search_database(query: str) -> str:\n    return f\"找到 2 篇与「{query}」相关的文档：《快速上手指南》《API 参考手册》\"\n\n# 第2步：注册工具清单 —— list_tools 告诉客户端本服务有哪些工具，\n# 返回的 Tool 描述含名称、说明和输入 schema，供客户端生成调用参数\n@server.list_tools()\nasync def list_tools() -> list[Tool]:\n    # 声明一个名为 search_docs 的搜索工具及其入参结构\n    return [Tool(\n        name=\"search_docs\",\n        description=\"搜索文档库\",\n        # inputSchema 用 JSON Schema 描述入参，客户端据此校验和补全参数\n        inputSchema={\"type\": \"object\", \"properties\": {\"query\": {\"type\": \"string\"}}, \"required\": [\"query\"]}\n    )]\n\n# 第3步：注册工具执行逻辑 —— call_tool 按工具名分发并执行，\n# 参数由客户端传入，返回结果以 TextContent 列表回传给客户端\n@server.call_tool()\nasync def call_tool(name: str, arguments: dict) -> list[TextContent]:\n    # 根据工具名做分发，这里只实现 search_docs 这一种\n    if name == \"search_docs\":\n        # 真实场景这里应连数据库；这里用桩实现演示\n        result = search_database(arguments[\"query\"])\n        return [TextContent(type=\"text\", text=result)]\n    # 未知工具名返回提示，避免静默失败让客户端无从排查\n    return [TextContent(type=\"text\", text=f\"未知工具: {name}\")]\n\n# 第4步：启动服务 —— 用 stdio 传输层接收客户端消息并驱动 server.run，\n# 这是本地进程间通信最常用的方式，无需额外网络端口\nasync def main():\n    async with mcp.server.stdio.stdio_server() as (read, write):\n        await server.run(read, write, server.create_initialization_options())\n\n# 第5步：运行主协程 —— asyncio.run 启动事件循环，服务随之常驻等待调用\nif __name__ == \"__main__\":\n    print(\"MCP Server 'my-tools' 启动中（stdio 传输）...\")\n    print(\"已注册工具: search_docs — 搜索文档库\")\n    print(\"等待客户端（如 Claude Desktop）连接...\")\n    asyncio.run(main())",
                 "output": "MCP Server 'my-tools' 启动中（stdio 传输）...\n已注册工具: search_docs — 搜索文档库\n等待客户端（如 Claude Desktop）连接...\n\n# 客户端连接后调用 search_docs(\"部署\") 会返回：\n# 找到 2 篇与「部署」相关的文档：《快速上手指南》《API 参考手册》\n# 服务为常驻进程，Ctrl+C 退出"
               }
             }
@@ -632,7 +636,7 @@
               8,
               20
             ],
-            "code": "from mcp.server import Server\nfrom mcp.types import TextContent\nimport mcp.server.stdio\n\n# 把内部工具封装为 MCP Server：开发一次，所有 Agent 框架都能调用\napp = Server(\"internal-tools\")\n\n# 第1步：用 @app.tool() 暴露工具，参数 schema 自动从类型注解生成\n@app.tool()\ndef query_order(user_id: str) -> str:\n    \"\"\"查询用户订单（对接内部订单系统）\"\"\"\n    # 真实场景调用订单微服务；此处返回示例\n    return f\"用户{user_id}的订单: 已发货, 单号 SF1234567890\"\n\n@app.tool()\ndef query_inventory(sku: str) -> str:\n    \"\"\"查询商品库存\"\"\"\n    return f\"SKU {sku} 库存: 128 件\"\n\n# 第2步：通过 stdio 启动 Server，Agent 框架用 MCP Client 连上来即可调用\nif __name__ == \"__main__\":\n    mcp.server.stdio.run(app)\n",
+            "code": "from mcp.server import Server\nfrom mcp.types import TextContent\nimport mcp.server.stdio\n\n# 把内部工具封装为 MCP Server：开发一次，所有 Agent 框架都能调用\napp = Server(\"internal-tools\")\n\n# 第1步：用 @app.tool() 暴露工具，参数 schema 自动从类型注解生成\n# MCP 规范要求工具返回 Content 列表，TextContent 是最常用的纯文本载体\n@app.tool()\ndef query_order(user_id: str) -> list[TextContent]:\n    \"\"\"查询用户订单（对接内部订单系统）\"\"\"\n    # 真实场景调用订单微服务；此处返回示例\n    return [TextContent(type=\"text\",\n                        text=f\"用户{user_id}的订单: 已发货, 单号 SF1234567890\")]\n\n@app.tool()\ndef query_inventory(sku: str) -> list[TextContent]:\n    \"\"\"查询商品库存\"\"\"\n    return [TextContent(type=\"text\", text=f\"SKU {sku} 库存: 128 件\")]\n\n# 第2步：通过 stdio 启动 Server，Agent 框架用 MCP Client 连上来即可调用\nif __name__ == \"__main__\":\n    mcp.server.stdio.run(app)\n",
             "output": "(Server 启动后等待 MCP Client 连接)\n工具: query_order / query_inventory 已注册",
             "note": "工具标准化为 MCP Server 后，开发一次、多 Agent 框架通用，维护成本降 70%。"
           }
@@ -825,7 +829,7 @@
                 "filename": "langfuse_integration.py",
                 "language": "python",
                 "title": "LangFuse 集成示例",
-                "code": "import os\nfrom langfuse import Langfuse\nfrom langfuse.decorators import observe\n\n# 第1步：初始化 Langfuse 客户端 —— 自动从环境变量读取密钥与宿主地址，\n# 之后所有被 observe 装饰的函数都会被上报，无需手动埋点\nlangfuse = Langfuse()\n\n# 第2步：装饰入口函数 —— @observe 开启对该函数的自动追踪，\n# 调用链上的子函数若也被装饰，会形成完整的父子调用树\n@observe()  # 自动追踪函数调用\ndef agent_run(query: str) -> str:\n    # LangFuse 自动记录：输入、输出、耗时、Token、成本\n    # 子调用同样被追踪，从而拼出整条链路的可观测性数据\n    thought = think(query)  # 被追踪\n    result = execute(thought)  # 被追踪\n    return result\n\n# 第3步：追踪思考环节 —— 单独的 observe 让 think 作为 agent_run 的子节点，\n# 便于在面板上看到这一步耗时与 Token 消耗\n@observe()\ndef think(query):\n    # 桩实现：真实场景替换为 llm.invoke(query)\n    return f\"思考结果: 需要搜索「{query}」\"\n\n# 第4步：追踪执行环节 —— 与 think 同理，execute 也是可观测的子节点，\n# 把“模型调用”与“工具执行”拆开统计，方便定位瓶颈\n@observe()\ndef execute(thought):\n    # 桩实现：真实场景替换为 tool.run(thought)\n    return f\"执行完成: {thought} → 已获取答案\"\n\n# ===================== 运行演示 =====================\nif __name__ == \"__main__\":\n    answer = agent_run(\"北京今天天气如何\")\n    print(answer)\n    print(\"\\n调用链已自动上报 LangFuse，可在 Dashboard 查看 trace 树\")",
+                "code": "import os\nfrom langfuse import Langfuse\nfrom langfuse.decorators import observe\n\n# 第1步：初始化 Langfuse 客户端 —— 自动从环境变量读取密钥与宿主地址，\n# 之后所有被 observe 装饰的函数都会被上报，无需手动埋点\n# 密钥从环境变量注入，切勿硬编码进代码库\nlangfuse = Langfuse(\n    public_key=os.getenv(\"LANGFUSE_PUBLIC_KEY\"),\n    secret_key=os.getenv(\"LANGFUSE_SECRET_KEY\"),\n    host=os.getenv(\"LANGFUSE_HOST\", \"https://cloud.langfuse.com\"),\n)\n\n# 第2步：装饰入口函数 —— @observe 开启对该函数的自动追踪，\n# 调用链上的子函数若也被装饰，会形成完整的父子调用树\n@observe()  # 自动追踪函数调用\ndef agent_run(query: str) -> str:\n    # LangFuse 自动记录：输入、输出、耗时、Token、成本\n    # 子调用同样被追踪，从而拼出整条链路的可观测性数据\n    thought = think(query)  # 被追踪\n    result = execute(thought)  # 被追踪\n    return result\n\n# 第3步：追踪思考环节 —— 单独的 observe 让 think 作为 agent_run 的子节点，\n# 便于在面板上看到这一步耗时与 Token 消耗\n@observe()\ndef think(query):\n    # 桩实现：真实场景替换为 llm.invoke(query)\n    return f\"思考结果: 需要搜索「{query}」\"\n\n# 第4步：追踪执行环节 —— 与 think 同理，execute 也是可观测的子节点，\n# 把“模型调用”与“工具执行”拆开统计，方便定位瓶颈\n@observe()\ndef execute(thought):\n    # 桩实现：真实场景替换为 tool.run(thought)\n    return f\"执行完成: {thought} → 已获取答案\"\n\n# ===================== 运行演示 =====================\nif __name__ == \"__main__\":\n    answer = agent_run(\"北京今天天气如何\")\n    print(answer)\n    print(\"\\n调用链已自动上报 LangFuse，可在 Dashboard 查看 trace 树\")",
                 "output": "执行完成: 思考结果: 需要搜索「北京今天天气如何」 → 已获取答案\n\n调用链已自动上报 LangFuse，可在 Dashboard 查看 trace 树\n\n# LangFuse Dashboard 中会看到：\n# agent_run (trace 根节点)\n#   ├── think   — 耗时/Token/输入输出\n#   └── execute — 耗时/Token/输入输出"
               }
             }
