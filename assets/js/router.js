@@ -450,7 +450,7 @@ const Router = {
             <div style="height: 100%; width: ${progress.progress}%; background: ${progress.completed ? 'var(--accent-green)' : 'var(--gradient-primary)'}; border-radius: var(--radius-full); transition: width 0.5s;"></div>
           </div>
           <div style="margin-top: 8px; font-size: var(--fs-xs); color: var(--text-muted);">
-            ${Object.values(progress.sections || {}).filter((s) => s.completed).length} / ${chapter.sections.length} 小节完成
+            ${Progress._countValidCompleted(chapter.id, progress)} / ${chapter.sections.length} 小节完成
           </div>
         `;
         card.addEventListener('click', () => this.navigate(`#/chapter/${chapter.id}`));

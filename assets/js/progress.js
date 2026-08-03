@@ -32,7 +32,19 @@ const Progress = {
       this._data = this._defaultData();
     }
     this._updateStreak();
+    // 加载后立即重算所有章节进度：旧 localStorage 里可能残留 stale section id，
+    // 需要用当前 CHAPTERS_META 重新统计并把 chapter.progress / chapter.completed 同步过来，
+    // 否则 _updateChapterProgress 只在 markSectionComplete 时才触发，进度字段会一直保持过期值
+    this._recalculateAllProgress();
     return this._data;
+  },
+
+  /* === 重算所有章节进度（兜底 stale localStorage） === */
+  _recalculateAllProgress() {
+    if (!this._data?.chapters || !window.CHAPTERS_META) return;
+    Object.keys(this._data.chapters).forEach((chapterId) => {
+      this._updateChapterProgress(chapterId);
+    });
   },
 
   /* === 保存进度 === */
@@ -109,6 +121,18 @@ const Progress = {
     return this._data.chapters[chapterId]?.sections?.[sectionId]?.completed || false;
   },
 
+  /* === 统计当前章节「有效」的已完成小节数 ===
+     localStorage 里可能残留旧版本小节 id（章节重构 / 小节改名 / 合并 / 删除后未清理），
+     那些 id 已不在当前 meta.sections 里，若一并计入分子会出现 >100% 的进度。 */
+  _countValidCompleted(chapterId, chapterProgress) {
+    if (!window.CHAPTERS_META) return 0;
+    const meta = window.CHAPTERS_META.find((c) => c.id === chapterId);
+    if (!meta) return 0;
+    const validIds = new Set(meta.sections.map((s) => s.id));
+    return Object.entries(chapterProgress?.sections || {})
+      .filter(([id, s]) => validIds.has(id) && s.completed).length;
+  },
+
   /* === 更新章节进度 === */
   _updateChapterProgress(chapterId) {
     const chapter = this._data.chapters[chapterId];
@@ -119,8 +143,8 @@ const Progress = {
       const meta = window.CHAPTERS_META.find((c) => c.id === chapterId);
       if (meta) {
         const totalSections = meta.sections.length;
-        const completedSections = Object.values(chapter.sections).filter((s) => s.completed).length;
-        chapter.progress = Math.round((completedSections / totalSections) * 100);
+        const completedSections = this._countValidCompleted(chapterId, chapter);
+        chapter.progress = Math.min(100, Math.round((completedSections / totalSections) * 100));
         chapter.completed = completedSections === totalSections;
       }
     }
@@ -141,9 +165,9 @@ const Progress = {
     window.CHAPTERS_META.forEach((chapter) => {
       totalSections += chapter.sections.length;
       const progress = this.getChapterProgress(chapter.id);
-      completedSections += Object.values(progress.sections).filter((s) => s.completed).length;
+      completedSections += this._countValidCompleted(chapter.id, progress);
     });
-    return totalSections > 0 ? Math.round((completedSections / totalSections) * 100) : 0;
+    return totalSections > 0 ? Math.min(100, Math.round((completedSections / totalSections) * 100)) : 0;
   },
 
   /* === 记录测验成绩 === */
@@ -231,7 +255,7 @@ const Progress = {
       window.CHAPTERS_META.forEach((chapter) => {
         totalSections += chapter.sections.length;
         const progress = this.getChapterProgress(chapter.id);
-        completedSections += Object.values(progress.sections).filter((s) => s.completed).length;
+        completedSections += this._countValidCompleted(chapter.id, progress);
       });
     }
 
