@@ -9,18 +9,18 @@
     {
       "id": "3.1",
       "title": "框架选型与对比",
-      "subtitle": "了解 8 大主流框架，能根据场景选择",
+      "subtitle": "了解 14 大主流框架，场景优先选型",
       "estimatedMinutes": 20,
       "difficulty": 2,
       "objectives": [
-        "了解 8 大主流 Agent 框架",
-        "能根据场景选择合适框架",
+        "了解 14 大主流 Agent 框架",
+        "能根据核心场景选择合适框架",
         "建立框架选型决策能力"
       ],
       "content": [
         {
           "type": "knowledgePoint",
-          "title": "8 大主流框架对比",
+          "title": "14 大主流框架对比",
           "content": [
             {
               "type": "table",
@@ -88,6 +88,48 @@
                     "中",
                     "工具解耦、跨 Agent 复用",
                     "⭐⭐⭐⭐"
+                  ],
+                  [
+                    "**Haystack**",
+                    "RAG Pipeline 框架",
+                    "中",
+                    "企业级 RAG Pipeline",
+                    "⭐⭐⭐"
+                  ],
+                  [
+                    "**Pydantic AI**",
+                    "强类型 Agent 框架",
+                    "中",
+                    "结构化输出、可测试 Agent",
+                    "⭐⭐⭐"
+                  ],
+                  [
+                    "**Dify / Flowise**",
+                    "低代码 Agent 平台",
+                    "低",
+                    "可视化编排、快速搭建",
+                    "⭐⭐⭐"
+                  ],
+                  [
+                    "**Agno**",
+                    "多厂商 Agent 框架",
+                    "低中",
+                    "多厂商切换、异步优先",
+                    "⭐⭐⭐"
+                  ],
+                  [
+                    "**Mastra**",
+                    "TypeScript Agent 框架",
+                    "中",
+                    "TS 全栈、前端团队友好",
+                    "⭐⭐"
+                  ],
+                  [
+                    "**Letta / MemGPT**",
+                    "长期记忆 Agent",
+                    "中高",
+                    "长对话、跨会话记忆",
+                    "⭐⭐⭐"
                   ]
                 ]
               }
@@ -96,14 +138,20 @@
               "type": "mermaid",
               "data": {
                 "title": "框架选型决策树",
-                "code": "flowchart TD\n  A[开始选型] --> B{需要复杂状态管理?}\n  B -->|是| C[LangGraph]\n  B -->|否| D{需要多Agent协作?}\n  D -->|是| E{角色分工明确?}\n  E -->|是| F[CrewAI]\n  E -->|否| G[AutoGen]\n  D -->|否| H{重点是RAG?}\n  H -->|是| I[LlamaIndex]\n  H -->|否| J{需要快速原型?}\n  J -->|是| K[LangChain 或 OpenAI SDK]\n  J -->|否| L[LangChain]"
+                "code": "flowchart TD\n  A[\"🎯 开始选型：你的核心场景是什么?\"]\n  A --> C[\"📚 RAG / 知识检索\"]\n  A --> D[\"⛓️ 复杂工作流 / HITL\"]\n  A --> E[\"🤝 多 Agent 协作\"]\n  A --> F[\"🧠 长期记忆 / 持久对话\"]\n  A --> G[\"🔧 简单工具调用\"]\n  C --> C1[\"LlamaIndex ⭐ 首选<br/>原生 RAG 抽象层\"]\n  C --> C2[\"Haystack<br/>企业级 Pipeline\"]\n  C --> C3[\"LangChain<br/>RAG + Agent 混合\"]\n  D --> D1[\"LangGraph ⭐ 首选<br/>图编排 + Checkpoint\"]\n  D --> D2[\"Pydantic AI<br/>强类型 + 结构化输出\"]\n  D --> D3[\"Dify / Flowise<br/>低代码可视化编排\"]\n  E --> E1[\"CrewAI ⭐ 首选<br/>角色明确 + 顺序执行\"]\n  E --> E2[\"AutoGen<br/>灵活群聊 / 探索型\"]\n  F --> F1[\"Letta / MemGPT<br/>长期记忆 + 持久状态\"]\n  G --> G1[\"OpenAI SDK<br/>仅一家 / 零依赖\"]\n  G --> G2[\"Agno<br/>多厂商 / 异步优先\"]\n  G --> G3[\"Mastra<br/>TypeScript 全栈一体\"]"
               }
             },
             {
               "type": "callout",
               "variant": "tip",
               "title": "学习路径建议",
-              "text": "先学 **LangChain**（基础概念）→ **LangGraph**（复杂场景）→ **CrewAI**（多 Agent）→ **MCP**（工具标准化）。不要一次学所有框架，根据项目需要逐步深入。"
+              "text": "先学 **LangChain**（基础概念）→ **LangGraph**（复杂场景）→ **CrewAI**（多 Agent）→ **MCP**（工具标准化）→ 按场景补充 **LlamaIndex**（RAG）、**Letta**（长期记忆）、**Pydantic AI**（强类型）。不要一次学所有框架，根据项目需要逐步深入。"
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "选型前还需考虑的维度",
+              "text": "除了核心场景，实际选型还需评估：**LLM 厂商绑定**（锁定 OpenAI 还是多厂商）、**语言栈**（Python / TypeScript / .NET）、**可观测性**（日志、Trace、评估）、**HITL 需求**（人在回路审批）、**混合场景**（RAG + 工作流 + 多 Agent 共存）、**国产化**（网络受限环境，另见 Dify / 自研方案）。"
             }
           ]
         }
