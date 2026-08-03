@@ -356,7 +356,20 @@
         "architecture": "用 LangGraph interrupt 实现 HITL，金额检查节点判断是否需要中断。",
         "outcome": "小额自动审批率 80%，大额 100% 人工确认，合规无漏洞。",
         "lessons": "LangGraph 的 HITL 是处理敏感操作的最佳方案。",
-        "code": "hitl_langgraph.py"
+        "code": {
+          "filename": "hitl_langgraph.py",
+          "language": "python",
+          "title": "带人工审批的 Agent 工作流（LangGraph interrupt）",
+          "highlightLines": [
+            13,
+            14,
+            28,
+            31
+          ],
+          "code": "import os\nfrom typing import TypedDict\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.checkpoint.memory import MemorySaver\nfrom langgraph.types import interrupt, Command\nfrom langchain_openai import ChatOpenAI\n\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")\n\nclass State(TypedDict):\n    amount: float\n    approved: bool\n    result: str\n\ndef check_amount(state: State) -> State:\n    # 金额 > 5000 触发人工审批中断\n    if state[\"amount\"] > 5000:\n        # interrupt 会暂停图执行，把决策权交给外部（人工），\n        # 外部通过 Command(resume=...) 把审批结果传回\n        decision = interrupt({\"action\": \"人工审批\", \"amount\": state[\"amount\"]})\n        state[\"approved\"] = decision.get(\"approved\", False)\n    else:\n        state[\"approved\"] = True  # 小额自动通过\n    return state\n\ndef finalize(state: State) -> State:\n    state[\"result\"] = \"已批准\" if state[\"approved\"] else \"已拒绝\"\n    return state\n\ngraph = StateGraph(State)\ngraph.add_node(\"check_amount\", check_amount)\ngraph.add_node(\"finalize\", finalize)\ngraph.set_entry_point(\"check_amount\")\ngraph.add_edge(\"check_amount\", \"finalize\")\ngraph.add_edge(\"finalize\", END)\n\n# compile 时挂上 checkpointer，interrupt 才能跨调用保持状态\napp = graph.compile(checkpointer=MemorySaver())\n\n# 第一次调用：触发中断，等待人工\ncfg = {\"configurable\": {\"thread_id\": \"r1\"}}\napp.invoke({\"amount\": 8000, \"approved\": False, \"result\": \"\"}, cfg)\n# 人工审批后，用 Command 把结果传回，图从中断点继续\napp.invoke(Command(resume={\"approved\": True}), cfg)\nprint(\"结果:\", app.get_state(cfg).values[\"result\"])\n",
+          "output": "结果: 已批准",
+          "note": "interrupt 把敏感操作（大额审批）暂停并交回人工，Command(resume=...) 携带审批结果让图继续，是生产级 HITL 的标准做法。"
+        }
       },
       "exercises": [
         {
@@ -513,22 +526,6 @@
                 "code": "import os\nfrom llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings\nfrom llama_index.llms.openai import OpenAI\nfrom llama_index.core.response.schema import Response\n\n# 第1步：配置 LLM —— LlamaIndex 通过 Settings 统一管理模型与 embedding，\n# 优先读环境变量，避免把密钥硬编码进仓库\nos.environ.setdefault(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nSettings.llm = OpenAI(model=\"gpt-4o-mini\")\n\n# 第2步：加载文档 —— SimpleDirectoryReader 自动按扩展名选择解析器，\n# 支持 PDF / Markdown / Word 等，返回可切分的 Document 列表\ndocuments = SimpleDirectoryReader(\"./docs\").load_data()\n\n# 第3步：构建索引 —— VectorStoreIndex 把文档转成向量并建检索结构，\n# from_documents 内部完成切分 + 向量化，是 LlamaIndex RAG 最常用的入口\nindex = VectorStoreIndex.from_documents(documents)\n\n# 第4步：生成查询引擎 —— similarity_top_k 控制每次检索的切片数，\n# 数值越大召回越广但噪声也越多，需按语料规模调优\nquery_engine = index.as_query_engine(similarity_top_k=3)\n\n# 第5步：执行查询并保留出处 —— Response 自带 source_nodes，\n# 可直接拿到每段答案对应的原始文档切片，便于审计与溯源\nresponse: Response = query_engine.query(\"年假如何计算？\")\nprint(\"回答:\", response.response)\nprint(\"引用来源:\")\nfor node in response.source_nodes:\n    print(\"  -\", node.metadata.get(\"file_name\"), \"得分\", round(node.score, 3))\n",
                 "output": "回答: 年假按入职满1年享5天，每满1年加1天，上限15天。\n引用来源:\n  - hr_policy.pdf 得分 0.91\n  - leave_rule.pdf 得分 0.87"
               }
-            },
-            {
-              "type": "code",
-              "data": {
-                "filename": "llamaindex_rag.py",
-                "language": "python",
-                "title": "LlamaIndex 向量检索 RAG",
-                "highlightLines": [
-                  13,
-                  17,
-                  22,
-                  27
-                ],
-                "code": "import os\nfrom llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings\nfrom llama_index.llms.openai import OpenAI\nfrom llama_index.core.response.schema import Response\n\n# 第1步：配置 LLM —— LlamaIndex 通过 Settings 统一管理模型与 embedding，\n# 优先读环境变量，避免把密钥硬编码进仓库\nos.environ.setdefault(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nSettings.llm = OpenAI(model=\"gpt-4o-mini\")\n\n# 第2步：加载文档 —— SimpleDirectoryReader 自动按扩展名选择解析器，\n# 支持 PDF / Markdown / Word 等，返回可切分的 Document 列表\ndocuments = SimpleDirectoryReader(\"./docs\").load_data()\n\n# 第3步：构建索引 —— VectorStoreIndex 把文档转成向量并建检索结构，\n# from_documents 内部完成切分 + 向量化，是 LlamaIndex RAG 最常用的入口\nindex = VectorStoreIndex.from_documents(documents)\n\n# 第4步：生成查询引擎 —— similarity_top_k 控制每次检索的切片数，\n# 数值越大召回越广但噪声也越多，需按语料规模调优\nquery_engine = index.as_query_engine(similarity_top_k=3)\n\n# 第5步：执行查询并保留出处 —— Response 自带 source_nodes，\n# 可直接拿到每段答案对应的原始文档切片，便于审计与溯源\nresponse: Response = query_engine.query(\"年假如何计算？\")\nprint(\"回答:\", response.response)\nprint(\"引用来源:\")\nfor node in response.source_nodes:\n    print(\"  -\", node.metadata.get(\"file_name\"), \"得分\", round(node.score, 3))\n",
-                "output": "回答: 年假按入职满1年享5天，每满1年加1天，上限15天。\n引用来源:\n  - hr_policy.pdf 得分 0.91\n  - leave_rule.pdf 得分 0.87"
-              }
             }
           ]
         }
@@ -566,7 +563,9 @@
           "url": "https://docs.llamaindex.ai/"
         }
       ],
-      "quiz": []
+      "quiz": [
+        "ch3-3.5-q1"
+      ]
     },
     {
       "id": "3.6",
@@ -586,7 +585,7 @@
           "content": [
             {
               "type": "paragraph",
-              "text": "**MCP（Model Context Protocol）** 是 Anthropic 于 2024 年推出、现由 Linux 基金会 Agentic AI Foundation 治理的开放标准协议，基于 JSON-RPC 2.0。核心价值：**工具与 Agent 解耦**——一次开发 MCP Server，所有支持 MCP 的 Agent 都能用。MCP 最新规范于 2025 年 11 月发布，2024 年 11 月开源后已成为 AI 时代的「USB-C 接口」，LangChain、LlamaIndex、AutoGen 等主流框架均已原生支持；2026 年路线图聚焦四大方向：传输层可扩展（无状态、横向扩展）、Tasks 异步原语成熟、治理形式化与企业级就绪（审计、SSO、网关）。"
+              "text": "**MCP（Model Context Protocol）** 是 Anthropic 于 2024 年推出、现由 Linux 基金会 Agentic AI Foundation 治理的开放标准协议，基于 JSON-RPC 2.0。核心价值：**工具与 Agent 解耦**——一次开发 MCP Server，所有支持 MCP 的 Agent 都能用。MCP 自 2024 年 11 月开源后快速成为 AI 时代的「USB-C 接口」，LangChain、LlamaIndex、AutoGen 等主流框架均已原生支持；其规范持续演进，社区路线图重点关注传输层可扩展、异步原语（Tasks）、治理与企业级就绪（审计、SSO、网关）等方向。"
             },
             {
               "type": "mermaid",
@@ -735,16 +734,6 @@
                 "code": "{\n  \"nodes\": [\n    {\"id\": \"start\", \"type\": \"start\",\n     \"data\": {\"variables\": [{\"name\": \"question\", \"type\": \"string\"}]}},\n    {\"id\": \"knowledge\", \"type\": \"knowledge-retrieval\",\n     \"data\": {\"dataset_id\": \"kb-123\", \"top_k\": 3}},\n    {\"id\": \"llm\", \"type\": \"llm\",\n     \"data\": {\"model\": \"gpt-4o\",\n              \"prompt\": \"根据以下上下文回答问题：\\n{{#knowledge.context#}}\\n问题：{{#start.question#}}\"}},\n    {\"id\": \"answer\", \"type\": \"answer\",\n     \"data\": {\"answer\": \"{{#llm.text#}}\"}}\n  ],\n  \"edges\": [\n    {\"source\": \"start\", \"target\": \"knowledge\"},\n    {\"source\": \"knowledge\", \"target\": \"llm\"},\n    {\"source\": \"llm\", \"target\": \"answer\"}\n  ]\n}\n",
                 "note": "Dify 把 Agent 编排成有向图：start 接收变量 → knowledge 检索 → llm 生成 → answer 输出，可视化拖拽即生成此类 JSON。"
               }
-            },
-            {
-              "type": "code",
-              "data": {
-                "filename": "dify_workflow.json",
-                "language": "json",
-                "title": "Dify 工作流导出（核心节点与边）",
-                "code": "{\n  \"nodes\": [\n    {\"id\": \"start\", \"type\": \"start\",\n     \"data\": {\"variables\": [{\"name\": \"question\", \"type\": \"string\"}]}},\n    {\"id\": \"knowledge\", \"type\": \"knowledge-retrieval\",\n     \"data\": {\"dataset_id\": \"kb-123\", \"top_k\": 3}},\n    {\"id\": \"llm\", \"type\": \"llm\",\n     \"data\": {\"model\": \"gpt-4o\",\n              \"prompt\": \"根据以下上下文回答问题：\\n{{#knowledge.context#}}\\n问题：{{#start.question#}}\"}},\n    {\"id\": \"answer\", \"type\": \"answer\",\n     \"data\": {\"answer\": \"{{#llm.text#}}\"}}\n  ],\n  \"edges\": [\n    {\"source\": \"start\", \"target\": \"knowledge\"},\n    {\"source\": \"knowledge\", \"target\": \"llm\"},\n    {\"source\": \"llm\", \"target\": \"answer\"}\n  ]\n}\n",
-                "note": "Dify 把 Agent 编排成有向图：start 接收变量 → knowledge 检索 → llm 生成 → answer 输出，可视化拖拽即生成此类 JSON。"
-              }
             }
           ]
         }
@@ -775,7 +764,9 @@
           "url": "https://www.coze.com/"
         }
       ],
-      "quiz": []
+      "quiz": [
+        "ch3-3.7-q1"
+      ]
     },
     {
       "id": "3.8",
