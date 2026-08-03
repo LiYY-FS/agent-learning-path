@@ -87,12 +87,15 @@ const Router = {
         const inlineMeta = Utils.getData('CHAPTERS_META');
         if (inlineMeta) {
           window.CHAPTERS_META = inlineMeta.chapters || inlineMeta;
-          await Quiz.loadData();
         } else {
           const data = await Utils.fetchJSON('assets/data/chapters.json');
           window.CHAPTERS_META = data.chapters || data;
-          await Quiz.loadData();
         }
+        // CHAPTERS_META 就绪后立即重算所有章节进度：用当前 meta 过滤 stale section id，
+        // 把存量的 chapter.progress 字段从过期值（例如老代码写下的 110%）拉回 ≤100%
+        // 此调用必须在 Sidebar.build() 之前，否则侧边栏进度环会用过期值绘制
+        Progress._recalculateAllProgress();
+        await Quiz.loadData();
       } catch (e) {
         content.innerHTML = `<div class="card"><p style="color: var(--accent-red);">❌ 加载章节数据失败：${e.message}</p><p style="color: var(--text-secondary); margin-top: 12px;">请确认 <code>assets/js/data.js</code> 已随 index.html 一同存在。本网站支持直接双击 index.html 打开（file://），也可通过 HTTP 服务器访问。</p></div>`;
         return;
@@ -502,6 +505,9 @@ const Router = {
         const data = await Utils.fetchJSON('assets/data/chapters.json');
         window.CHAPTERS_META = data.chapters || data;
       }
+      // CHAPTERS_META 就绪后立即重算：用当前 meta 过滤 stale section id，
+      // 把存量的 chapter.progress 拉回 ≤100%（必须在 Sidebar.build() 之前）
+      Progress._recalculateAllProgress();
       await Quiz.loadData();
       Sidebar.build();
       Progress._updateGlobalUI();

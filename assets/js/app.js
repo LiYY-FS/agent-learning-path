@@ -81,7 +81,10 @@ const Sidebar = {
 
       const fg = container.querySelector('.fg');
       if (fg) {
-        fg.style.strokeDashoffset = 100 - progress.progress;
+        // 防御性 clamp：即便 stale localStorage 让 progress 超过 100，也按 100 绘制
+        // 避免 strokeDashoffset 为负时 SVG 渲染行为不确定
+        const clamped = Math.max(0, Math.min(100, progress.progress || 0));
+        fg.style.strokeDashoffset = 100 - clamped;
       }
 
       if (progress.completed) {
