@@ -138,7 +138,7 @@
               "type": "mermaid",
               "data": {
                 "title": "框架选型决策树",
-                "code": "flowchart TD\n  A[\"🎯 开始选型：你的核心场景是什么?\"]\n  A --> C[\"📚 RAG / 知识检索\"]\n  A --> D[\"⛓️ 复杂工作流 / HITL\"]\n  A --> E[\"🤝 多 Agent 协作\"]\n  A --> F[\"🧠 长期记忆 / 持久对话\"]\n  A --> G[\"🔧 简单工具调用\"]\n  C --> C1[\"LlamaIndex ⭐ 首选<br/>原生 RAG 抽象层\"]\n  C --> C2[\"Haystack<br/>企业级 Pipeline\"]\n  C --> C3[\"LangChain<br/>RAG + Agent 混合\"]\n  D --> D1[\"LangGraph ⭐ 首选<br/>图编排 + Checkpoint\"]\n  D --> D2[\"Pydantic AI<br/>强类型 + 结构化输出\"]\n  D --> D3[\"Dify / Flowise<br/>低代码可视化编排\"]\n  E --> E1[\"CrewAI ⭐ 首选<br/>角色明确 + 顺序执行\"]\n  E --> E2[\"AutoGen<br/>灵活群聊 / 探索型\"]\n  F --> F1[\"Letta / MemGPT<br/>长期记忆 + 持久状态\"]\n  G --> G1[\"OpenAI SDK<br/>仅一家 / 零依赖\"]\n  G --> G2[\"Agno<br/>多厂商 / 异步优先\"]\n  G --> G3[\"Mastra<br/>TypeScript 全栈一体\"]"
+                "code": "%%{init: {\"flowchart\": {\"nodeSpacing\": 25, \"rankSpacing\": 40, \"wrappingWidth\": 200, \"curve\": \"basis\"}, \"themeVariables\": {\"fontSize\": \"13px\"}}}%%\nflowchart TD\n    A[\"🎯 开始选型：你的核心场景是什么?\"]\n    A --> C[\"📚 RAG / 知识检索\"]\n    A --> D[\"⛓️ 复杂工作流 / HITL\"]\n    A --> E[\"🤝 多 Agent 协作\"]\n    A --> F[\"🧠 长期记忆 / 持久对话\"]\n    A --> G[\"🔧 简单工具调用\"]\n    subgraph SG_RAG [\" \"]\n      direction TB\n      C1[\"LlamaIndex ⭐ 首选<br/>原生 RAG 抽象层\"]\n      C2[\"Haystack<br/>企业级 Pipeline\"]\n      C3[\"LangChain<br/>RAG + Agent 混合\"]\n    end\n    C --> C1\n    C --> C2\n    C --> C3\n    subgraph SG_WF [\" \"]\n      direction TB\n      D1[\"LangGraph ⭐ 首选<br/>图编排 + Checkpoint\"]\n      D2[\"Pydantic AI<br/>强类型 + 结构化输出\"]\n      D3[\"Dify / Flowise<br/>低代码可视化编排\"]\n    end\n    D --> D1\n    D --> D2\n    D --> D3\n    subgraph SG_MULTI [\" \"]\n      direction TB\n      E1[\"CrewAI ⭐ 首选<br/>角色明确 + 顺序执行\"]\n      E2[\"AutoGen<br/>灵活群聊 / 探索型\"]\n    end\n    E --> E1\n    E --> E2\n    subgraph SG_MEM [\" \"]\n      direction TB\n      F1[\"Letta / MemGPT<br/>长期记忆 + 持久状态\"]\n    end\n    F --> F1\n    subgraph SG_TOOL [\" \"]\n      direction TB\n      G1[\"OpenAI SDK<br/>仅一家 / 零依赖\"]\n      G2[\"Agno<br/>多厂商 / 异步优先\"]\n      G3[\"Mastra<br/>TypeScript 全栈一体\"]\n    end\n    G --> G1\n    G --> G2\n    G --> G3"
               }
             },
             {
@@ -330,16 +330,15 @@
                 "language": "python",
                 "title": "LangGraph 条件路由 Agent",
                 "highlightLines": [
-                  35,
-                  36,
+                  29,
                   38,
-                  40,
-                  42,
-                  43,
-                  44
+                  50,
+                  57,
+                  68,
+                  69
                 ],
-                "code": "import os\nfrom langgraph.graph import StateGraph, END\nfrom typing import TypedDict, Annotated\nfrom langchain_openai import ChatOpenAI\n\n# ===================== 配置区（请自行填写，或设置环境变量）=====================\n# 方式一（推荐）：在终端先设置环境变量，再运行本脚本\n#   export OPENAI_API_KEY=\"sk-你的密钥\"\n#   export OPENAI_BASE_URL=\"https://api.openai.com/v1\"   # 官方地址，或任意兼容 OpenAI 的中转地址\n#   export OPENAI_MODEL=\"gpt-4o\"\n# 方式二（仅本地测试，切勿提交到 Git）：直接把下面的值改成你的真实信息\n\n# 第1步：读取密钥等配置 —— 优先读环境变量，缺失给占位默认值，\n# 既方便本地调试，也避免把密钥硬编码进仓库导致泄露\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")  # ← 模型名称，按需替换（如 gpt-4o-mini）\n\n\n# 1. 定义状态\n\n# 第2步：定义共享状态结构 —— 用 TypedDict 显式声明状态字段，\n# 图里每个节点都读写同一份状态，比散落变量更清晰也不易出错\nclass AgentState(TypedDict):\n    messages: list\n    needs_tool: bool\n    tool_result: str\n\n# 2. 定义节点\n\n# 第3步：思考节点 —— 让 LLM 读历史消息做决策，\n# 先建模型实例再调用，调用结果追加进消息列表供后续节点使用\ndef think(state: AgentState) -> AgentState:\n    # 用配置里的密钥和地址创建 ChatOpenAI 实例\n    llm = ChatOpenAI(model=MODEL, api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)\n    # LLM 决策是否需要工具\n    # 把当前对话历史发给模型，拿到它的回复\n    response = llm.invoke(state[\"messages\"])\n    # 把模型回复存回状态，后续节点可继续看到上下文\n    state[\"messages\"].append(response)\n    # 根据回复是否带工具调用，标记是否需要走工具分支\n    state[\"needs_tool\"] = bool(response.tool_calls)\n    return state\n\n# 第4步：工具节点 —— 真正执行工具并把结果写回状态，\n# 这里用字符串占位，真实场景应调用具体工具并捕获异常\ndef execute_tool(state: AgentState) -> AgentState:\n    # 执行工具调用\n    state[\"tool_result\"] = \"工具执行结果\"\n    return state\n\n# 第5步：回答节点 —— 工具结果合并进上下文后，生成最终回复，\n# 把“要不要工具”的分支收敛到统一的输出环节\ndef generate_answer(state: AgentState) -> AgentState:\n    # 生成最终回答\n    return state\n\n# 3. 条件路由\n\n# 第6步：条件路由函数 —— 依据状态里的标志决定下一步走向，\n# 返回节点名字符串，交给 add_conditional_edges 做分支控制\ndef should_use_tool(state: AgentState) -> str:\n    return \"execute_tool\" if state[\"needs_tool\"] else \"generate_answer\"\n\n# 4. 构建图\n\n# 第7步：用图结构显式管理状态流转 —— StateGraph 比链式调用\n# 更适合有分支和循环的场景，节点与边一目了然，便于扩展\ngraph = StateGraph(AgentState)\n# 注册三个节点，绑定对应的处理函数\ngraph.add_node(\"think\", think)\ngraph.add_node(\"execute_tool\", execute_tool)\ngraph.add_node(\"generate_answer\", generate_answer)\n\n# 设入口为 think，由条件函数决定走工具还是直接回答\ngraph.set_entry_point(\"think\")\ngraph.add_conditional_edges(\"think\", should_use_tool)\n# 工具执行后回到思考，形成“思考-工具-再思考”的循环\ngraph.add_edge(\"execute_tool\", \"think\")  # 工具执行后回到思考\ngraph.add_edge(\"generate_answer\", END)\n\n# 5. 编译并运行\n\n# 第8步：编译并运行 —— compile 把图转成可执行应用，\n# invoke 传入初始状态即可按边驱动整个流程跑完\nif __name__ == \"__main__\":\n    app = graph.compile()\n    result = app.invoke({\"messages\": [{\"role\": \"user\", \"content\": \"北京天气\"}],\n                         \"needs_tool\": False, \"tool_result\": \"\"})\n    print(\"执行完成，最终状态:\")\n    print(f\"  消息数: {len(result['messages'])}\")\n    print(f\"  是否用过工具: {result['needs_tool']}\")\n    print(f\"  工具结果: {result['tool_result'] or '（未调用工具）'}\")\n    print(f\"  最终回复: {result['messages'][-1].content}\")",
-                "output": "执行完成，最终状态:\n  消息数: 2\n  是否用过工具: False\n  工具结果: （未调用工具）\n  最终回复: 今天北京晴，气温 25°C（模型无实时数据时会直接回答或请求工具）\n\n# 说明：若模型决定调用工具，流程会走 think → execute_tool → think 循环，\n# 最终状态中 needs_tool 与 tool_result 会相应变化"
+                "code": "import os\nfrom langgraph.graph import StateGraph, END\nfrom typing import TypedDict\nfrom langchain_openai import ChatOpenAI\n\n# ===================== 配置区（请自行填写，或设置环境变量）=====================\n# 方式一（推荐）：在终端先设置环境变量，再运行本脚本\n#   export OPENAI_API_KEY=\"sk-你的密钥\"\n#   export OPENAI_BASE_URL=\"https://api.openai.com/v1\"\n#   export OPENAI_MODEL=\"gpt-4o\"\n# 方式二（仅本地测试，切勿提交到 Git）：直接把下面的值改成你的真实信息\n\nOPENAI_API_KEY = os.getenv(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nOPENAI_BASE_URL = os.getenv(\"OPENAI_BASE_URL\", \"https://api.openai.com/v1\")\nMODEL = os.getenv(\"OPENAI_MODEL\", \"gpt-4o\")  # ← 模型名称，按需替换（如 gpt-4o-mini）\n\n# 桩实现：真实场景应调用天气 API 或内部服务\ndef get_weather(city: str) -> str:\n    # 演示用固定返回；生产环境替换为 requests.get(weather_api, ...)\n    return f\"{city} 今天晴，25°C，微风\"\n\n# 1. 定义状态\nclass AgentState(TypedDict):\n    messages: list\n    needs_tool: bool\n    tool_result: str\n\n# 2. 决策节点：调用 LLM，根据是否返回工具调用来决定后续走向\ndef think(state: AgentState) -> AgentState:\n    llm = ChatOpenAI(model=MODEL, api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)\n    response = llm.invoke(state[\"messages\"])\n    state[\"messages\"].append(response)\n    # 有工具调用 -> 后续走 execute_tool；否则直接生成最终回复\n    state[\"needs_tool\"] = bool(response.tool_calls)\n    return state\n\n# 3. 工具节点：真正执行 LLM 请求的工具，并让结果回到对话上下文\ndef execute_tool(state: AgentState) -> AgentState:\n    last = state[\"messages\"][-1]\n    if getattr(last, \"tool_calls\", None):\n        # 取出第一个工具调用的参数（演示只取 city）\n        args = last.tool_calls[0][\"args\"]\n        city = args.get(\"city\", \"北京\")\n        state[\"tool_result\"] = get_weather(city)\n        # 把工具结果作为 tool 消息追加，模型下一轮就能基于它回答\n        state[\"messages\"].append({\"role\": \"tool\", \"content\": state[\"tool_result\"]})\n    return state\n\n# 4. 回答节点：基于完整上下文（含工具结果）生成最终自然语言回复\ndef generate_answer(state: AgentState) -> AgentState:\n    llm = ChatOpenAI(model=MODEL, api_key=OPENAI_API_KEY, base_url=OPENAI_BASE_URL)\n    reply = llm.invoke(state[\"messages\"])\n    state[\"messages\"].append(reply)\n    return state\n\n# 5. 条件路由：已拿到工具结果后直接生成回复，否则按 needs_tool 分流\ndef should_use_tool(state: AgentState) -> str:\n    if state.get(\"tool_result\"):\n        return \"generate_answer\"\n    return \"execute_tool\" if state[\"needs_tool\"] else \"generate_answer\"\n\n# 6. 构建图\ngraph = StateGraph(AgentState)\ngraph.add_node(\"think\", think)\ngraph.add_node(\"execute_tool\", execute_tool)\ngraph.add_node(\"generate_answer\", generate_answer)\ngraph.set_entry_point(\"think\")\ngraph.add_conditional_edges(\"think\", should_use_tool)\ngraph.add_edge(\"execute_tool\", \"think\")   # 工具执行后回到思考，形成循环\ngraph.add_edge(\"generate_answer\", END)\n\n# 7. 编译并运行\nif __name__ == \"__main__\":\n    app = graph.compile()\n    result = app.invoke({\n        \"messages\": [{\"role\": \"user\", \"content\": \"北京天气怎么样？\"}],\n        \"needs_tool\": False,\n        \"tool_result\": \"\",\n    })\n    print(\"执行完成，最终状态:\")\n    print(f\"  消息数: {len(result['messages'])}\")\n    print(f\"  是否调用过工具: {result['needs_tool']}\")\n    print(f\"  工具结果: {result['tool_result'] or '（未调用工具）'}\")\n    print(f\"  最终回复: {result['messages'][-1].content}\")\n",
+                "output": "执行完成，最终状态:\n  消息数: 5\n  是否调用过工具: True\n  工具结果: 北京 今天晴，25°C，微风\n  最终回复: 北京今天天气晴，气温 25°C，微风，适合外出散步。"
               }
             }
           ]
@@ -446,7 +445,9 @@
           "url": "https://github.com/openai/openai-agents-python"
         }
       ],
-      "quiz": []
+      "quiz": [
+        "ch3-3.4-q1"
+      ]
     },
     {
       "id": "3.5",
@@ -496,6 +497,38 @@
               "variant": "tip",
               "title": "LlamaIndex vs LangChain",
               "text": "LlamaIndex 专注 RAG，数据索引能力更强（多索引类型、高级检索）；LangChain 更通用，Agent/Chain/Memory 生态更丰富。实际项目可混用：LlamaIndex 做 RAG 层，LangChain 做 Agent 层。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "llamaindex_rag.py",
+                "language": "python",
+                "title": "LlamaIndex 向量检索 RAG",
+                "highlightLines": [
+                  13,
+                  17,
+                  22,
+                  27
+                ],
+                "code": "import os\nfrom llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings\nfrom llama_index.llms.openai import OpenAI\nfrom llama_index.core.response.schema import Response\n\n# 第1步：配置 LLM —— LlamaIndex 通过 Settings 统一管理模型与 embedding，\n# 优先读环境变量，避免把密钥硬编码进仓库\nos.environ.setdefault(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nSettings.llm = OpenAI(model=\"gpt-4o-mini\")\n\n# 第2步：加载文档 —— SimpleDirectoryReader 自动按扩展名选择解析器，\n# 支持 PDF / Markdown / Word 等，返回可切分的 Document 列表\ndocuments = SimpleDirectoryReader(\"./docs\").load_data()\n\n# 第3步：构建索引 —— VectorStoreIndex 把文档转成向量并建检索结构，\n# from_documents 内部完成切分 + 向量化，是 LlamaIndex RAG 最常用的入口\nindex = VectorStoreIndex.from_documents(documents)\n\n# 第4步：生成查询引擎 —— similarity_top_k 控制每次检索的切片数，\n# 数值越大召回越广但噪声也越多，需按语料规模调优\nquery_engine = index.as_query_engine(similarity_top_k=3)\n\n# 第5步：执行查询并保留出处 —— Response 自带 source_nodes，\n# 可直接拿到每段答案对应的原始文档切片，便于审计与溯源\nresponse: Response = query_engine.query(\"年假如何计算？\")\nprint(\"回答:\", response.response)\nprint(\"引用来源:\")\nfor node in response.source_nodes:\n    print(\"  -\", node.metadata.get(\"file_name\"), \"得分\", round(node.score, 3))\n",
+                "output": "回答: 年假按入职满1年享5天，每满1年加1天，上限15天。\n引用来源:\n  - hr_policy.pdf 得分 0.91\n  - leave_rule.pdf 得分 0.87"
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "llamaindex_rag.py",
+                "language": "python",
+                "title": "LlamaIndex 向量检索 RAG",
+                "highlightLines": [
+                  13,
+                  17,
+                  22,
+                  27
+                ],
+                "code": "import os\nfrom llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings\nfrom llama_index.llms.openai import OpenAI\nfrom llama_index.core.response.schema import Response\n\n# 第1步：配置 LLM —— LlamaIndex 通过 Settings 统一管理模型与 embedding，\n# 优先读环境变量，避免把密钥硬编码进仓库\nos.environ.setdefault(\"OPENAI_API_KEY\", \"sk-在此填入你的API密钥\")\nSettings.llm = OpenAI(model=\"gpt-4o-mini\")\n\n# 第2步：加载文档 —— SimpleDirectoryReader 自动按扩展名选择解析器，\n# 支持 PDF / Markdown / Word 等，返回可切分的 Document 列表\ndocuments = SimpleDirectoryReader(\"./docs\").load_data()\n\n# 第3步：构建索引 —— VectorStoreIndex 把文档转成向量并建检索结构，\n# from_documents 内部完成切分 + 向量化，是 LlamaIndex RAG 最常用的入口\nindex = VectorStoreIndex.from_documents(documents)\n\n# 第4步：生成查询引擎 —— similarity_top_k 控制每次检索的切片数，\n# 数值越大召回越广但噪声也越多，需按语料规模调优\nquery_engine = index.as_query_engine(similarity_top_k=3)\n\n# 第5步：执行查询并保留出处 —— Response 自带 source_nodes，\n# 可直接拿到每段答案对应的原始文档切片，便于审计与溯源\nresponse: Response = query_engine.query(\"年假如何计算？\")\nprint(\"回答:\", response.response)\nprint(\"引用来源:\")\nfor node in response.source_nodes:\n    print(\"  -\", node.metadata.get(\"file_name\"), \"得分\", round(node.score, 3))\n",
+                "output": "回答: 年假按入职满1年享5天，每满1年加1天，上限15天。\n引用来源:\n  - hr_policy.pdf 得分 0.91\n  - leave_rule.pdf 得分 0.87"
+              }
             }
           ]
         }
@@ -506,7 +539,18 @@
         "architecture": "用 LlamaIndex 的多种 Loader 加载不同源，统一构建 VectorStoreIndex，支持子问题查询。",
         "outcome": "多源数据问答准确率 88%。",
         "lessons": "LlamaIndex 的数据集成能力是 RAG 项目的关键优势。",
-        "code": "rag_system.py"
+        "code": {
+          "filename": "3_5_multisource_rag.py",
+          "language": "python",
+          "title": "多源数据 RAG：PDF + 网页统一进一个索引",
+          "highlightLines": [
+            9,
+            14
+          ],
+          "code": "from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings\nfrom llama_index.llms.openai import OpenAI\n\n# 多源 RAG：PDF + 网页 + 数据库统一进一个索引\nSettings.llm = OpenAI(model=\"gpt-4o-mini\")\n\n# 1) 本地文档（PDF / Markdown / Word）\ndocs = SimpleDirectoryReader(\"./knowledge_base\").load_data()\n\n# 2) 网页（按需开启；LlamaIndex 提供多种 Reader 接入外部源）\n# from llama_index.readers.web import SimpleWebPageReader\n# web_docs = SimpleWebPageReader().load_data([\"https://docs.example.com/faq\"])\n\n# 3) 合并构建索引并查询 —— 不同来源在向量空间统一检索\nindex = VectorStoreIndex.from_documents(docs)\nengine = index.as_query_engine(similarity_top_k=5)\nprint(engine.query(\"我们的退款政策是什么？\"))\n",
+          "output": "我们的退款政策是：7天无理由，15天质量问题换货。",
+          "note": "LlamaIndex 的 Loader 体系让 PDF/网页/数据库统一成 Document，再进同一个 VectorStoreIndex。"
+        }
       },
       "exercises": [
         {
@@ -681,6 +725,26 @@
               "variant": "tip",
               "title": "何时选择低代码",
               "text": "1) 快速验证想法（POC）；2) 非复杂逻辑的标准应用；3) 团队编程能力有限；4) 需要快速上线。**何时选择代码开发**：1) 复杂自定义逻辑；2) 高性能要求；3) 需要深度定制；4) 长期维护的大型项目。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "dify_workflow.json",
+                "language": "json",
+                "title": "Dify 工作流导出（核心节点与边）",
+                "code": "{\n  \"nodes\": [\n    {\"id\": \"start\", \"type\": \"start\",\n     \"data\": {\"variables\": [{\"name\": \"question\", \"type\": \"string\"}]}},\n    {\"id\": \"knowledge\", \"type\": \"knowledge-retrieval\",\n     \"data\": {\"dataset_id\": \"kb-123\", \"top_k\": 3}},\n    {\"id\": \"llm\", \"type\": \"llm\",\n     \"data\": {\"model\": \"gpt-4o\",\n              \"prompt\": \"根据以下上下文回答问题：\\n{{#knowledge.context#}}\\n问题：{{#start.question#}}\"}},\n    {\"id\": \"answer\", \"type\": \"answer\",\n     \"data\": {\"answer\": \"{{#llm.text#}}\"}}\n  ],\n  \"edges\": [\n    {\"source\": \"start\", \"target\": \"knowledge\"},\n    {\"source\": \"knowledge\", \"target\": \"llm\"},\n    {\"source\": \"llm\", \"target\": \"answer\"}\n  ]\n}\n",
+                "note": "Dify 把 Agent 编排成有向图：start 接收变量 → knowledge 检索 → llm 生成 → answer 输出，可视化拖拽即生成此类 JSON。"
+              }
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "dify_workflow.json",
+                "language": "json",
+                "title": "Dify 工作流导出（核心节点与边）",
+                "code": "{\n  \"nodes\": [\n    {\"id\": \"start\", \"type\": \"start\",\n     \"data\": {\"variables\": [{\"name\": \"question\", \"type\": \"string\"}]}},\n    {\"id\": \"knowledge\", \"type\": \"knowledge-retrieval\",\n     \"data\": {\"dataset_id\": \"kb-123\", \"top_k\": 3}},\n    {\"id\": \"llm\", \"type\": \"llm\",\n     \"data\": {\"model\": \"gpt-4o\",\n              \"prompt\": \"根据以下上下文回答问题：\\n{{#knowledge.context#}}\\n问题：{{#start.question#}}\"}},\n    {\"id\": \"answer\", \"type\": \"answer\",\n     \"data\": {\"answer\": \"{{#llm.text#}}\"}}\n  ],\n  \"edges\": [\n    {\"source\": \"start\", \"target\": \"knowledge\"},\n    {\"source\": \"knowledge\", \"target\": \"llm\"},\n    {\"source\": \"llm\", \"target\": \"answer\"}\n  ]\n}\n",
+                "note": "Dify 把 Agent 编排成有向图：start 接收变量 → knowledge 检索 → llm 生成 → answer 输出，可视化拖拽即生成此类 JSON。"
+              }
             }
           ]
         }
@@ -689,7 +753,7 @@
         "title": "Dify 搭建企业内部 Agent",
         "background": "某公司需要快速搭建一个内部知识库问答。",
         "architecture": "用 Dify 可视化编排，导入文档自动构建 RAG，2 天完成上线。",
-        "outcome": "比代码开发快 5 倍，但后续定制受限。",
+        "outcome": "约快 3–5 倍（视需求复杂度），但复杂定制仍要回到代码。",
         "lessons": "低代码适合快速验证，复杂需求仍需代码开发。"
       },
       "exercises": [
@@ -945,7 +1009,9 @@
           "url": "https://docker-py.readthedocs.io/"
         }
       ],
-      "quiz": []
+      "quiz": [
+        "ch3-3.9-q1"
+      ]
     }
   ]
 }
