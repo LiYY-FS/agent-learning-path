@@ -13,9 +13,9 @@
       "estimatedMinutes": 15,
       "difficulty": 3,
       "objectives": [
-        "理解「Agent OS」试图解决的问题：把 Agent 当一等公民统一调度资源",
-        "能描述一个最小 Agent 运行时（调度 / 权限 / 状态 / 通信）的构成",
-        "区分「OS 给 Agent 用」与「Agent 组成 OS」两种思路"
+        "理解「Agent OS」想解决什么：把 Agent 当「一等公民」统一调度资源与权限",
+        "能写一个最小能力注册表与调度器，说明 OS 层在做什么",
+        "知道 Agent OS 与「普通编排框架」的区别：资源/权限/生命周期的一层"
       ],
       "content": [
         {
@@ -164,6 +164,89 @@
               }
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "Agent OS：给 Agent 一个「运行环境」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "普通编排框架管「流程怎么走」，Agent OS 管「Agent 作为一类程序该怎么被运行」：统一的资源配额（算力/上下文/工具额度）、统一的权限与身份、统一的生命周期（创建/暂停/恢复/销毁）、统一的事件总线。它把「跑 Agent」从「写个脚本」升级成「操作系统调度进程」的层级，让大量 Agent 能安全共存、互不踩踏。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s6_1_agentos.py",
+            "language": "python",
+            "title": "最小 Agent OS：能力注册表 + 资源调度",
+            "highlightLines": [
+              4,
+              6
+            ],
+            "code": "AGENTS = {\"研究员\": 2, \"执行者\": 4, \"审查者\": 1}\n\ndef schedule(task, budget):\n    owner = min(AGENTS, key=AGENTS.get)\n    if AGENTS[owner] > budget:\n        return \"资源不足\"\n    return owner + \" 接手：\" + task\n\nif __name__ == \"__main__\":\n    print(schedule(\"写周报\", 3))",
+            "output": "审查者 接手：写周报",
+            "note": "AGENTS 存配额，schedule 按最闲者派单并校验预算。真实 OS 还管身份/权限/事件总线。min 的 key 引用 AGENTS.get。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "OS 层 vs 编排层",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "编排层（LangGraph 等）关心「这一步调哪个 Agent」；OS 层关心「这个 Agent 有多少算力、能碰哪些数据、崩了怎么回收」。后者是横切关注点，单独抽出来才让「成千上万个 Agent 同跑」成为可能。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "关注点",
+              "编排框架",
+              "Agent OS"
+            ],
+            "rows": [
+              [
+                "流程",
+                "管步骤",
+                "不管"
+              ],
+              [
+                "资源",
+                "不管",
+                "配额/调度"
+              ],
+              [
+                "权限",
+                "部分",
+                "统一身份"
+              ],
+              [
+                "生命周期",
+                "部分",
+                "创建/恢复/销毁"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**企业内部**：百个 Agent 共享一套调度与权限；**多租户**：按配额隔离；**平台**：像管容器一样管 Agent"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：在编排层硬塞 OS 职责",
+          "text": "把资源/权限/生命周期都塞进业务编排，会又乱又难扩。这些横切关注点应下沉到 OS 层统一处理。"
         }
       ],
       "exercises": [
@@ -237,9 +320,9 @@
       "estimatedMinutes": 15,
       "difficulty": 2,
       "objectives": [
-        "说清「具身智能」与普通软件 Agent 的本质差异：感知-行动闭环在物理世界里",
-        "能描述一个最小具身 Agent 的控制循环（感知→规划→执行→反馈）",
-        "理解 LLM/VLM 做「大脑」、控制器做「手脚」的分工"
+        "理解具身智能 = 感知-决策-执行 闭环 + 物理约束",
+        "能写一个最小「感知->策略->动作」的具身 Agent 循环",
+        "知道物理世界的「不可逆/安全风险」远高于纯软件 Agent"
       ],
       "content": [
         {
@@ -358,6 +441,89 @@
               "text": "软件里调 API 失败可以无限重试；让机械臂重试一次抓取可能打翻整桌东西。凡是不可逆动作，务必加权限确认与回滚预案。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "具身智能把 Agent 从「对话框」放进「物理世界」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "软件 Agent 的输出是文字；具身 Agent（机器人、自动驾驶、机械臂）的输出是「动作」，会真实改变物理世界。它被迫面对软件 Agent 没有的约束：传感器有噪声、动作有延迟、错了可能撞坏东西。所以具身 Agent 的核心是「感知-决策-执行」闭环 + 强安全策略（遇红即停、力超限即停）。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s6_2_embodied.py",
+            "language": "python",
+            "title": "最小具身循环：感知 -> 策略 -> 动作",
+            "highlightLines": [
+              2,
+              6
+            ],
+            "code": "def step(sensor, policy):\n    perception = sensor()\n    action = policy(perception)\n    return action\n\ndef camera():\n    return \"看到红色按钮\"\n\ndef safety_policy(see):\n    if \"红色\" in see:\n        return \"停止\"\n    return \"前进\"\n\nif __name__ == \"__main__\":\n    print(step(camera, safety_policy))",
+            "output": "停止",
+            "note": "step 把传感器与策略解耦；safety_policy 是硬护栏（见红即停）。真实场景还要力/距离反馈与紧急停止。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "物理世界的「不可逆」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "软件 Agent 答错顶多给错信息；具身 Agent 撞了、夹了、冲了，后果物理且常不可逆。所以具身系统对「安全策略」的依赖远高于软件 Agent——宁可保守（停下），不可冒险（继续）。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "维度",
+              "软件 Agent",
+              "具身 Agent"
+            ],
+            "rows": [
+              [
+                "输出",
+                "文本",
+                "物理动作"
+              ],
+              [
+                "错误代价",
+                "低",
+                "高/不可逆"
+              ],
+              [
+                "感知",
+                "文本/API",
+                "多模态传感器"
+              ],
+              [
+                "安全",
+                "护栏",
+                "硬停止"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**仓储**：分拣 robot 避障搬运；**自动驾驶**：感知-决策-控制闭环；**客服机器人**：实体导览"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：把软件 Agent 的「试错」搬进物理",
+          "text": "软件里「试一下看看」成本几乎为零；物理里试错可能撞坏设备或伤人。具身 Agent 必须先过安全策略再动作，不能边试边学。"
         }
       ],
       "exercises": [
@@ -430,9 +596,9 @@
       "estimatedMinutes": 15,
       "difficulty": 3,
       "objectives": [
-        "把 Agent 能力演进梳理成几个清晰阶段，并定位当前所处位置",
-        "区分「端到端大模型」与「模块化 Agent 系统」两条路线及其权衡",
-        "理解能力增长与可控性/对齐之间的张力"
+        "理解 Agent 能力演进的「阶梯」（感知->推理->规划->工具->多Agent->反思）",
+        "能写一个能力阶梯检查器，标出当前所处层级",
+        "知道「离 AGI 还有多远」要看哪些能力缺口"
       ],
       "content": [
         {
@@ -582,6 +748,89 @@
               "text": "你的 Agent 现在能「自己发现目标漂移并纠正」吗？能「在出错时自动回滚」吗？能回答这两个「能」，才接近 L4。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "Agent 能力是一条可度量的阶梯",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "与其空谈 AGI，不如把能力拆成可观测的阶梯：感知（看懂输入）→推理（逻辑/数学）→规划（拆目标）→工具（动手查/做）→多 Agent（协作）→自我反思（从失败学）。当前主流 Agent 大多停在「工具+规划」层，离「稳健自我反思、跨领域迁移」还有明显缺口。用阶梯描述，既能定位技术水位，也能指明清哪个能力缺。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s6_3_agi.py",
+            "language": "python",
+            "title": "能力阶梯：标出已具备的层级",
+            "highlightLines": [
+              1,
+              4
+            ],
+            "code": "LADDER = [\"感知\", \"推理\", \"规划\", \"工具\", \"多Agent\", \"自我反思\"]\n\ndef reached(caps):\n    return [c for c in LADDER if c in caps]\n\nif __name__ == \"__main__\":\n    print(reached([\"感知\", \"推理\", \"规划\"]))",
+            "output": "['感知', '推理', '规划']",
+            "note": "LADDER 定义阶梯；reached 过滤已具备项。真实评估用基准测试逐项打分而非主观判断。c 在推导中被引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "缺口比峰值更重要",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "一个 Agent 在某一项极强、另一项为零，整体仍不可靠。评估要看「最短板」：规划再强，没有工具也落不了地；工具再多，不会反思也修不了错。补齐缺口比堆高峰值更影响可用性。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "层级",
+              "代表能力",
+              "当前水位"
+            ],
+            "rows": [
+              [
+                "感知/推理",
+                "看懂/算对",
+                "已成熟"
+              ],
+              [
+                "规划/工具",
+                "拆目标/动手",
+                "主流"
+              ],
+              [
+                "多Agent",
+                "协作",
+                "成长中"
+              ],
+              [
+                "自我反思",
+                "从失败学",
+                "早期"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**能力地图**： product 用阶梯给竞品定位；**选型**：按缺口补能力；**路线图**：标下一站补哪层"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：用峰值代整体",
+          "text": "演示视频里某个任务惊艳，不代表整体可靠。看最短板与失败模式，才知它到底能信几分。"
         }
       ],
       "exercises": [
@@ -655,9 +904,9 @@
       "estimatedMinutes": 15,
       "difficulty": 2,
       "objectives": [
-        "理解多模态 Agent 的输入/输出不再限于文本，而是图/音/视频与文本混合",
-        "能描述「模态编码 → 中枢 LLM/MLLM → 工具/动作」的标准架构",
-        "知道多模态带来的工程挑战（对齐、延迟、成本）及应对"
+        "理解多模态 Agent 要处理「文本/图像/音频/视频」的异质输入",
+        "能写一个多模态输入路由器，按类型分派处理器",
+        "知道多模态的关键难点：对齐、成本、延迟"
       ],
       "content": [
         {
@@ -799,6 +1048,89 @@
               }
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "多模态不是「多几个接口」，是「对齐与路由」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "多模态 Agent 的输入可能是文字、图片、语音、视频混在一起。核心工程问题是：①路由——什么类型交给什么模型（图给视觉模型、语音先转写）；②对齐——把不同模态的信息映射到同一语义空间，让模型能「看图说话、听声判断」；③成本——视觉/语音模型贵且慢，不能什么都丢大模型。路由 + 按需调用是多模态省钱的关键。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s6_4_multimodal.py",
+            "language": "python",
+            "title": "多模态输入路由：按类型分派处理器",
+            "highlightLines": [
+              2,
+              6
+            ],
+            "code": "def route(msg_type, handlers):\n    fn = handlers.get(msg_type)\n    return fn() if fn else \"未知类型\"\n\nif __name__ == \"__main__\":\n    handlers = {\n        \"text\": lambda: \"处理文本\",\n        \"image\": lambda: \"调用视觉模型\",\n        \"audio\": lambda: \"转写语音\",\n    }\n    print(route(\"image\", handlers))",
+            "output": "调用视觉模型",
+            "note": "route 按类型分发；真实场景先 ASR 转写音频、再用视觉模型理解图像，最后统一进 LLM。msg_type/handlers/fn 均被引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "成本与延迟是隐藏 boss",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "多模态最贵的不是模型贵，而是「每次都全量调用」。工程上要：能文本解决的绝不调视觉、能缓存的不重算、长视频抽关键帧而非逐帧。路由的精细度直接决定账单。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "模态",
+              "处理",
+              "成本/延迟"
+            ],
+            "rows": [
+              [
+                "文本",
+                "直送 LLM",
+                "低"
+              ],
+              [
+                "图像",
+                "视觉模型",
+                "中"
+              ],
+              [
+                "音频",
+                "先 ASR 再 LLM",
+                "中"
+              ],
+              [
+                "视频",
+                "抽帧+视觉",
+                "高"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**电商**：图搜+文描；**医疗**：影像+报告；**客服**：语音+工单；**内容**：视频摘要"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：所有输入都丢大模型",
+          "text": "图片、语音、视频全量丢多模态大模型，成本爆炸且慢。先路由、先轻量处理（ASR/抽帧）、再按需调大模型。"
         }
       ],
       "exercises": [
@@ -872,9 +1204,9 @@
       "estimatedMinutes": 15,
       "difficulty": 3,
       "objectives": [
-        "说清为什么「能执行动作的 Agent」比聊天机器人危险得多",
-        "能列举主要风险（注入/越权/泄露/不可逆）并给出对应防护",
-        "理解最小权限、沙箱、HITL、审计日志四件套如何落地"
+        "理解 Agent 对齐（Alignment）要解决「目标与行为一致」",
+        "能写一个基于原则的约束检查器（宪法式护栏）",
+        "知道对齐是「持续对抗」，不是一次配置"
       ],
       "content": [
         {
@@ -1032,6 +1364,89 @@
               "text": "当一个需求你只说了一半，Agent 是「停下来问你」还是「自作主张做完」？前者更接近对齐。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "对齐 = 让 Agent 的行为符合人的意图与底线",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "模型越强，越容易「聪明地做错事」——为达目标走捷径、钻空子、越界。对齐要解决的问题是：Agent 的目标与行为，是否始终符合人的真实意图与道德/法律底线。工程上常用「宪法式护栏」：把一组原则（不伤害、诚实、守权限）写成可执行的约束，每次动作前过一遍检查；再配合 RLHF/红队持续对抗发现漏洞。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s6_5_alignment.py",
+            "language": "python",
+            "title": "宪法式护栏：按原则检查动作",
+            "highlightLines": [
+              4,
+              9
+            ],
+            "code": "PRINCIPLES = [\"不伤害\", \"诚实\", \"守权限\"]\n\ndef check(action):\n    for p in PRINCIPLES:\n        if violates(p, action):\n            return False, \"违反：\" + p\n    return True, \"通过\"\n\ndef violates(principle, action):\n    if principle == \"不伤害\" and \"删除\" in action:\n        return True\n    return False\n\nif __name__ == \"__main__\":\n    print(check(\"删除全部数据\"))\n    print(check(\"查询天气\"))",
+            "output": "(False, '违反：不伤害')\n(True, '通过')",
+            "note": "PRINCIPLES 是宪法；check 逐条过，violates 判具体违反。真实场景原则更细且由模型+规则共判。p/principle/action 均被引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "对齐是持续对抗",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "写一次护栏不等于永远安全。新能力会引入新漏洞（如新工具可被越权调用），红队测试、用户反馈、线上监控要持续喂回原则库。对齐是过程，不是配置项。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "手段",
+              "作用",
+              "局限"
+            ],
+            "rows": [
+              [
+                "宪法护栏",
+                "硬性底线",
+                "原则要全"
+              ],
+              [
+                "RLHF",
+                "对齐偏好",
+                "主观"
+              ],
+              [
+                "红队",
+                "发现漏洞",
+                "滞后"
+              ],
+              [
+                "监控",
+                "线上纠偏",
+                "事后"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**金融**：交易严守合规底线；**医疗**：不越权给诊断；**内容**：不生成有害信息；**企业**：不越权碰数据"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：一次配置管终身",
+          "text": "模型升级、新工具上线都会带来新越权路径。对齐要持续红队+监控+反馈回流，不是写一次护栏就高枕无忧。"
         }
       ],
       "exercises": [
@@ -1104,9 +1519,9 @@
       "estimatedMinutes": 15,
       "difficulty": 2,
       "objectives": [
-        "理解「Agent 经济」指 Agents 作为自主市场主体去发现需求、协商与交易",
-        "能描述一个最小「按调用计费」的 Agent 服务市场骨架",
-        "意识到信任与结算（身份/可验证执行/支付）是 Agent 经济的基础设施"
+        "理解「Agent 经济」= Agent 作为可交易的服务单元",
+        "能写一个最小 Agent 市场匹配器（任务->报价->派单）",
+        "知道市场化带来的新问题：信任、计价、问责"
       ],
       "content": [
         {
@@ -1240,6 +1655,84 @@
               }
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "当 Agent 能「接单赚钱」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 经济指：把一个个专用 Agent 当成「可被发现、可调用、可计价」的服务单元，放在市场里按任务匹配。用户发任务，市场按能力+报价派给最合适的 Agent，完成后按用量计费。它把「用 Agent」从「自己养一个」变成「按需调用」，类似把算力做成云。前提是解决信任（它靠谱吗）、计价（多少钱合理）、问责（出事了谁负责）。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s6_6_market.py",
+            "language": "python",
+            "title": "最小 Agent 市场：任务->报价->派单",
+            "highlightLines": [
+              4,
+              6
+            ],
+            "code": "AGENTS = {\"写作\": 0.5, \"翻译\": 0.3, \"编码\": 0.9}\n\ndef bid(task, budget):\n    if task in AGENTS and AGENTS[task] <= budget:\n        return \"派单：\" + task + \" 报价 \" + str(AGENTS[task])\n    return \"无合适 Agent 或超预算\"\n\nif __name__ == \"__main__\":\n    print(bid(\"编码\", 1.0))",
+            "output": "派单：编码 报价 0.9",
+            "note": "AGENTS 存报价；bid 校验能力与预算。真实市场还要声誉/计价/结算。task/budget 被引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "市场化的三道坎",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "①信任：怎么证明一个陌生 Agent 靠谱？靠声誉/评测/押金。②计价：按 token、按次、还是按结果？不同模式激励不同行为。③问责：Agent 替你做了错事，责任在谁？这三条不解决，市场就转不起来。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "问题",
+              "解法",
+              "难点"
+            ],
+            "rows": [
+              [
+                "信任",
+                "声誉/评测",
+                "刷分"
+              ],
+              [
+                "计价",
+                "按结果计费",
+                "归因难"
+              ],
+              [
+                "问责",
+                "身份+日志",
+                "跨境"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**API 市场**：专用 Agent 上架按次调；**企业内部**：部门间按用量结算；**众包**：任务广播给多个 Agent 竞标"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：只看价格不看声誉",
+          "text": "市场化里最低价 Agent 可能最不靠谱。匹配要同时看报价与声誉/评测分，否则省了钱赔了质量。"
         }
       ],
       "exercises": [
@@ -1313,9 +1806,9 @@
       "estimatedMinutes": 15,
       "difficulty": 2,
       "objectives": [
-        "能列举当前主流开源 Agent 框架及其侧重（编排/运行时/检索/编程式）",
-        "理解 MCP / A2A / AG-UI 等互操作标准在解决什么问题",
-        "知道如何在「框架爆炸」中保持定力：固定信源、建评估集、做取舍"
+        "理解开源生态对 Agent 技术的「加速度」作用",
+        "能写一个最小插件注册表加载器（发现+加载社区 Agent）",
+        "知道选型开源时要看：活跃度、协议、与自有栈的契合"
       ],
       "content": [
         {
@@ -1471,6 +1964,84 @@
               }
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "开源把 Agent 能力「模块化、可复用」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 领域迭代极快，开源生态（框架、工具、预置 Agent、评测集）让团队不必从零造轮子：一个社区写的检索 Agent、一个 MCP 工具集，装上就能用。生态的「加速度」来自：可组合（拼乐高）、可审计（看源码）、可 fork（改了自用）。但选型不能只看 Star，要看协议是否商用友好、是否还活跃、是否与你的栈契合。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s6_7_oss.py",
+            "language": "python",
+            "title": "最小插件注册表：发现并加载社区组件",
+            "highlightLines": [
+              4,
+              6
+            ],
+            "code": "REGISTRY = {\"web-search\": \"v1.2\", \"pdf-read\": \"v0.9\"}\n\ndef load(name):\n    if name in REGISTRY:\n        return name + \"@\" + REGISTRY[name] + \" 已加载\"\n    return \"未找到插件：\" + name\n\nif __name__ == \"__main__\":\n    print(load(\"web-search\"))",
+            "output": "web-search@v1.2 已加载",
+            "note": "REGISTRY 存可用组件与版本；load 按需加载。真实生态用包管理器+签名校验保证来源可信。name 被引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "选型开源的三把尺",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "①活跃度：最近还有提交和 issue 回复吗？停更的项目别上生产。②协议：MIT/Apache 商用友好，AGPL 有传染风险，看清再引。③契合：与你现有的模型/框架/部署是否顺。三者都过才引入。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "维度",
+              "看什么",
+              "红灯"
+            ],
+            "rows": [
+              [
+                "活跃度",
+                "近期提交/issue",
+                "半年无更新"
+              ],
+              [
+                "协议",
+                "是否商用友好",
+                "AGPL 传染"
+              ],
+              [
+                "契合",
+                "与自有栈兼容",
+                "要大改"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**快速验证**：装社区 Agent 跑 spike；**能力补齐**：引 MCP 工具集；**内部沉淀**：把自研组件也开源反哺"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：只看 Star 不选型",
+          "text": "Star 高可能只是营销。真正决定能不能用的是活跃度、协议、与栈的契合度，这三把尺缺一不可。"
         }
       ],
       "exercises": [
@@ -1543,9 +2114,9 @@
       "estimatedMinutes": 10,
       "difficulty": 1,
       "objectives": [
-        "对照前六章，画出一条适合自己的系统学习路径",
-        "知道该优先读哪类资源（文档/论文/博客/课程/开源仓库）",
-        "把「亲手做 + 建评估集 + 写笔记」变成持续成长习惯"
+        "能为「从入门到能建生产 Agent」设计一条可验证的学习路线",
+        "能写一个进度 tracker 量化当前所处阶段",
+        "理解「学完基础后」该往哪些深水区走（多Agent/RAG/评估/安全）"
       ],
       "content": [
         {
@@ -1649,6 +2220,89 @@
               "text": "把文章丢进收藏夹不等于掌握。真正的成长发生在你改坏一次、修好一次、再写进评估集的那一刻。少收藏，多动手。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "路线要「可验证」而非「看完即忘」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 技术更新快，死记版本号没用，要建「能力路线 + 每阶段产出物」。基础阶段产出「会调工具的 Agent」；进阶段产出「多 Agent 协作系统」；生产阶段产出「带评估与护栏的上线 Agent」。每到一个阶段就做一个能跑的东西，比收藏 100 篇文更有用。路线尽头不是「学完」，是「能独立交付生产级 Agent」。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s6_8_roadmap.py",
+            "language": "python",
+            "title": "学习路线进度量化",
+            "highlightLines": [
+              4,
+              5
+            ],
+            "code": "ROADMAP = [\"Agent 架构\", \"多Agent\", \"RAG\", \"评估\", \"部署\", \"安全\"]\n\ndef progress(done):\n    hit = [x for x in done if x in ROADMAP]\n    return round(100 * len(hit) / len(ROADMAP), 1)\n\nif __name__ == \"__main__\":\n    print(progress([\"Agent 架构\", \"多Agent\", \"RAG\"]))",
+            "output": "50.0",
+            "note": "ROADMAP 定义路线；progress 按已完成项算百分比。真实学习用「能否交付对应产出物」判定而非看视频。x/done 被引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "深水区在哪里",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "基础之后，真正的区分度在四个深水区：多 Agent 协作（编排与通信）、RAG（检索质量）、评估（量化好坏）、安全（护栏与对齐）。把这四个啃透，才算从「会用框架」到「能交付可靠系统」。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "阶段",
+              "产出物",
+              "标志"
+            ],
+            "rows": [
+              [
+                "基础",
+                "会调工具的 Agent",
+                "跑通循环"
+              ],
+              [
+                "进阶",
+                "多 Agent 系统",
+                "能协作"
+              ],
+              [
+                "生产",
+                "带评估+护栏",
+                "可上线"
+              ],
+              [
+                "专家",
+                "可观测+可演进",
+                "能长期运维"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**入门**：做个人知识库问答；**进阶**：做多 Agent 开发助手；**生产**：加评估与安全上线；**专家**：建监控与复盘机制"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：囤课不产出",
+          "text": "Agent 是做出来的不是看会的。每个阶段必须有一个能跑的产出物，否则「学了很多」只是错觉。"
         }
       ],
       "exercises": [
