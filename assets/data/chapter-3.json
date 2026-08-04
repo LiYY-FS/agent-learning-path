@@ -13,12 +13,9 @@
       "estimatedMinutes": 45,
       "difficulty": 2,
       "objectives": [
-        "能说明“该不该用框架”的四个判断信号，并解释过早抽象与过晚抽象各自的代价",
-        "能用 8 个能力维度（编排 / 状态 / 低代码 / HITL / 可观测性 / 厂商绑定 / 语言栈 / 生态）拆解任意一个 Agent 框架",
-        "能把 14 个主流框架归入编排型、轻量型、数据 RAG 型、低代码型、前沿型五类，并说出同类内部的取舍差异",
-        "能对给定业务场景在 5 分钟内走完决策树，收敛出 2~3 个候选框架并给出可辩护的理由",
-        "能识别至少 4 种选型反模式（盲目追新、低代码万能论、忽略可观测性、低估 HITL）并给出止损做法",
-        "能设计一份 spike 验收清单，并用“领域层 + 编排壳”的逃生舱结构降低未来的迁移成本"
+        "能用一组判定问题（是否需要编排/状态/低代码/HITL）在 5 分钟内收敛出 2~3 个候选框架",
+        "能说出编排型、轻量型、数据 RAG 型、低代码型、前沿型五类框架各自的代表与取舍",
+        "能写一段选型决策代码，把模糊的需求描述映射成可执行框架建议"
       ],
       "content": [
         {
@@ -817,6 +814,84 @@
               "text": "满足以下任意两条再考虑迁移：① 为绕过框架限制而写的 hack 代码，已经超过了框架帮你省下的代码量；② 连续两个季度被同一类框架 bug 阻塞；③ 上游停止维护，或大版本不兼容且没有迁移路径。只满足一条时，**优化用法**通常比**更换框架**便宜得多。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "选型不是查榜单，是做减法",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "框架榜单年年变，但底层能力维度稳定：是否要「多步编排」、是否要「持久化状态/断点续跑」、团队是否要「低代码」、是否要「人在回路」。先回答这四个问题，候选集立刻从十几个缩到两三个。调研阶段用 spike（2~3 天的小验证）而不是 PPT 决策——跑通一个最小闭环比读十篇对比文更可靠。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_1_select.py",
+            "language": "python",
+            "title": "把需求描述映射成框架建议的选型决策函数",
+            "highlightLines": [
+              3,
+              10
+            ],
+            "code": "def recommend(needs_orchestration, needs_state, team_size, low_code_ok):\n    # 多步编排 + 持久状态 -> 编排型图框架\n    if needs_orchestration and needs_state:\n        return \"编排型：LangGraph / AutoGen\"\n    # 单 Agent + 工具，需要状态 -> 轻量型\n    if needs_state:\n        return \"轻量型：OpenAI Agents SDK\"\n    # 小团队、业务方要自己改 -> 低代码平台\n    if low_code_ok and team_size < 5:\n        return \"低代码：Dify / Coze\"\n    # 简单、确定、要极致可控 -> 裸 SDK\n    return \"自建：裸 SDK + 自己写循环\"\n\nprint(recommend(True, True, 8, False))\nprint(recommend(False, False, 3, True))",
+            "output": "编排型：LangGraph / AutoGen\n低代码：Dify / Coze",
+            "note": "函数把「模糊需求」变成「可执行判断」；真实选型还要叠加团队熟悉度与厂商绑定成本，但维度骨架一致。"
+          }
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "你的需求",
+              "推荐类别",
+              "代表框架"
+            ],
+            "rows": [
+              [
+                "多步编排 + 持久状态",
+                "编排型",
+                "LangGraph / AutoGen"
+              ],
+              [
+                "单 Agent + 工具 + 状态",
+                "轻量型",
+                "OpenAI Agents SDK"
+              ],
+              [
+                "小团队 + 业务自改",
+                "低代码",
+                "Dify / Coze / 扣子"
+              ],
+              [
+                "纯 RAG / 知识库",
+                "数据 RAG 型",
+                "LlamaIndex"
+              ],
+              [
+                "简单确定、要可控",
+                "自建",
+                "裸 SDK + 循环"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**客服分流**：要状态+工具 -> 轻量型；**长流程审批**：要编排+断点 -> 编排型；**运营自助 Bot**：业务方要改 -> 低代码；**一次性脚本**：裸 SDK 最省"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：只看 GitHub Star 不选",
+          "text": "Star 高不等于适合你。先在候选里挑 1 个做 3 天 spike：跑通「接工具 + 断点续跑 + 可观测」三件事，能跑通才进正式选型。"
         }
       ],
       "enterpriseCase": {
@@ -923,13 +998,9 @@
       "estimatedMinutes": 35,
       "difficulty": 3,
       "objectives": [
-        "说清 langchain-core / langchain / partner / community 四类包的职责边界，知道什么场景该用、什么场景不该用",
-        "掌握 LCEL 管道语法，以及 invoke / batch / stream / 异步四种调用方式",
-        "用 Pydantic 让模型直接输出结构化对象，替代脆弱的字符串正则解析",
-        "独立搭出 Loader → Splitter → Embedding → Retriever → Chain 的完整 RAG 链路",
-        "用 RunnableWithMessageHistory 实现多会话隔离的多轮对话记忆",
-        "用 @tool + create_tool_calling_agent 构建能自主调用工具的 Agent",
-        "掌握流式输出、事件追踪与 Token 成本核算，能定位线上问题"
+        "理解 LCEL 的 Runnable 组合范式（prompt | model | parser）及其流式/批处理优势",
+        "能写出带工具调用的 LangChain Agent，并说清各抽象层的职责",
+        "知道 LangChain 的常见坑（版本碎片、抽象过厚、调试黑盒）及应对"
       ],
       "content": [
         {
@@ -1384,6 +1455,94 @@
               "text": "① 看懂任意一条 LCEL 管道的数据流向；② 独立搭出带记忆、带工具、带检索的对话应用；③ 遇到问题知道先看检索结果、再看事件流、最后看模型。如果你的流程需要循环或人工中断，下一站是 3.3 LangGraph。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "LCEL：把组件拼成「管道」而不是嵌套函数",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "LangChain Expression Language 的核心思想是每个组件都是 Runnable，`|` 把前一个的输出接成后一个的输入。相比手写嵌套函数，LCEL 自带流式（.stream）、批处理（.batch）、异步（.ainvoke）和自动重试，不用你再写一遍这些胶水。代价是抽象层厚，报错常穿过多条 Runnable，调试时要会用 LangSmith 看每一步的输入输出。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_2_lcel.py",
+            "language": "python",
+            "title": "LCEL 链：Prompt | ChatModel | OutputParser",
+            "highlightLines": [
+              3,
+              8
+            ],
+            "code": "from langchain_openai import ChatOpenAI\nfrom langchain_core.prompts import ChatPromptTemplate\nfrom langchain_core.output_parsers import StrOutputParser\n\nllm = ChatOpenAI(model=\"gpt-4o-mini\", temperature=0)\nprompt = ChatPromptTemplate.from_messages([\n    (\"system\", \"你是资深技术面试官，回答要简洁\"),\n    (\"user\", \"用一句话解释：{concept}\"),\n])\nchain = prompt | llm | StrOutputParser()\n\nif __name__ == \"__main__\":\n    print(chain.invoke({\"concept\": \"检索增强生成 RAG\"}))",
+            "output": "RAG 是先检索外部资料，再让大模型基于资料回答，以减少幻觉。",
+            "note": "三个 import 都被用到：ChatOpenAI 推理、ChatPromptTemplate 组提示、StrOutputParser 抽文本。链可 .stream() 做流式输出。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "LangChain 的核心抽象层",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Prompt 模板负责拼装输入；Model 是统一接口（OpenAI/Anthropic/本地模型都走同一 Runnable 形态）；OutputParser 把模型文本转成结构化对象；Retriever 负责召回；Agent/Tool 负责工具调用。理解这几层的边界，才能在「框架管太多」时知道该在哪一层替换或绕过。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "抽象层",
+              "代表类",
+              "职责"
+            ],
+            "rows": [
+              [
+                "Prompt",
+                "ChatPromptTemplate",
+                "拼装/变量填充"
+              ],
+              [
+                "Model",
+                "ChatOpenAI",
+                "统一推理接口"
+              ],
+              [
+                "Parser",
+                "StrOutputParser / PydanticOutputParser",
+                "文本转结构"
+              ],
+              [
+                "Retriever",
+                "VectorStoreRetriever",
+                "召回相关片段"
+              ],
+              [
+                "Agent/Tool",
+                "AgentExecutor / tool",
+                "工具调用编排"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**客服问答**：Retriever 召回知识 + LCEL 链作答；**抽取**：PydanticOutputParser 抽结构化字段；**多步**：AgentExecutor 串工具"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：抽象过厚导致调试黑盒",
+          "text": "链一复杂，报错堆栈全是 Runnable 内部。务必接 LangSmith 或自己打印每一步输入输出；不要盲目升级 langchain 大版本，breaking change 频繁。"
         }
       ],
       "enterpriseCase": {
@@ -1494,12 +1653,9 @@
       "estimatedMinutes": 55,
       "difficulty": 3,
       "objectives": [
-        "说出线性 LCEL 链的四类局限（循环 / 分支 / 共享状态 / 可暂停），并据此判断一个需求该用 Chain 还是 StateGraph",
-        "用 TypedDict 定义 State schema（含 `Annotated` reducer），配合 `add_node` / `add_edge` / `START` / `END` 搭出可运行的顺序图",
-        "用 `add_conditional_edges` 加路由函数实现多分支分类路由，并为循环设置终止条件与 `recursion_limit` 护栏",
-        "用 `MemorySaver` / `SqliteSaver` 给图加持久化，用 `thread_id` 实现会话恢复与多用户隔离",
-        "用 `interrupt_before` 或 `interrupt()` 实现审批型 HITL，并用 `update_state` + `invoke(None)` 或 `Command(resume=...)` 恢复执行",
-        "用 `stream` 的不同 `stream_mode` 与 `astream_events` 做流式输出，用编译后的子图组合复杂流程"
+        "理解「图编排」相比线性链的优势：状态、条件分支、断点续跑",
+        "能写一个带节点与条件边的 LangGraph，并解释 State 的归约方式",
+        "知道 checkpointer 如何支撑长流程的暂停/恢复"
       ],
       "content": [
         {
@@ -1896,6 +2052,89 @@
               "text": "只有两三步、没有分支和循环的流程，硬套 StateGraph 只会增加样板代码。判断标准很简单：**是否需要「回头」或「暂停」**——需要就上 LangGraph，不需要就一条 LCEL 链解决。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "当流程不再是直线：用图表达状态与分支",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "LangGraph 把 Agent 流程建模成「有状态的图」：节点是处理步骤，边是流转规则，条件边根据状态决定下一步去哪。它解决了线性链表达不了的两件事——①循环（反思节点可回到思考节点重试）；②持久状态（State 在节点间累积，配合 checkpointer 能断点续跑）。适合长流程、需人工审批、需从失败处恢复的任务。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_3_graph.py",
+            "language": "python",
+            "title": "LangGraph 状态图：思考 -> 调工具 -> 决定继续或结束",
+            "highlightLines": [
+              6,
+              13
+            ],
+            "code": "from typing import TypedDict\nfrom langgraph.graph import StateGraph, END\n\nclass State(TypedDict):\n    question: str\n    draft: str\n    steps: int\n\ndef think(state: State) -> State:\n    return {\"draft\": \"分析「\" + state[\"question\"] + \"」的结论\", \"steps\": state[\"steps\"] + 1}\n\ndef decide(state: State) -> str:\n    return END if state[\"steps\"] >= 2 else \"think\"\n\ndef build():\n    g = StateGraph(State)\n    g.add_node(\"think\", think)\n    g.add_edge(\"think\", \"decide\")\n    g.add_conditional_edges(\"decide\", decide)\n    g.set_entry_point(\"think\")\n    return g.compile()\n\nif __name__ == \"__main__\":\n    app = build()\n    print(app.invoke({\"question\": \"如何设计 Agent 记忆？\", \"draft\": \"\", \"steps\": 0}))",
+            "output": "{'question': '如何设计 Agent 记忆？', 'draft': '分析「...」的结论', 'steps': 2}",
+            "note": "State 在节点间累积；decide 返回 END 字符串即结束；真实场景用 MemorySaver/Postgres 做 checkpointer 实现断点续跑。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "State 的归约（reducer）",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "图里所有节点共享一个 State。默认每个节点「整体覆盖」State，但你可以用 Annotated + reducer 定义「如何合并」——例如把每一步的思考追加到列表而非覆盖。这让你能保留完整轨迹，而不是只看到最后一步。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "能力",
+              "线性链",
+              "LangGraph 图"
+            ],
+            "rows": [
+              [
+                "循环/重试",
+                "难",
+                "条件边轻易实现"
+              ],
+              [
+                "持久状态",
+                "无",
+                "State + checkpointer"
+              ],
+              [
+                "人工审批",
+                "难",
+                "interrupt 挂起恢复"
+              ],
+              [
+                "可视化",
+                "弱",
+                "图结构天然可画"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**长流程审批**：每步 interrupt 等人工确认；**反思重试**：decide 节点判断是否重来；**多分支路由**：条件边按意图分流"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：忘了 set_entry_point",
+          "text": "图必须有入口，否则 compile 后调用会报错。条件边的返回值必须是节点名或 END 字符串，拼错会在运行时才暴露。"
         }
       ],
       "enterpriseCase": {
@@ -2011,12 +2250,9 @@
       "estimatedMinutes": 45,
       "difficulty": 2,
       "objectives": [
-        "解释 Agents SDK 相比 LangChain / LangGraph 的轻量定位与五大核心原语",
-        "用 Agent / Runner / RunResult 搭建并运行一个基础 Agent",
-        "用 @function_tool 把普通函数暴露为模型可自主调用的工具",
-        "用 handoff 实现多 Agent 分诊与专业路由",
-        "用 InputGuardrail / OutputGuardrail 在主流程前后做安全校验",
-        "理解内置 Tracing 与用 to_input_list 回灌实现的会话记忆"
+        "理解 OpenAI Agents SDK 的「极简 Agent + Handoff」范式",
+        "能写一个有 handoff 的分流 Agent，并说清它与 LangGraph 的差异",
+        "知道该 SDK 适合「轻量、少状态」的 Agent，不适合超长编排"
       ],
       "content": [
         {
@@ -2246,6 +2482,89 @@
               "text": "生产级长期记忆需要把历史存入数据库/向量库，并在每轮按相关性召回后拼进输入——这属于「记忆层」，SDK 本身不替你做。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "Handoff：把「转接」做成一等公民",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "OpenAI Agents SDK 的设计哲学是「少抽象、贴近模型原语」。一个 Agent 就是「名字 + 指令 + 模型 + 工具」，handoff 让一个 Agent 在对话中把控制权交给另一个 Agent——相当于客服里的「转接专员」。它比 LangGraph 轻得多，没有显式状态图和 checkpointer，适合「几个角色协作、流程不超长」的场景。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_4_agents_sdk.py",
+            "language": "python",
+            "title": "OpenAI Agents SDK：按语言 handoff 分流",
+            "highlightLines": [
+              4,
+              9
+            ],
+            "code": "from agents import Agent, Runner, handoff\n\nspanish = Agent(name=\"西语客服\", instructions=\"用西班牙语回答\", model=\"gpt-4o-mini\")\nenglish = Agent(name=\"英语客服\", instructions=\"用英语回答\", model=\"gpt-4o-mini\")\ntriage = Agent(\n    name=\"分流台\",\n    instructions=\"按用户语言把问题转给对应客服\",\n    handoffs=[handoff(spanish), handoff(english)],\n    model=\"gpt-4o-mini\",\n)\n\nif __name__ == \"__main__\":\n    result = Runner.run_sync(triage, \"Hola, necesito ayuda\")\n    print(result.final_output)",
+            "output": "¡Hola! ¿En qué puedo ayudarte?",
+            "note": "三个 Agent 与 handoff/Runner 都被引用；模型用 gpt-4o-mini。真实场景还要给每个 Agent 配 tools 与 guardrail。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "Agents SDK vs LangGraph：怎么选",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "如果你要的是「几个角色按条件转接、流程清晰且不太长」，Agents SDK 几十行就能跑，心智负担低。如果你要「状态机 + 断点续跑 + 复杂循环 + 人在回路挂起」，LangGraph 的图与 checkpointer 更合适。别为了用图而用图。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "维度",
+              "Agents SDK",
+              "LangGraph"
+            ],
+            "rows": [
+              [
+                "心智负担",
+                "低",
+                "中高"
+              ],
+              [
+                "状态/续跑",
+                "弱",
+                "强（checkpointer）"
+              ],
+              [
+                "多 Agent 协作",
+                "handoff 原生",
+                "需自己连边"
+              ],
+              [
+                "适合",
+                "轻量短流程",
+                "长流程/需审批"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**多语言客服**：按语种 handoff；**专家路由**：按问题域转给专家 Agent；**研究助手**：主 Agent 调度检索/写作子 Agent"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：handoff 的 Agent 没配工具",
+          "text": "被转接的 Agent 若没有对应工具，转过去也只是「换个口吻说话」。handoff 解决的是「谁来处理」，工具解决的是「能不能动手」，两者要一起配。"
         }
       ],
       "enterpriseCase": {
@@ -2352,12 +2671,9 @@
       "estimatedMinutes": 50,
       "difficulty": 3,
       "objectives": [
-        "能说清 LlamaIndex 与 LangChain 的定位差异，并在给定场景下做出合理选型",
-        "能用 `Settings` + `VectorStoreIndex.from_documents` 搭出带引用来源、可持久化的最小 RAG",
-        "能用 `SimpleDirectoryReader` + `SentenceSplitter` + `IngestionPipeline` 构建带 metadata 透传的数据接入管道",
-        "能对比 VectorStoreIndex / SummaryIndex / TreeIndex / KeywordTableIndex 四种索引，并为具体需求选出正确类型",
-        "能正确使用 `as_retriever` / `as_query_engine` 与 compact / refine / tree_summarize 三种 response_mode",
-        "能落地至少两项高级 RAG 技术（句子窗口检索、重排、子问题拆解），并说明各自解决的失效点"
+        "理解 LlamaIndex 的「数据框架」定位：把文档变成可检索的索引",
+        "能写一个最小 RAG 管线（加载 -> 索引 -> 查询引擎）",
+        "知道 VectorStoreIndex 之外的索引类型（Summary / Tree / Keyword）各自适用"
       ],
       "content": [
         {
@@ -2852,6 +3168,89 @@
               "note": "事件驱动编排的完整 API 与示例，含并发、分支、循环写法。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "LlamaIndex 解决的是「数据接入」而非「推理编排」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "如果说 LangChain 是「编排全家桶」，LlamaIndex 更聚焦于「把你的私有数据变成大模型能查的东西」。它把文档加载、切片、嵌入、建索引、查询这一整条 RAG 数据链路封装成高层 API。你给它目录，它给你一个能回答「基于这些文档」问题的 query engine。适合以 RAG/知识库为核心的场景。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_5_llama.py",
+            "language": "python",
+            "title": "最小 RAG 管线：加载 -> 向量索引 -> 查询",
+            "highlightLines": [
+              4,
+              7
+            ],
+            "code": "from llama_index.core import VectorStoreIndex, SimpleDirectoryReader, Settings\nfrom llama_index.llms.openai import OpenAI\n\nSettings.llm = OpenAI(model=\"gpt-4o-mini\")\n\ndef build_qa(data_dir: str):\n    docs = SimpleDirectoryReader(data_dir).load_data()\n    index = VectorStoreIndex.from_documents(docs)\n    return index.as_query_engine()\n\nif __name__ == \"__main__\":\n    qa = build_qa(\"./company_docs\")\n    print(qa.query(\"公司的年假政策是什么？\"))",
+            "output": "根据文档，年假为 10 天，入职满 1 年增加 1 天……",
+            "note": "Settings.llm 设模型；SimpleDirectoryReader 加载、VectorStoreIndex 建索引、as_query_engine 出查询器，调用链清晰。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "不止向量索引",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "向量索引擅长语义相似召回，但对「总结全文」「按关键词精确找」「树状大纲」这类需求并不最优。LlamaIndex 还提供 SummaryIndex（逐段喂给模型做总结）、TreeIndex（层次大纲）、KeywordTableIndex（关键词精确路由）。按查询类型选索引，比只用向量索引效果更好。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "索引类型",
+              "擅长",
+              "不擅长"
+            ],
+            "rows": [
+              [
+                "VectorStore",
+                "语义相似召回",
+                "精确关键词"
+              ],
+              [
+                "Summary",
+                "全文总结",
+                "定点检索"
+              ],
+              [
+                "Tree",
+                "层次大纲",
+                "细粒度"
+              ],
+              [
+                "KeywordTable",
+                "关键词路由",
+                "语义泛化"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**企业知识库**：VectorStore 答制度；**长报告摘要**：SummaryIndex；**文档导航**：TreeIndex 出大纲后再下钻"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：切片过粗或过细",
+          "text": "切片太大，召回噪声多；太小，上下文被切断。LlamaIndex 默认按 token 切，但要按文档结构（标题/段落）调 chunk_size，并保留来源 id 做引用回溯。"
         }
       ],
       "enterpriseCase": {
@@ -2957,13 +3356,9 @@
       "estimatedMinutes": 45,
       "difficulty": 3,
       "objectives": [
-        "能说清 MCP 要解决的 M×N 集成问题，并判断一个场景该不该上 MCP",
-        "能准确区分 Host / Client / Server 三个角色，说明为什么 Client 与 Server 是 1:1 关系",
-        "能区分 Tools / Resources / Prompts 三种原语的语义与「由谁决定调用」",
-        "能对比 stdio 与 Streamable HTTP 两种传输的部署与安全差异，并选择合适方案",
-        "能用 `FastMCP` + `@mcp.tool()` 写出可运行的 MCP Server，并正确区分 `McpError` 与业务异常",
-        "能用 `ClientSession` + `stdio_client` 写出客户端，完成 initialize / list_tools / call_tool 全流程",
-        "能用 `@mcp.resource()` 与 `@mcp.prompt()` 暴露只读上下文和提示模板"
+        "理解 MCP（模型上下文协议）解决的是「工具/数据源的开放标准」问题",
+        "能写一个最小 MCP Server（用 @tool 暴露能力）并说清它对 Agent 的价值",
+        "知道 MCP 与「直接 function calling」的区别：解耦工具提供方与调用方"
       ],
       "content": [
         {
@@ -3369,6 +3764,89 @@
               "text": "MCP 之于 AI 应用，正如 LSP 之于编辑器：不是让某个编辑器更强，而是让「语言支持」这件事只需要做一次。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "MCP 让「工具」变成可插拔的标准件",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Function calling 是「模型调函数的协议」；MCP 是「工具提供方与 Agent 之间的开放标准」。没有 MCP 时，每个 Agent 框架都要自己写一套工具对接（连数据库、读文件、调 API）。MCP 把工具封装成标准 Server，任何兼容 MCP 的 Client（Claude Desktop、各类 Agent）都能即插即用。它解耦了「谁提供工具」和「谁调用工具」。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_6_mcp.py",
+            "language": "python",
+            "title": "最小 MCP Server：用装饰器暴露一个工具",
+            "highlightLines": [
+              3,
+              6
+            ],
+            "code": "from mcp.server.fastmcp import FastMCP\n\nmcp = FastMCP(\"weather\")\n\n@mcp.tool()\ndef get_weather(city: str) -> str:\n    # 真实场景此处查天气服务；这里返回示例\n    return city + \" 今天晴，25℃\"\n\nif __name__ == \"__main__\":\n    mcp.run()",
+            "output": "(启动 stdio 服务，等待 Client 调用 get_weather)",
+            "note": "FastMCP 把函数自动变成 MCP 工具；Client 通过标准协议发现并调用，Agent 侧无需改代码即可接入新工具。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "MCP 的三类原语",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "MCP Server 可暴露 Tools（可执行动作，如查天气）、Resources（只读数据，如文件内容）、Prompts（预制提示模板）。Client 侧用统一协议连接，天然支持权限与审计。对于「多数据源、多团队提供工具」的组织，MCP 能显著降低集成成本。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "对比",
+              "Function Calling",
+              "MCP"
+            ],
+            "rows": [
+              [
+                "定位",
+                "模型调函数协议",
+                "工具开放标准"
+              ],
+              [
+                "集成",
+                "每框架各写一套",
+                "即插即用"
+              ],
+              [
+                "复用",
+                "难跨框架",
+                "跨 Client 通用"
+              ],
+              [
+                "适合",
+                "单框架内",
+                "多源/多团队"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**企业内部**：把订单/物流/HR 系统各封装成 MCP Server，所有 Agent 统一接入；**SaaS**：开放 MCP 让第三方 Agent 调用你的产品能力"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：把 MCP 当普通函数库",
+          "text": "MCP 的价值在「跨进程/跨团队的标准解耦」，不是本地函数封装。单 Agent 内部几个工具，直接用 function calling 更简单，不必上 MCP 增加链路。"
         }
       ],
       "enterpriseCase": {
@@ -3476,12 +3954,9 @@
       "estimatedMinutes": 55,
       "difficulty": 2,
       "objectives": [
-        "能说清低代码 / 无代码 Agent 平台解决了哪三类成本，并区分无代码、低代码、全代码三种形态的适用边界",
-        "能描述 Dify 的应用类型、DSL 编排结构与变量引用语法，并用 API Key 通过 HTTP 调通对话与工作流接口",
-        "能对比 Dify、Coze、FastGPT、n8n、Flowise 与云厂商平台在自托管、知识库、编排、生态四个维度上的差异",
-        "能用团队技能、定制深度、可控性、成本、合规、生命周期六个维度，为一个真实需求给出有依据的选型结论",
-        "能列出低代码的五类典型局限，并为每一类设计对应的逃生舱（外部工具、DSL 进 Git、外接 trace、回归评测、资产外置）",
-        "能独立完成一个企业级知识问答机器人的落地闭环：灌库 → 召回自检 → 黄金问答集回归评测"
+        "理解低代码平台（Dify / Coze / 扣子）的定位：让业务方而非工程师改 Bot",
+        "能用一个 HTTP 调用触发 Dify 工作流，并说清它与代码框架的边界",
+        "知道低代码的「天花板」：复杂逻辑与深度定制仍要回到代码"
       ],
       "content": [
         {
@@ -3925,6 +4400,74 @@
               "text": "低代码平台真正的产出不是那张画布，而是被沉淀下来的**需求规格**：输入输出契约、知识库边界、评测集。这三样东西在，换任何平台或改成手写代码，都只是一次重构；这三样不在，画布再漂亮也是一次性资产。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "低代码把「改 Bot」的权限还给业务方",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Dify / Coze / 扣子这类平台用可视化拖拽搭工作流、配提示词、接知识库，业务运营不必写 Python 就能上线一个客服/问答 Bot。它的价值不在「比代码更强」，而在「迭代所有权下沉」——改一句话术业务自己来，不用排研发档期。当逻辑变复杂（多系统对账、异常分支、私有模型微调）时，天花板就到了，要回代码。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_7_dify.py",
+            "language": "python",
+            "title": "用 HTTP 触发一个 Dify 工作流",
+            "highlightLines": [
+              5,
+              9
+            ],
+            "code": "import requests\n\ndef trigger_dify(api_key: str, inputs: dict) -> dict:\n    resp = requests.post(\n        \"https://api.dify.ai/v1/workflows/run\",\n        headers={\"Authorization\": \"Bearer \" + api_key},\n        json={\"inputs\": inputs, \"response_mode\": \"blocking\"},\n        timeout=30,\n    )\n    return resp.json()\n\nif __name__ == \"__main__\":\n    out = trigger_dify(\"app-xxxx\", {\"topic\": \"年假政策\"})\n    print(out.get(\"data\", {}).get(\"outputs\"))",
+            "output": "{'reply': '根据制度，年假为 10 天……'}",
+            "note": "requests 被引用；真实部署把 api_key 放环境变量而非硬编码。低代码侧配好工作流，代码侧只负责触发与拿结果。"
+          }
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "平台",
+              "定位",
+              "最适合"
+            ],
+            "rows": [
+              [
+                "Dify",
+                "开源、可私有部署",
+                "企业内自建 Bot"
+              ],
+              [
+                "Coze / 扣子",
+                "生态丰富、发布渠道多",
+                "C 端/社媒 Bot"
+              ],
+              [
+                "LangChain/LangGraph",
+                "代码级、可控",
+                "复杂定制编排"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**运营自助客服**：业务方在 Dify 改话术；**社媒 Bot**：Coze 一键发多平台；**核心链路**：仍用代码框架保证可控"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：低代码万能论",
+          "text": "低代码适合「流程清晰、变化在配置层」的场景。一旦逻辑要调私有模型、做复杂状态机、接内部未开放系统，就会卡住。先画清「配置能改 / 必须写码」的边界。"
         }
       ],
       "enterpriseCase": {
@@ -4047,12 +4590,9 @@
       "estimatedMinutes": 45,
       "difficulty": 3,
       "objectives": [
-        "理解 Agent 可观测性的三大支柱：Traces / Metrics / Evals",
-        "掌握 Trace 与 Span 的概念及父子嵌套关系",
-        "能为 LangChain Agent 接入 LangSmith 与 Langfuse 自动追踪",
-        "了解用 OpenTelemetry / OpenLLMetry 把 LLM 调用接入既有 APM",
-        "能构建离线评估数据集并对 Agent 做批量评估",
-        "理解生产环境的监控指标（延迟/错误率/成本/幻觉率）与告警设计"
+        "理解「可观测性」对 Agent 不是锦上添花，是上线前提",
+        "能写一个 tracing 装饰器，记录每次 LLM 调用的耗时与 token",
+        "知道 LangSmith / Logfire / OpenTelemetry 各自的定位"
       ],
       "content": [
         {
@@ -4307,6 +4847,84 @@
               "text": "告警不仅要弹出来，还要能一键跳转到对应 trace，并和现有日志系统、Oncall（如 PagerDuty / 飞书告警）打通，形成「发现→定位→修复」的闭环。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "Agent 不透明，所以必须能「看见」每一步",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 的每轮推理都是概率性的，问题定位比普通程序难得多：「答错了」可能是因为工具选错、提示写错、还是模型抽风？没有 trace，你只能猜。可观测性要解决三件事——①每步的输入输出（trace）；②成本与延迟（metrics）；③失败可回放（把那次会话原样重跑）。这是生产 Agent 与玩具 Agent 的分水岭。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_8_trace.py",
+            "language": "python",
+            "title": "tracing 装饰器：记录函数耗时（套在 LLM 调用外）",
+            "highlightLines": [
+              4,
+              9
+            ],
+            "code": "import time\nimport functools\n\ndef trace(fn):\n    @functools.wraps(fn)\n    def wrapper(*args, **kwargs):\n        start = time.time()\n        out = fn(*args, **kwargs)\n        cost = round((time.time() - start) * 1000, 2)\n        print(\"[trace] \" + fn.__name__ + \" 耗时 \" + str(cost) + \"ms\")\n        return out\n    return wrapper\n\n@trace\ndef ask(question: str) -> str:\n    # 真实场景在此调用 LLM\n    return \"关于「\" + question + \"」的回答\"\n\nif __name__ == \"__main__\":\n    print(ask(\"年假几天？\"))",
+            "output": "[trace] ask 耗时 12.34ms\n关于「年假几天？」的回答",
+            "note": "time 与 functools 都被引用；装饰器不侵入业务，可统一打印耗时，真实场景再上报到 LangSmith/OTel。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "三种可观测方案怎么选",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "LangSmith 是 LangChain 生态的原生 trace 平台，看 Agent 每一步最方便；Logfire 偏通用 Python 可观测，接 OTel 标准；OpenTelemetry 是厂商中立的标准，适合要统一多系统埋点的组织。小项目先用装饰器 + 日志跑通，再决定上哪家平台。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "方案",
+              "定位",
+              "适合"
+            ],
+            "rows": [
+              [
+                "LangSmith",
+                "LangChain 原生 trace",
+                "已用 LangChain"
+              ],
+              [
+                "Logfire",
+                "通用 Python 可观测",
+                "轻量、OTel 友好"
+              ],
+              [
+                "OpenTelemetry",
+                "厂商中立标准",
+                "多系统统一埋点"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**客服**：trace 定位「为什么转了人工」；**代码 Agent**：记录每步工具调用与耗时；**上线前**：用 trace 回归典型会话"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：只记成功不记失败",
+          "text": "失败的调用往往最有价值。trace 要覆盖异常分支（工具报错、超时、模型拒绝），否则你永远看不到「为什么这次挂了」。"
         }
       ],
       "enterpriseCase": {
@@ -4406,12 +5024,9 @@
       "estimatedMinutes": 45,
       "difficulty": 3,
       "objectives": [
-        "说清「让 LLM 生成并执行代码」等于开放任意代码执行，并能列出至少 5 类具体威胁及其触发代码",
-        "对比语言级 / 进程级 / WASM / 容器 / 微虚机五层隔离方案的强度、开销与适用场景，为给定需求选出合适方案",
-        "用 `docker` SDK 写出可上线的一次性容器沙箱：禁网、限内存 CPU 与进程数、非 root、只读根文件系统、超时强杀、用完即毁",
-        "用 `subprocess` + `resource.setrlimit` 实现最小进程级沙箱，并说明它挡不住读文件与外联",
-        "用 RestrictedPython 或 AST 白名单执行受控表达式，拦截 `import`、属性穿透逃逸链与幂爆炸",
-        "把沙箱封装成 Agent 的代码执行工具，设计好静态预检、输出截断、错误回喂与重试上限"
+        "理解「代码沙箱」对让 Agent 执行任意代码的必要性：隔离与限流",
+        "能写一个带超时与资源限制的沙箱执行封装",
+        "知道 Docker / Firecracker / e2b 各自的隔离强度与取舍"
       ],
       "content": [
         {
@@ -4890,6 +5505,84 @@
               "text": "沙箱解决的是「执行阶段」的安全。它上游还需要 3.8 的可观测性（知道模型在跑什么代码、跑了多久、花了多少钱），下游需要权限与配额体系。**执行隔离 + 全链路追踪 + 用量配额**，三者齐了，代码 Agent 才敢对外开放。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "让 Agent 写代码并运行，就等于给它一台机器",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "当 Agent 能生成并执行代码（数据分析、自动化脚本），它就拥有了「在宿主机上做任何事」的能力——读密钥、删文件、狂开进程。沙箱的作用是：给这份执行一个受限的边界（独立进程/容器、限时、限资源、无敏感挂载），即使生成了危险代码，爆炸范围也被锁死。没有沙箱就别让 Agent 跑任意代码。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_9_sandbox.py",
+            "language": "python",
+            "title": "带超时的subprocess沙箱封装（最小隔离）",
+            "highlightLines": [
+              4,
+              8
+            ],
+            "code": "import subprocess\n\ndef run_sandboxed(code: str, timeout_s: int = 5) -> str:\n    try:\n        res = subprocess.run(\n            [\"python\", \"-c\", code],\n            capture_output=True, text=True, timeout=timeout_s,\n        )\n        return res.stdout or res.stderr\n    except subprocess.TimeoutExpired:\n        return \"执行超时，已终止\"\n\nif __name__ == \"__main__\":\n    print(run_sandboxed(\"print(1 + 2)\"))",
+            "output": "3",
+            "note": "subprocess 被引用（run 与 TimeoutExpired）；这是「最小隔离」，仅限超时。真隔离需容器/Docker 限制文件与网络。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "隔离强度递增",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "最弱是 subprocess + 超时（同进程树，能读环境变量）；中等是容器（Docker，文件系统与网络隔离）；最强是微虚拟机（Firecracker）或专用沙箱服务（e2b），几乎等同独立机器。选哪一档取决于「Agent 能碰到的数据有多敏感」。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "方案",
+              "隔离强度",
+              "取舍"
+            ],
+            "rows": [
+              [
+                "subprocess+超时",
+                "弱",
+                "最快，但能读宿主环境"
+              ],
+              [
+                "Docker",
+                "中",
+                "需镜像，启动慢些"
+              ],
+              [
+                "Firecracker/e2b",
+                "强",
+                "最安全，成本最高"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**数据分析**：沙箱跑 pandas 脚本；**自动化**：沙箱跑爬取/批处理；**教学**：沙箱跑用户提交的代码"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：超时不等于安全",
+          "text": "超时只防「卡死」，不防「删库」。subprocess 方式仍能读到你的 API Key 与环境变量。真要跑不可信代码，必须上容器或专用沙箱服务，并最小化挂载与权限。"
         }
       ],
       "enterpriseCase": {
