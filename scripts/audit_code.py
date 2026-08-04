@@ -219,6 +219,34 @@ def check_source(src):
     return issues
 
 
+def check_highlights(block):
+    """highlightLines 必须指向非空、非纯注释且在范围内的行（适用于任意语言）。
+
+    这是渲染端高亮规则：高亮空行/注释行对读者无教学价值，且历史上多次出现
+    因代码微调导致高亮行错位到空白行的回归。加入审计可自动拦截。"""
+    issues = []
+    hl = block.get('highlightLines')
+    if not isinstance(hl, list):
+        return issues
+    lines = (block.get('code') or '').splitlines()
+    if not lines:
+        return issues
+    for h in hl:
+        if not isinstance(h, int):
+            issues.append(('bad-highlight', f'highlightLines 含非整数: {h!r}'))
+            continue
+        if h < 1 or h > len(lines):
+            issues.append(('bad-highlight', f'highlightLines 越界: 行 {h}（共 {len(lines)} 行）'))
+            continue
+        s = lines[h - 1].strip()
+        if s == '':
+            issues.append(('bad-highlight', f'highlightLines 指向空行: 行 {h}'))
+        elif s.startswith('#') or s.startswith('//') or s.startswith('--'):
+            issues.append(('bad-highlight',
+                           f'highlightLines 指向纯注释行: 行 {h}（{s[:24]}…）'))
+    return issues
+
+
 def audit_file(path, known=None):
     with open(path, encoding='utf-8') as f:
         chapter = json.load(f)
@@ -242,6 +270,9 @@ def audit_file(path, known=None):
 
         if lang in ('python', 'py'):
             issues += check_source(src)
+
+        # highlightLines 校验（任意语言都适用：高亮行必须非空/非纯注释/在范围内）
+        issues += check_highlights(block)
 
         blob = src + '\n' + (block.get('output') or '') + '\n' + (block.get('note') or '')
         for p in FICTIONAL_PATTERNS:

@@ -13,15 +13,39 @@
       "estimatedMinutes": 25,
       "difficulty": 3,
       "objectives": [
-        "掌握中心化/去中心化架构",
-        "理解层级/扁平/网络/黑板模式",
-        "能根据场景选择架构"
+        "能说清「单 Agent → 多 Agent」的边界：什么场景才值得拆多个 Agent",
+        "掌握层级式 / 扁平式 / 网络式 / 黑板式四种架构的结构、优缺点与适用场景",
+        "能用 LangGraph 或纯 Python 搭出一个可运行的层级式多 Agent 骨架"
       ],
       "content": [
         {
           "type": "knowledgePoint",
-          "title": "四种多 Agent 架构模式",
+          "title": "为什么需要多 Agent",
           "content": [
+            {
+              "type": "paragraph",
+              "text": "单个 Agent 把「感知—思考—行动」全塞进一个 Prompt 里，遇到长任务会很快撞上上下文窗口、角色漂移和错误累积三堵墙。**多 Agent** 的核心思路是把一个复杂目标拆给多个专职 Agent，每个 Agent 只看自己那份上下文、只做自己那件事，再用明确的通信把结果拼起来。Anthropic 在 *Building Effective Agents* 中强调：多 Agent 适合「任务可并行、子任务间耦合弱、需要不同能力/工具」的场景；如果任务本就可以一条链做完，强行拆反而增加协调成本。"
+            },
+            {
+              "type": "paragraph",
+              "text": "判断要不要上多 Agent，可以問自己三个问题：① 子任务能否独立验证（错了能单独重跑）？② 不同子任务是否需要不同工具或知识？③ 串行一条链会不会超出上下文？三问都偏向「是」，才值得拆。"
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "最小可用原则",
+              "text": "先用**一个** Agent + 工具跑通主链路，再在「真的卡住」的地方拆出第二个 Agent。多数项目最终停在 2~4 个 Agent，而不是几十个。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "四种主流架构模式",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "多 Agent 的拓扑大致可归为四类。下面用一张图对比结构，再用表格对比取舍。"
+            },
             {
               "type": "mermaid",
               "data": {
@@ -44,51 +68,113 @@
                     "**层级式**",
                     "Manager-Worker",
                     "清晰可控、易调试",
-                    "Manager 瓶颈",
-                    "任务可分解的场景"
+                    "Manager 成为瓶颈",
+                    "任务可分解、需统一调度"
                   ],
                   [
                     "**扁平式**",
                     "对等协作",
-                    "灵活、无瓶颈",
-                    "协调复杂",
-                    "小规模协作"
+                    "灵活、无单点瓶颈",
+                    "协调逻辑复杂",
+                    "小规模、角色对等的协作"
                   ],
                   [
                     "**网络式**",
-                    "任意通信",
-                    "最灵活",
+                    "任意两两通信",
+                    "最灵活、可涌现",
                     "通信开销大、难追踪",
-                    "复杂探索任务"
+                    "开放探索、博弈类任务"
                   ],
                   [
-                    "**黑板模式**",
-                    "共享状态",
+                    "**黑板式**",
+                    "共享状态板",
                     "松耦合、易扩展",
-                    "需维护一致性",
-                    "知识共享场景"
+                    "需维护状态一致性",
+                    "多 Agent 共享中间产物"
                   ]
                 ]
               }
             },
             {
               "type": "callout",
-              "variant": "tip",
-              "title": "选型建议",
-              "text": "生产环境推荐**层级式**（可控性好）；探索性任务用**扁平式**（灵活）；需要共享大量中间结果用**黑板模式**。**网络式**通信复杂，谨慎使用。"
+              "variant": "warning",
+              "title": "网络式慎用",
+              "text": "网络式每个 Agent 都能呼叫任意其他 Agent，一旦出错极难回溯「是谁在什么时候改了什么」。生产系统除非有明确收益，否则优先层级式或黑板式。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战一：纯 Python 层级式调度骨架",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "先用最朴素的方式把「Manager 派活 → Worker 执行 → 汇总」跑通。这里用 OpenAI SDK 直接调用模型，逻辑全部在你手里，调试最直接。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_1_manager_worker.py",
+                "language": "python",
+                "title": "层级式 Manager-Worker：一个调度者分发子任务给多个专职 Worker",
+                "highlightLines": [
+                  10,
+                  18,
+                  26
+                ],
+                "code": "from openai import OpenAI\n\nclient = OpenAI()\n\ndef call_llm(system: str, user: str) -> str:\n    # 统一封装一次模型调用，避免在每个 Worker 里重复样板\n    resp = client.chat.completions.create(\n        model=\"gpt-4o-mini\",\n        messages=[{\"role\": \"system\", \"content\": system},\n                  {\"role\": \"user\", \"content\": user}],\n    )\n    return resp.choices[0].message.content\n\ndef worker_research(topic: str) -> str:\n    # Worker 只做一件事：检索/整理资料，系统提示把它锁死在「研究员」角色\n    return call_llm(\"你是研究员，只输出要点清单，不要展开。\", f\"调研：{topic}\")\n\ndef worker_writer(draft: str) -> str:\n    # Writer 只负责把要点写成成稿，看不到原始 topic，角色边界清晰\n    return call_llm(\"你是技术写作者，把要点扩写成通顺文章。\", draft)\n\ndef manager(topic: str) -> str:\n    # Manager 负责两件事：拆子任务、汇总。它不自己写内容\n    points = worker_research(topic)\n    article = worker_writer(points)\n    return article\n\nif __name__ == \"__main__\":\n    result = manager(\"用一句话解释向量数据库\")\n    print(result)",
+                "output": "向量数据库把文本转成向量存储，检索时按语义相似度而非关键词匹配返回结果。",
+                "note": "这只是演示拓扑。真实项目里 Worker 通常还要带工具（搜索/代码执行），Manager 用 LLM 动态决定派哪些 Worker。"
+              }
+            },
+            {
+              "type": "paragraph",
+              "text": "**分步解析**：① `call_llm` 封装模型调用，保证每个 Worker 的调用口径一致；② `worker_research` 用系统提示锁定「研究员」角色，只产出要点，避免角色漂移；③ `worker_writer` 只接收要点、不接触原始问题，强制信息单向流动，降低耦合；④ `manager` 不亲自生成内容，只做「派活 + 汇总」，把调度逻辑与执行逻辑解耦。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战二：用 LangGraph 把层级式变成有状态的图",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "纯 Python 版本一旦进程重启就丢了中间状态。用 LangGraph 可以把调度画成一张有向图，并挂上检查点实现断点续跑。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_1_langgraph_hier.py",
+                "language": "python",
+                "title": "LangGraph 层级式：Manager 节点分发，Worker 节点并行，Reducer 汇总",
+                "highlightLines": [
+                  7,
+                  11,
+                  17
+                ],
+                "code": "from typing import TypedDict, Annotated\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.graph.message import add_messages\n\nclass State(TypedDict):\n    topic: str\n    research: str\n    article: str\n    messages: Annotated[list, add_messages]\n\ndef research_node(state: State) -> dict:\n    # Worker 节点：模拟调研，真实场景这里会调搜索工具\n    return {\"research\": f\"关于「{state['topic']}」的三条要点\"}\n\ndef writer_node(state: State) -> dict:\n    # 只依赖 research，不回写 topic，保证数据依赖清晰\n    return {\"article\": state[\"research\"] + \" -> 已扩写为文章\"}\n\ndef build_graph():\n    g = StateGraph(State)\n    g.add_node(\"research\", research_node)\n    g.add_node(\"writer\", writer_node)\n    g.add_edge(\"__start__\", \"research\")\n    g.add_edge(\"research\", \"writer\")\n    g.add_edge(\"writer\", END)\n    return g.compile()\n\nif __name__ == \"__main__\":\n    app = build_graph()\n    out = app.invoke({\"topic\": \"RAG\", \"research\": \"\", \"article\": \"\", \"messages\": []})\n    print(out[\"article\"])",
+                "output": "关于「RAG」的三条要点 -> 已扩写为文章",
+                "note": "这里用单链演示图结构。多 Worker 并行时把 research 拆成 research_a/research_b 两个节点再汇入 writer 即可。"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "易错点：状态字段忘记初始化",
+              "text": "invoke 时必须把 State 里所有字段都传齐（哪怕空字符串）。漏传会在编译/运行期报 KeyError。这也是为什么把 State 设计成 TypedDict 能在编辑期就发现问题。"
             }
           ]
         }
       ],
       "enterpriseCase": {
         "title": "层级式 Agent 客服系统",
-        "background": "某公司客服需处理售前/售后/物流/技术支持多种问题。",
-        "architecture": "Router Agent 分类问题 → 转接到 4 个专业 Agent → 结果汇总给 Router。",
+        "background": "某公司客服需处理售前/售后/物流/技术支持多类问题，单 Agent 经常答非所问。",
+        "architecture": "Router Agent 先对问题分类，再转接 4 个专业 Agent；专业 Agent 各自持有一份知识，结果汇总回 Router 统一回复。",
         "outcome": "问题路由准确率 92%，平均处理时间降低 50%。",
-        "lessons": "层级式架构的 Router 质量决定整体效果。",
+        "lessons": "层级式架构里 Router 的质量决定整体效果；分类边界要可枚举、可回退到「人工」。",
         "code": {
           "data": {
-            "filename": "4_1_hierarchical_router.py",
+            "filename": "s4_1_ec_router.py",
             "language": "python",
             "title": "层级式客服路由：Router 先分类再转专业 Agent",
             "highlightLines": [
@@ -96,24 +182,42 @@
               6,
               9
             ],
-            "code": "# 层级式客服路由：Router 先分类，再转对应专业 Agent\ndef router(question: str) -> str:\n    # 基于关键词把问题分派给专业 Agent，避免所有问题都进同一个模型\n    if any(k in question for k in [\"退款\", \"退货\", \"换货\"]):\n        return \"转接 -> 售后 Agent\"\n    if any(k in question for k in [\"发货\", \"物流\", \"快递\"]):\n        return \"转接 -> 物流 Agent\"\n    if any(k in question for k in [\"功能\", \"怎么用\", \"如何\"]):\n        return \"转接 -> 售前 Agent\"\n    return \"转接 -> 技术支持 Agent\"\n\nprint(router(\"我的订单什么时候发货？\"))  # 转接 -> 物流 Agent\n",
-            "output": "转接 -> 物流 Agent",
-            "note": "Router 的分类质量决定整体效果，是层级式架构的关键节点。"
+            "code": "# 层级式客服路由：Router 先分类，再转对应专业 Agent\ndef router(question: str) -> str:\n    # 基于关键词把问题分派给专业 Agent，避免所有问题都进同一个模型\n    if any(k in question for k in [\"退款\", \"退货\", \"换货\"]):\n        return \"转接 -> 售后 Agent\"\n    if any(k in question for k in [\"发货\", \"物流\", \"快递\"]):\n        return \"转接 -> 物流 Agent\"\n    if any(k in question for k in [\"功能\", \"怎么用\", \"如何\"]):\n        return \"转接 -> 技术支持 Agent\"\n    # 兜底：无法分类时退回人工，而不是瞎答\n    return \"转接 -> 人工客服\"\n\nif __name__ == \"__main__\":\n    print(router(\"我的快递三天还没到\"))\n    print(router(\"这个功能怎么用\"))",
+            "output": "转接 -> 物流 Agent\n转接 -> 技术支持 Agent",
+            "note": "真实 Router 应用 LLM 做意图分类而非关键词；但兜底分支（人工）必须保留，否则长尾问题会答错。"
           }
         }
       },
       "exercises": [
         {
-          "title": "架构模式对比",
-          "description": "绘制 3 种架构模式对比图，分析各自优缺点。",
-          "hints": "关注可控性、灵活性、通信开销"
+          "title": "改造成并行调研",
+          "description": "把「实战一」的 manager 改成同时派 research 和 fact_check 两个 Worker，最后拼接两份结果，体会层级式里并行 Worker 的价值。",
+          "hints": "用两个独立函数分别调用 call_llm，再在 manager 里拼接返回"
+        },
+        {
+          "title": "为 LangGraph 加检查点",
+          "description": "在「实战二」的 build_graph 上挂 MemorySaver，使图能在中断后从同一 thread_id 恢复，验证长任务可续跑。",
+          "hints": "from langgraph.checkpoint.memory import MemorySaver；compile(checkpointer=MemorySaver())"
         }
       ],
       "resources": [
         {
-          "type": "paper",
-          "title": "AutoGen Multi-Agent 论文",
-          "url": "https://arxiv.org/abs/2308.08155"
+          "type": "doc",
+          "title": "Anthropic: Building Effective Agents",
+          "url": "https://www.anthropic.com/research/building-effective-agents",
+          "note": "多 Agent 与 workflow 的权威设计建议"
+        },
+        {
+          "type": "doc",
+          "title": "LangGraph 官方文档",
+          "url": "https://langchain-ai.github.io/langgraph/",
+          "note": "有状态多 Agent 图的标准实现"
+        },
+        {
+          "type": "blog",
+          "title": "Multi-Agent Orchestration Patterns",
+          "url": "https://blog.langchain.dev/",
+          "note": "LangChain 博客里的编排模式讨论"
         }
       ],
       "quiz": [
@@ -128,15 +232,67 @@
       "estimatedMinutes": 20,
       "difficulty": 3,
       "objectives": [
-        "掌握常见 Agent 角色",
-        "能用 CrewAI 定义角色",
-        "理解角色边界划分"
+        "掌握常见 Agent 角色（Planner / Executor / Reviewer / Aggregator）及其职责边界",
+        "能用 CrewAI 与 OpenAI Agents SDK 两种范式定义角色",
+        "理解「角色重叠」会导致的输出漂移与重复劳动"
       ],
       "content": [
         {
           "type": "knowledgePoint",
-          "title": "常见 Agent 角色",
+          "title": "角色设计的四个核心原则",
           "content": [
+            {
+              "type": "paragraph",
+              "text": "多 Agent 系统里最贵的 bug 不是代码错，而是**两个 Agent 抢同一件事做**或者**一件事没人做**。好的角色设计遵循四条：① 单一职责——一个 Agent 只背一个可验证的目标；② 可枚举边界——它的输入/输出是什么要写死；③ 互补不重叠——规划者不写代码、写代码者不拍板需求；④ 可回退——任何 Agent 都可以说「我不行，转人工」。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "原则",
+                  "做法",
+                  "反例"
+                ],
+                "rows": [
+                  [
+                    "单一职责",
+                    "每个 Agent 只做一个可验证任务",
+                    "一个 Agent 既规划又写又审"
+                  ],
+                  [
+                    "边界可枚举",
+                    "明确输入字段与输出格式",
+                    "输入是「整个对话历史」"
+                  ],
+                  [
+                    "互补不重叠",
+                    "职责画成不相交的集合",
+                    "两个 Agent 都负责「总结」"
+                  ],
+                  [
+                    "可回退",
+                    "失败显式移交人工/上游",
+                    "失败就编造答案"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "角色重叠的代价",
+              "text": "如果两个 Agent 的系统提示高度相似，它们会产出高度相似的回答，不仅浪费 token，还会让你误以为「多个视角」其实只是「同一个视角说了两遍」。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "常见 Agent 角色图谱",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "把一套经典研发流程拆成角色，可以看到职责是怎样天然分开的："
+            },
             {
               "type": "table",
               "data": {
@@ -144,97 +300,152 @@
                   "角色",
                   "职责",
                   "典型工具",
-                  "CrewAI 定义"
+                  "产出"
                 ],
                 "rows": [
                   [
                     "**Planner**",
-                    "任务分解与规划",
-                    "无/分析工具",
-                    "Role='规划者' Goal='制定计划'"
+                    "任务分解与排期",
+                    "无 / 分析工具",
+                    "子任务清单"
                   ],
                   [
                     "**Executor**",
                     "执行具体任务",
-                    "代码/搜索/API",
-                    "Role='执行者' Goal='完成任务'"
+                    "代码 / 搜索 / API",
+                    "代码或答案"
                   ],
                   [
                     "**Reviewer**",
                     "审查结果质量",
-                    "评估工具",
-                    "Role='审查者' Goal='确保质量'"
+                    "评估 / 测试工具",
+                    "审查意见"
                   ],
                   [
                     "**Aggregator**",
-                    "汇总多个结果",
-                    "无/格式化工具",
-                    "Role='聚合者' Goal='整合输出'"
+                    "汇总多路结果",
+                    "无 / 格式化",
+                    "最终交付物"
                   ]
                 ]
               }
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战一：CrewAI 定义研发团队角色",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "CrewAI 用 `role / goal / backstory` 三件套描述一个人设，`Task` 绑定执行角色并通过 `context` 串起依赖。"
             },
             {
               "type": "code",
               "data": {
-                "filename": "crewai_roles.py",
+                "filename": "s4_2_crewai_roles.py",
                 "language": "python",
-                "title": "CrewAI 角色定义",
+                "title": "CrewAI 角色定义：规划者 / 开发者 / 审查者各司其职",
                 "highlightLines": [
-                  16,
-                  17,
-                  20,
-                  22,
-                  24,
-                  26,
-                  28,
-                  29,
-                  30,
-                  33,
-                  35,
-                  37
+                  4,
+                  11,
+                  19
                 ],
-                "code": "from crewai import Agent, Task, Crew\n\n# 定义角色\n# 第1步：定义规划角色 —— role/goal/backstory 共同描述一个 Agent 的人设，\n# 角色设定影响模型的行为定位，明确分工能减少输出漂移\nplanner = Agent(\n    # role 是角色名，决定模型自我定位的“身份”\n    role='项目规划者',\n    # goal 给出该角色要达成的目标，约束它产出的方向\n    goal='将用户需求分解为可执行的子任务',\n    # backstory 提供背景故事，让模型更贴合该身份说话与决策\n    backstory='你是经验丰富的项目经理，擅长任务分解和排期',\n    # llm 指定底层模型，可按角色重要性选不同档位以平衡成本\n    llm='gpt-4o'\n)\n\n# 第2步：定义开发角色 —— 与规划者同理，专注“写代码”这一目标，\n# 不同 backstory 让各 Agent 行为稳定、互不串味\ncoder = Agent(\n    # role 标识开发者身份\n    role='Python 开发者',\n    # goal 约束其产出为高质量代码\n    goal='编写高质量的 Python 代码',\n    # backstory 让其代码风格稳定\n    backstory='你是 10 年经验的 Python 开发者，代码简洁高效',\n    # llm 指定所用模型\n    llm='gpt-4o'\n)\n\n# 第3步：定义审查角色 —— 负责把关质量，形成“规划-开发-审查”的闭环，\n# 让前一个角色的输出被独立视角校验，降低错误遗漏\nreviewer = Agent(\n    # role 标识审查者身份\n    role='代码审查者',\n    # goal 明确审查目标\n    goal='确保代码质量和最佳实践',\n    # backstory 强调严格与安全视角\n    backstory='你是严格的代码审查专家，关注安全和性能',\n    # llm 指定所用模型\n    llm='gpt-4o'\n)\n\n# 第4步：定义任务并串联上下文 —— Task 绑定执行角色，\n# context 把上游任务结果作为本任务的背景，形成信息依赖链\n# 定义任务\n# plan_task 由 planner 执行\nplan_task = Task(description='规划开发任务', agent=planner,\n                 expected_output='拆解后的子任务清单')\n# context 让编码任务能读到规划结果，避免重复理解需求\ncode_task = Task(description='编写代码', agent=coder, context=[plan_task],\n                 expected_output='可运行的 Python 代码')\n# 审查任务依赖编码结果，保证审的是刚写好的代码\nreview_task = Task(description='审查代码', agent=reviewer, context=[code_task],\n                   expected_output='代码审查意见与修改建议')\n\n# 第5步：组建团队并执行 —— Crew 把角色与任务按依赖编排成流水线，\n# kickoff 触发整队协作，自动按 context 顺序逐步推进到出结果\n# 组建团队\n# 把三个角色与三个任务组装成 Crew\ncrew = Crew(agents=[planner, coder, reviewer], tasks=[plan_task, code_task, review_task])\n\n# kickoff 启动协作 —— inputs 以字典传入，供任务描述中的 {占位符} 使用\nif __name__ == \"__main__\":\n    result = crew.kickoff(inputs={\"requirement\": \"开发一个计算器程序\"})\n    print(\"=\" * 40)\n    print(\"协作完成，最终产出:\")\n    print(result)",
-                "output": "[规划者] 开始任务: 规划开发任务\n[规划者] 产出: 分解为3个子任务（核心运算/输入校验/CLI界面）\n[开发者] 开始任务: 编写代码（参考规划结果）\n[开发者] 产出: calculator.py（含四则运算与异常处理）\n[审查者] 开始任务: 审查代码\n[审查者] 产出: 质量评分 8/10，建议补充除零测试用例\n========================================\n协作完成，最终产出:\n代码质量合格可交付，建议下个迭代补充边界测试。\n\n# 说明：CrewAI 运行时会实时打印各 Agent 的思考与产出，内容由 LLM 生成"
+                "code": "from crewai import Agent, Task, Crew\n\n# 规划者：只产出子任务，不碰代码\nplanner = Agent(\n    role=\"项目规划者\",\n    goal=\"将用户需求分解为可执行的子任务\",\n    backstory=\"你是经验丰富的项目经理，擅长任务分解和排期\",\n    llm=\"gpt-4o\",\n)\n# 开发者：只根据规划写代码，看不到原始需求，避免重复理解\ncoder = Agent(\n    role=\"Python 开发者\",\n    goal=\"编写高质量的 Python 代码\",\n    backstory=\"你是 10 年经验的 Python 开发者，代码简洁高效\",\n    llm=\"gpt-4o\",\n)\n# 审查者：独立视角校验，形成规划-开发-审查闭环\nreviewer = Agent(\n    role=\"代码审查者\",\n    goal=\"确保代码质量和最佳实践\",\n    backstory=\"你是严格的代码审查专家，关注安全和性能\",\n    llm=\"gpt-4o\",\n)\n\nplan_task = Task(description=\"规划开发任务\", agent=planner, expected_output=\"拆解后的子任务清单\")\ncode_task = Task(description=\"编写代码\", agent=coder, context=[plan_task], expected_output=\"可运行的 Python 代码\")\nreview_task = Task(description=\"审查代码\", agent=reviewer, context=[code_task], expected_output=\"审查意见与修改建议\")\n\ncrew = Crew(agents=[planner, coder, reviewer], tasks=[plan_task, code_task, review_task])\n\nif __name__ == \"__main__\":\n    result = crew.kickoff(inputs={\"requirement\": \"开发一个计算器程序\"})\n    print(result)",
+                "output": "代码质量合格可交付，建议下个迭代补充边界测试。",
+                "note": "kickoff 时把 requirement 以字典传入，任务描述里的 {requirement} 占位符会被替换。"
               }
+            },
+            {
+              "type": "paragraph",
+              "text": "**分步解析**：① `planner` 的 `goal` 约束它只做分解；② `coder` 通过 `context=[plan_task]` 只读规划结果，不接触原始需求，信息单向流动；③ `reviewer` 的 `context=[code_task]` 保证审的是刚写好的代码；④ `Crew` 按依赖自动编排执行顺序。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战二：OpenAI Agents SDK 用 handoff 做角色转交",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "OpenAI Agents SDK 里「角色」就是不同 `Agent` 实例，用 `handoffs` 声明「我能把对话转给谁」，由模型在运行时决定转交。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_2_agents_handoff.py",
+                "language": "python",
+                "title": "OpenAI Agents SDK：中文助手在需要时把对话 handoff 给西班牙语助手",
+                "highlightLines": [
+                  6,
+                  12
+                ],
+                "code": "from agents import Agent, Runner\n\n# 西班牙语专家：只处理西语请求\nspanish_agent = Agent(\n    name=\"Spanish Agent\",\n    instructions=\"你只用西班牙语回答用户问题。\",\n    handoffs=[],\n)\n\n# 中文前台：遇到西语请求就 handoff 给 spanish_agent\nchinese_agent = Agent(\n    name=\"Chinese Agent\",\n    instructions=\"你用中文回答；如果用户用西班牙语提问，转给 Spanish Agent。\",\n    handoffs=[spanish_agent],\n)\n\nif __name__ == \"__main__\":\n    result = Runner.run_sync(chinese_agent, \"Hola, ¿cómo estás?\")\n    print(result.final_output)",
+                "output": "¡Hola! Estoy muy bien, gracias. ¿Y tú?",
+                "note": "handoff 是 SDK 内置机制，转交后由目标 Agent 继续对话；前台 Agent 的系统提示要写清「何时转交」。"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "易错点：handoff 循环",
+              "text": "A→B、B→A 的双向 handoff 可能在两 Agent 间无限互转。给每个 Agent 的 instructions 写明「只在该角色真正擅长时才接手」，并在外层加最大轮数上限。"
             }
           ]
         }
       ],
       "enterpriseCase": {
         "title": "软件开发团队 Agent 化",
-        "background": "用多 Agent 模拟软件开发团队：PM/设计/前端/后端/测试。",
-        "architecture": "CrewAI 定义 5 个角色，PM 分解需求 → 前后端并行开发 → 测试 Agent 验证。",
+        "background": "用多 Agent 模拟软件开发团队：PM/设计/前端/后端/测试，缩短小型项目交付周期。",
+        "architecture": "CrewAI 定义 5 个角色，PM 分解需求 → 前后端并行开发 → 测试 Agent 验证，结果由 PM 汇总。",
         "outcome": "小型项目自动开发成功率 70%，开发时间缩短 60%。",
-        "lessons": "角色定义要明确边界，避免职责重叠。",
+        "lessons": "角色定义要明确边界，避免职责重叠导致重复劳动或遗漏。",
         "code": {
           "data": {
-            "filename": "4_2_dev_team_crew.py",
+            "filename": "s4_2_ec_dev_team.py",
             "language": "python",
-            "title": "软件开发团队：CrewAI 五角色流水线",
+            "title": "CrewAI 五人开发团队：PM 拆解 → 前后端并行 → 测试",
             "highlightLines": [
               4,
-              11,
-              19
+              9,
+              14
             ],
-            "code": "from crewai import Agent, Crew, Task\n\n# 用多 Agent 模拟软件开发团队：PM/设计/前端/后端/测试 各司其职\n# 第1步：定义 5 个角色，明确职责边界，避免重叠\npm = Agent(role=\"PM\", goal=\"拆解需求并分配任务\", backstory=\"资深产品经理\")\ndesigner = Agent(role=\"设计\", goal=\"产出 UI 原型\", backstory=\"交互设计师\")\nfrontend = Agent(role=\"前端\", goal=\"实现页面与交互\", backstory=\"前端工程师\")\nbackend = Agent(role=\"后端\", goal=\"实现接口与数据\", backstory=\"后端工程师\")\ntester = Agent(role=\"测试\", goal=\"验证功能与回归\", backstory=\"QA 工程师\")\n\n# 第2步：PM 分解需求 → 设计/前后端实现 → 测试验证，按依赖串联\n# 先定义各任务，再在最后的任务里引用前置任务，避免列表字面量内引用自身（NameError）\npm_task = Task(description=\"将'待办应用'拆为 8 个用户故事\", agent=pm,\n               expected_output=\"8 个用户故事列表，含验收标准\")\ndesign_task = Task(description=\"设计首页与详情页原型\", agent=designer,\n                   expected_output=\"首页与详情页线框图\", async_execution=True)\nfe_task = Task(description=\"实现前端页面\", agent=frontend,\n               expected_output=\"可运行的前端页面代码\", async_execution=True)\nbe_task = Task(description=\"实现后端 REST 接口\", agent=backend,\n               expected_output=\"REST 接口与数据模型\", async_execution=True)\n# 测试任务依赖 PM 的需求拆解结果（context 传入上游任务对象）\ntest_task = Task(description=\"编写自动化测试并回归\", agent=tester,\n                 context=[pm_task],\n                 expected_output=\"测试报告与回归结果\")\ntasks = [pm_task, design_task, fe_task, be_task, test_task]\n# 第3步：组装 Crew 顺序执行（并行节点可设 async_execution=True）\ncrew = Crew(agents=[pm, designer, frontend, backend, tester], tasks=tasks)\nif __name__ == \"__main__\":\n    result = crew.kickoff()\n    print(\"开发产物:\", result)\n",
-            "output": "开发产物: <PM拆解><设计原型><前端页面><后端接口><测试报告> 串联完成",
-            "note": "角色边界要明确，避免职责重叠导致互相覆盖。"
+            "code": "from crewai import Agent, Task, Crew\n\npm = Agent(role=\"产品经理\", goal=\"把需求拆成前后端任务\", backstory=\"资深 PM\", llm=\"gpt-4o\")\nfe = Agent(role=\"前端工程师\", goal=\"实现界面\", backstory=\"React 专家\", llm=\"gpt-4o\")\nbe = Agent(role=\"后端工程师\", goal=\"实现接口\", backstory=\"API 专家\", llm=\"gpt-4o\")\nqa = Agent(role=\"测试工程师\", goal=\"编写并运行测试\", backstory=\"严谨的 QA\", llm=\"gpt-4o\")\n\nt1 = Task(description=\"拆解需求\", agent=pm, expected_output=\"前后端任务清单\")\nt2 = Task(description=\"写前端\", agent=fe, context=[t1], expected_output=\"前端代码\")\nt3 = Task(description=\"写后端\", agent=be, context=[t1], expected_output=\"后端代码\")\nt4 = Task(description=\"联调测试\", agent=qa, context=[t2, t3], expected_output=\"测试报告\")\n\ncrew = Crew(agents=[pm, fe, be, qa], tasks=[t1, t2, t3, t4])\nif __name__ == \"__main__\":\n    print(crew.kickoff(inputs={\"requirement\": \"待办事项应用\"}))",
+            "output": "测试报告：冒烟测试通过，建议补充异常路径用例。",
+            "note": "前后端 Task 都以 t1 为 context，因此能并行；qa 依赖两者，自动排在后面。"
           }
         }
       },
       "exercises": [
         {
-          "title": "设计 Agent 角色",
-          "description": "为一个数据分析项目设计 4 个 Agent 角色。",
-          "hints": "考虑数据收集/清洗/分析/报告四个环节"
+          "title": "给角色加工具",
+          "description": "在「实战一」的 coder 上挂一个 `@tool` 风格的搜索工具，让它能查文档再写代码，体会 Executor 与工具的关系。",
+          "hints": "CrewAI 的 Agent 支持 tools=[...] 参数"
+        },
+        {
+          "title": "绘制角色依赖图",
+          "description": "用 Mermaid 画出你设计的 4-Agent 系统的数据流向，标出哪些边是「指令流」、哪些是「数据流」。",
+          "hints": "区分 manager->worker（指令）与 worker->aggregator（数据）两种边"
         }
       ],
       "resources": [
         {
           "type": "doc",
           "title": "CrewAI 文档",
-          "url": "https://docs.crewai.com/"
+          "url": "https://docs.crewai.com/",
+          "note": "角色/任务/团队的标准用法"
+        },
+        {
+          "type": "doc",
+          "title": "OpenAI Agents SDK",
+          "url": "https://openai.github.io/openai-agents-python/",
+          "note": "handoff / Agent / Runner 的官方说明"
+        },
+        {
+          "type": "blog",
+          "title": "角色设计反模式",
+          "url": "https://www.promptingguide.ai/",
+          "note": "提示与角色设计的通用原则"
         }
       ],
       "quiz": [
@@ -248,99 +459,198 @@
       "estimatedMinutes": 25,
       "difficulty": 3,
       "objectives": [
-        "理解消息传递模式",
-        "掌握共享状态 vs 消息传递",
-        "了解 LangGraph/AutoGen 通信"
+        "理解 Agent 间通信的三种形态：消息传递 / 共享状态 / 显式协议",
+        "能实现一个带「收件箱」的消息总线，让 Agent 解耦通信",
+        "会用 OpenAI Agents SDK 的 handoff 与 A2A 风格 JSON 协议做跨 Agent 调用"
       ],
       "content": [
         {
           "type": "knowledgePoint",
-          "title": "通信模式对比",
+          "title": "通信的三种形态",
           "content": [
+            {
+              "type": "paragraph",
+              "text": "多 Agent 之间怎么「说话」，决定了系统的耦合度与可观测性。① **消息传递**：A 把消息发给 B 的收件箱，B 按需处理，最解耦；② **共享状态（黑板）**：大家都读写同一块状态，简单但要有并发保护；③ **显式协议**：双方约定固定 JSON schema（类似 API），最严谨、最适合跨组织/跨厂商。"
+            },
             {
               "type": "table",
               "data": {
                 "headers": [
-                  "模式",
-                  "原理",
-                  "优点",
-                  "缺点"
+                  "形态",
+                  "耦合度",
+                  "可观测性",
+                  "典型实现"
                 ],
                 "rows": [
                   [
-                    "**共享状态**",
-                    "Agent 读写公共状态对象",
-                    "简单直接、易调试",
-                    "并发控制复杂"
+                    "消息传递",
+                    "低",
+                    "中",
+                    "收件箱 / 消息队列"
                   ],
                   [
-                    "**消息传递**",
-                    "Agent 间发送结构化消息",
-                    "松耦合、可扩展",
-                    "消息路由复杂"
+                    "共享状态",
+                    "中",
+                    "低",
+                    "黑板 / 共享内存"
                   ],
                   [
-                    "**群聊模式**",
-                    "所有 Agent 在同一对话中",
-                    "自然协作、AutoGen 风格",
-                    "Token 消耗大"
-                  ],
-                  [
-                    "**事件驱动**",
-                    "发布订阅事件",
-                    "异步解耦",
-                    "时序难保证"
+                    "显式协议",
+                    "低",
+                    "高",
+                    "JSON schema / A2A"
                   ]
                 ]
               }
             },
             {
+              "type": "callout",
+              "variant": "tip",
+              "title": "选型直觉",
+              "text": "同进程内的多 Agent 用消息传递或共享状态最省事；跨服务、跨厂商（比如你调别人的 Agent）必须用显式协议，否则对方一升级你就崩。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战一：带收件箱的消息总线",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "每个 Agent 有一个收件箱队列，调度器把消息投递进去，Agent 轮询处理。这样 Agent 之间不直接依赖彼此，新增 Agent 只注册到总线即可。"
+            },
+            {
               "type": "code",
               "data": {
-                "filename": "multi_agent_comm.py",
+                "filename": "s4_3_message_bus.py",
                 "language": "python",
-                "title": "LangGraph 共享状态多 Agent",
-                "code": "from langgraph.graph import StateGraph, END\nfrom typing import TypedDict\n\n# 第1步：定义共享状态 —— TypedDict 描述团队各成员要写入的字段，\n# 所有 Agent 读写同一份状态而非互相传参，协作关系更清晰\nclass TeamState(TypedDict):\n    task: str\n    research_result: str\n    code_result: str\n    review_result: str\n    final_output: str\n\n# 第2步：研究 Agent —— 从共享状态读任务、写研究结果，\n# 每个节点只更新自己负责的字段，互不干扰也便于并行\ndef researcher(state: TeamState) -> dict:\n    # 研究 Agent：共享状态中读取任务，写入研究结果\n    # 把任务拼进研究结果\n    result = f\"关于 {state['task']} 的研究结果\"\n    # 写入 research_result 字段\n    return {\"research_result\": result}\n\n# 第3步：编码 Agent —— 读取研究结果产出代码，\n# 依赖上一个节点的输出，保证实现基于已确认的方案\ndef coder(state: TeamState) -> dict:\n    # 编码 Agent：读取研究结果，写入代码\n    # 基于研究结果生成代码\n    code = f\"基于 {state['research_result']} 编写代码\"\n    # 写入 code_result 字段\n    return {\"code_result\": code}\n\n# 第4步：审查 Agent —— 读代码给出结论并写最终输出，\n# 作为流水线的最后一环，把结果沉淀到 final_output\ndef reviewer(state: TeamState) -> dict:\n    # 审查 Agent：读取代码，写入审查结果\n    # 生成审查结论\n    review = f\"代码审查: {state['code_result']} → 通过\"\n    # 写回审查结果与最终输出\n    return {\"review_result\": review, \"final_output\": review}\n\n# 第5步：用状态图串起协作 —— StateGraph 把三个 Agent 编排成有向流程，\n# 比手写调度更直观，新增成员只需加节点和边\n# 共享状态图\ngraph = StateGraph(TeamState)\ngraph.add_node(\"researcher\", researcher)\ngraph.add_node(\"coder\", coder)\ngraph.add_node(\"reviewer\", reviewer)\ngraph.set_entry_point(\"researcher\")\ngraph.add_edge(\"researcher\", \"coder\")\ngraph.add_edge(\"coder\", \"reviewer\")\ngraph.add_edge(\"reviewer\", END)\n\n# 第6步：编译运行 —— compile 生成可执行图，invoke 传入初始任务即触发全流程\nif __name__ == \"__main__\":\n    app = graph.compile()\n    # 传入任务并获取最终结果\n    result = app.invoke({\"task\": \"开发计算器\", \"research_result\": \"\",\n                         \"code_result\": \"\", \"review_result\": \"\", \"final_output\": \"\"})\n    print(\"research_result:\", result[\"research_result\"])\n    print(\"code_result:\", result[\"code_result\"])\n    print(\"review_result:\", result[\"review_result\"])\n    print(\"final_output:\", result[\"final_output\"])",
-                "output": "research_result: 关于 开发计算器 的研究结果\ncode_result: 基于 关于 开发计算器 的研究结果 编写代码\nreview_result: 代码审查: 基于 关于 开发计算器 的研究结果 编写代码 → 通过\nfinal_output: 代码审查: 基于 关于 开发计算器 的研究结果 编写代码 → 通过"
+                "title": "消息总线：Agent 通过收件箱解耦，调度器负责投递",
+                "highlightLines": [
+                  5,
+                  16,
+                  20
+                ],
+                "code": "from collections import deque\n\nclass Agent:\n    def __init__(self, name):\n        self.name = name\n        self.inbox = deque()          # 每个 Agent 私有收件箱\n    def receive(self, msg):\n        self.inbox.append(msg)        # 只往队列里塞，不直接调用对方\n    def step(self):\n        if not self.inbox:\n            return None\n        msg = self.inbox.popleft()    # 先进先出处理\n        return f\"[{self.name}] 处理了: {msg}\"\n\nclass Bus:\n    def __init__(self):\n        self.agents = {}\n    def register(self, agent):\n        self.agents[agent.name] = agent\n    def send(self, to, msg):\n        self.agents[to].receive(msg)  # 总线统一投递，调用方无需持有对方引用\n\nif __name__ == \"__main__\":\n    bus = Bus()\n    bus.register(Agent(\"researcher\"))\n    bus.register(Agent(\"writer\"))\n    bus.send(\"writer\", \"要点A；要点B\")     # researcher 通过总线转交，不直接调 writer\n    print(bus.agents[\"writer\"].step())",
+                "output": "[writer] 处理了: 要点A；要点B",
+                "note": "真实系统里 Bus 可以是 Redis Streams / RabbitMQ；这里用 deque 演示解耦思想。"
+              }
+            },
+            {
+              "type": "paragraph",
+              "text": "**分步解析**：① `Agent.inbox` 是私有队列，外部不能直接改它的内部状态；② `receive` 只入队，不触发处理，保证「发」和「做」分离；③ `Bus.send` 是唯一写入入口，所有通信都可在此打日志——这就是可观测性的来源；④ `step` 由调度器周期性调用，Agent 自己不阻塞等待。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战二：A2A 风格显式协议（JSON）",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "跨 Agent / 跨厂商时，用固定 schema 描述「请求」与「响应」，比自然语言稳定得多。下面是一个最小可用的任务委派协议。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_3_a2a_protocol.py",
+                "language": "python",
+                "title": "A2A 风格协议：用 JSON schema 约定请求/响应，跨 Agent 可移植",
+                "highlightLines": [
+                  3,
+                  10,
+                  14
+                ],
+                "code": "import json\n\ndef build_task_request(task_id, description, assignee):\n    # 固定的请求 schema，对方无论什么实现都能解析\n    return {\n        \"protocol\": \"a2a-task/1.0\",\n        \"task_id\": task_id,\n        \"assignee\": assignee,\n        \"description\": description,\n    }\n\ndef handle_task_request(payload: str) -> str:\n    req = json.loads(payload)                 # 解析固定 schema，不依赖自然语言\n    answer = f\"已接收任务 {req['task_id']}，执行：{req['description']}\"\n    resp = {\"protocol\": \"a2a-task/1.0\", \"task_id\": req[\"task_id\"], \"status\": \"done\", \"answer\": answer}\n    return json.dumps(resp, ensure_ascii=False)\n\nif __name__ == \"__main__\":\n    req = build_task_request(\"T1\", \"调研竞品\", \"researcher\")\n    resp = handle_task_request(json.dumps(req, ensure_ascii=False))\n    print(resp)",
+                "output": "{\"protocol\": \"a2a-task/1.0\", \"task_id\": \"T1\", \"status\": \"done\", \"answer\": \"已接收任务 T1，执行：调研竞品\"}",
+                "note": "真实 A2A（Agent2Agent）协议还包含能力发现、鉴权、流式进度；这里只演示 schema 约定的核心思想。"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "易错点：协议版本漂移",
+              "text": "schema 一定要带 `protocol` 版本号。对方升级字段时老客户端才不会静默出错。把版本写进每个消息，而不是记在文档里。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战三：OpenAI Agents SDK 的 handoff 就是通信",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "handoff 本质是把「当前对话 + 上下文」整体移交给另一个 Agent，是一种受控的消息传递。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_3_agents_comm.py",
+                "language": "python",
+                "title": "handoff 作为 Agent 间通信：B 接手后带全部上下文继续",
+                "highlightLines": [
+                  3,
+                  4
+                ],
+                "code": "from agents import Agent, Runner\n\nb_agent = Agent(name=\"B\", instructions=\"你接手处理用户的具体问题。\", handoffs=[])\na_agent = Agent(name=\"A\", instructions=\"先理解意图，复杂问题转给 B。\", handoffs=[b_agent])\n\nif __name__ == \"__main__\":\n    result = Runner.run_sync(a_agent, \"帮我预订明天的会议室\")\n    print(result.final_output)",
+                "output": "好的，已为您预订明天 10:00 的 3 号会议室。",
+                "note": "handoff 会带着完整对话历史，目标 Agent 不需要重新理解背景。"
               }
             }
           ]
         }
       ],
       "enterpriseCase": {
-        "title": "多 Agent 协作消息流",
-        "background": "某报告生成系统需要研究/分析/撰写三个 Agent 协作。",
-        "architecture": "用 LangGraph 共享状态传递中间结果，每个 Agent 负责一个环节。",
-        "outcome": "报告生成全自动化，质量评分 4.2/5。",
-        "lessons": "共享状态适合线性流程，复杂交互用消息传递。",
+        "title": "跨部门报告协作系统",
+        "background": "市场、技术、财务三个团队 Agent 需协作产出一份联合分析报告，彼此不能直接调用对方内部逻辑。",
+        "architecture": "用消息总线 + 显式 A2A 协议：三个 Agent 把中间结果写入共享报告状态，由 Orchestrator 汇总。",
+        "outcome": "报告生成周期从 3 天降到 4 小时，且每次通信都有日志可审计。",
+        "lessons": "跨团队通信必须有协议版本与审计日志，否则出问题无法定责。",
         "code": {
           "data": {
-            "filename": "4_3_report_graph_state.py",
+            "filename": "s4_3_ec_report_graph.py",
             "language": "python",
-            "title": "多 Agent 协作：LangGraph 共享状态传递",
+            "title": "跨团队报告：三个 Agent 经总线写入共享状态，Orchestrator 汇总",
             "highlightLines": [
-              13,
-              18,
-              23
+              4,
+              9,
+              14
             ],
-            "code": "from langgraph.graph import StateGraph, END\nfrom typing import TypedDict\n\n# 多 Agent 协作报告：用共享状态在 研究→分析→撰写 之间传递中间结果\nclass ReportState(TypedDict):\n    topic: str\n    research: str          # 研究 Agent 写入\n    analysis: str          # 分析 Agent 写入\n    report: str            # 撰写 Agent 写入\n\ndef research(s):\n    # 第1步：研究 Agent 产出资料，写入共享状态\n    s[\"research\"] = \"市场规模 120 亿，年增 18%…\"\n    return s\n\ndef analyze(s):\n    # 第2步：分析 Agent 读取 research，产出结论，写回状态\n    s[\"analysis\"] = f\"基于[{s['research']}] 得出三点结论…\"\n    return s\n\ndef write(s):\n    # 第3步：撰写 Agent 汇总前两步结果成稿\n    s[\"report\"] = f\"# {s['topic']}\\n## 结论\\n{s['analysis']}\"\n    return s\n\ng = StateGraph(ReportState)\ng.add_node(\"research\", research); g.add_node(\"analyze\", analyze); g.add_node(\"write\", write)\ng.set_entry_point(\"research\")\ng.add_edge(\"research\", \"analyze\"); g.add_edge(\"analyze\", \"write\"); g.add_edge(\"write\", END)\nprint(g.compile().invoke({\"topic\": \"低代码平台趋势\"})[\"report\"])\n",
-            "output": "# 低代码平台趋势\n## 结论\n基于[市场规模 120 亿，年增 18%…] 得出三点结论…",
-            "note": "共享状态适合线性流水线；复杂交互改用消息传递。"
+            "code": "from collections import defaultdict\n\nreport = defaultdict(str)   # 共享报告状态（黑板）\nbus_log = []                # 通信审计日志\n\ndef agent_contribute(team, content):\n    report[team] = content\n    bus_log.append(f\"{team} -> report: {content[:20]}...\")\n\nif __name__ == \"__main__\":\n    agent_contribute(\"market\", \"市场规模年增 20%\")\n    agent_contribute(\"tech\", \"核心技术已就绪\")\n    agent_contribute(\"finance\", \"ROI 预计 18 个月回本\")\n    print(\"最终报告:\", dict(report))\n    print(\"审计:\", bus_log)",
+            "output": "最终报告: {'market': '市场规模年增 20%', 'tech': '核心技术已就绪', 'finance': 'ROI 预计 18 个月回本'}\n审计: ['market -> report: 市场规模年增 20%...', ...]",
+            "note": "生产里 report 应落库并加锁；bus_log 是合规审计的关键。"
           }
         }
       },
       "exercises": [
         {
-          "title": "实现 Agent 通信",
-          "description": "用 LangGraph 实现两个 Agent 的共享状态通信。",
-          "hints": "用 TypedDict 定义共享状态"
+          "title": "给总线加广播",
+          "description": "扩展「实战一」的 Bus，增加一个 broadcast(topic, msg) 方法，让订阅了该 topic 的所有 Agent 都能收到，模拟发布/订阅。",
+          "hints": "给 Agent 加 topics 集合，send 时按 topic 匹配"
+        },
+        {
+          "title": "校验协议版本",
+          "description": "在 handle_task_request 里检查 payload 的 protocol 字段，版本不匹配时返回明确的错误响应而不是崩溃。",
+          "hints": "用 if req.get('protocol') != 'a2a-task/1.0' 提前返回错误"
         }
       ],
       "resources": [
         {
           "type": "doc",
-          "title": "LangGraph Multi-Agent",
-          "url": "https://langchain-ai.github.io/langgraph/tutorials/multi_agent/"
+          "title": "Agent2Agent Protocol (Google)",
+          "url": "https://github.com/google/A2A",
+          "note": "跨 Agent 互操作协议参考实现"
+        },
+        {
+          "type": "doc",
+          "title": "OpenAI Agents SDK handoffs",
+          "url": "https://openai.github.io/openai-agents-python/ref/agent/",
+          "note": "handoff 的字段与行为"
+        },
+        {
+          "type": "blog",
+          "title": "消息队列在 Agent 中的应用",
+          "url": "https://redis.io/docs/latest/",
+          "note": "Redis Streams 做 Agent 收件箱"
         }
       ],
       "quiz": [
@@ -354,116 +664,174 @@
       "estimatedMinutes": 30,
       "difficulty": 4,
       "objectives": [
-        "掌握任务分解策略",
-        "理解 DAG 编排",
-        "能用 LangGraph 实现 DAG"
+        "理解 Plan-Execute 范式：先规划再执行、执行结果回流修正计划",
+        "能用 LangGraph 实现「规划节点 → 执行节点 → 反思重规划」的循环",
+        "掌握任务分解的粒度原则与「分解到什么程度停」的判据"
       ],
       "content": [
         {
           "type": "knowledgePoint",
-          "title": "任务分解策略",
+          "title": "Plan-Execute 为什么比一次性 ReAct 更稳",
           "content": [
+            {
+              "type": "paragraph",
+              "text": "ReAct 是「走一步看一步」，遇到长任务容易在中间迷路。Plan-Execute 把**规划**和**执行**显式分开：先让一个 Planner 一次性产出可执行的步骤清单，再让 Executor 逐步落地，每步结果回流给 Planner 判断是否要调整后续步骤。好处是计划可读、可人工审核、可断点续跑。"
+            },
             {
               "type": "table",
               "data": {
                 "headers": [
-                  "策略",
-                  "原理",
-                  "适用场景"
+                  "维度",
+                  "ReAct",
+                  "Plan-Execute"
                 ],
                 "rows": [
                   [
-                    "**按功能分解**",
-                    "按能力域划分（研究/编码/测试）",
-                    "角色明确的场景"
+                    "可预测性",
+                    "低，边走边改",
+                    "高，先有完整计划"
                   ],
                   [
-                    "**按阶段分解**",
-                    "按时间顺序（收集/处理/输出）",
-                    "流水线任务"
+                    "可人工介入",
+                    "难",
+                    "易（审核/修改计划）"
                   ],
                   [
-                    "**按数据分解**",
-                    "按数据分片（每 Agent 处理一部分）",
-                    "大规模数据处理"
+                    "长任务表现",
+                    "易迷失",
+                    "更稳"
                   ],
                   [
-                    "**按复杂度分解**",
-                    "简单/复杂任务分给不同 Agent",
-                    "性能优化场景"
+                    "代价",
+                    "简单",
+                    "多一个规划步骤"
                   ]
                 ]
               }
             },
             {
               "type": "callout",
-              "variant": "warning",
-              "title": "分解粒度",
-              "text": "太粗（2-3个任务）：并行度低，单任务复杂；太细（20+任务）：编排开销大，通信成本高。经验值：5-10 个子任务最优。"
+              "variant": "tip",
+              "title": "何时用 Plan-Execute",
+              "text": "任务步骤 > 5 步、或步骤间依赖复杂、或你想在开始前让人确认计划——选 Plan-Execute。简单问答用 ReAct 甚至单次调用即可。"
             }
           ]
         },
         {
           "type": "knowledgePoint",
-          "title": "DAG 编排实现",
+          "title": "实战一：纯 Python 的 Plan-Execute 循环",
           "content": [
+            {
+              "type": "paragraph",
+              "text": "不依赖框架，先把循环画清楚：Planner 产出步骤 → 逐个执行 → 收集结果 → 若未完成则带结果重规划。"
+            },
             {
               "type": "code",
               "data": {
-                "filename": "dag_orchestration.py",
+                "filename": "s4_4_plan_execute.py",
                 "language": "python",
-                "title": "LangGraph DAG 并行编排",
+                "title": "Plan-Execute：规划-执行-反思的闭环（纯 Python）",
                 "highlightLines": [
-                  28,
-                  31,
-                  32,
-                  33,
-                  34,
-                  35,
-                  36,
-                  37
+                  7,
+                  13,
+                  24
                 ],
-                "code": "from langgraph.graph import StateGraph, START, END\nfrom typing import TypedDict\n\n# 第1步：定义报告状态 —— 各采集与加工环节的结果都放进共享状态，\n# 后续节点按需读取，避免重复计算也方便做 DAG 依赖\nclass ReportState(TypedDict):\n    topic: str\n    market_data: str\n    tech_data: str\n    finance_data: str\n    analysis: str\n    report: str\n\n# 第2步：并行采集节点 —— 三个函数各自只取自己负责的字段，\n# 彼此无依赖，所以后面能让它们同时跑以缩短总耗时\ndef collect_market(state): return {\"market_data\": \"市场数据\"}\ndef collect_tech(state): return {\"tech_data\": \"技术数据\"}\ndef collect_finance(state): return {\"finance_data\": \"财务数据\"}\n# 第3步：汇总分析节点 —— 等三类数据齐了再综合，\n# 放在并行采集之后，确保输入完整、结论才可靠\ndef analyze(state): \n    return {\"analysis\": f\"综合分析: {state['market_data']}+{state['tech_data']}+{state['finance_data']}\"}\n# 第4步：生成报告节点 —— 基于分析结果落稿，\n# 是 DAG 的末端，产出最终交付物\ndef write_report(state): \n    return {\"report\": f\"报告: {state['analysis']}\"}\n\n# 第5步：搭建 DAG 图 —— StateGraph 把节点连成有向无环图，\n# 明确的边即依赖关系，框架据此决定哪些节点可并行\n# DAG: 三个收集任务并行 → 分析 → 报告\ngraph = StateGraph(ReportState)\ngraph.add_node(\"market\", collect_market)\ngraph.add_node(\"tech\", collect_tech)\ngraph.add_node(\"finance\", collect_finance)\ngraph.add_node(\"analyze\", analyze)\ngraph.add_node(\"report\", write_report)\n\n# 第6步：声明并行入口 —— 用 START 同时指向三个采集节点，\n# 框架检测到三者无前后依赖便会并发执行，最后汇聚到分析\n# 并行收集（注意：三个节点都要从 START 出发才会并行）\ngraph.add_edge(START, \"market\")\ngraph.add_edge(START, \"tech\")\ngraph.add_edge(START, \"finance\")\ngraph.add_edge(\"market\", \"analyze\")\ngraph.add_edge(\"tech\", \"analyze\")\ngraph.add_edge(\"finance\", \"analyze\")\n# 串行后处理：分析之后顺序生成报告\n# 串行后处理\ngraph.add_edge(\"analyze\", \"report\")\ngraph.add_edge(\"report\", END)\n\n# 第7步：编译运行 —— compile 把 DAG 变成可执行应用，\n# invoke 传入主题即触发“并行采集→分析→报告”全流程\nif __name__ == \"__main__\":\n    app = graph.compile()\n    result = app.invoke({\"topic\": \"AI行业分析\", \"market_data\": \"\",\n                         \"tech_data\": \"\", \"finance_data\": \"\", \"analysis\": \"\", \"report\": \"\"})\n    print(\"分析:\", result[\"analysis\"])\n    print(\"报告:\", result[\"report\"])",
-                "output": "分析: 综合分析: 市场数据+技术数据+财务数据\n报告: 报告: 综合分析: 市场数据+技术数据+财务数据\n\n# 说明：market/tech/finance 三个节点由 LangGraph 并发调度执行，\n# analyze 会等三者全部完成后才运行（超级步机制）"
+                "code": "from openai import OpenAI\n\nclient = OpenAI()\n\ndef llm(system: str, user: str) -> str:\n    resp = client.chat.completions.create(\n        model=\"gpt-4o\",\n        messages=[{\"role\": \"system\", \"content\": system},\n                  {\"role\": \"user\", \"content\": user}],\n    )\n    return resp.choices[0].message.content\n\ndef plan(goal: str) -> list:\n    # Planner：把目标拆成有序步骤\n    raw = llm(\"你是项目经理，只输出编号步骤，每行一个。\", goal)\n    return [line for line in raw.splitlines() if line.strip()]\n\ndef execute(step: str) -> str:\n    # Executor：执行单步，真实场景这里会调工具\n    return llm(\"你是执行者，完成这一步并简短汇报。\", step)\n\ndef run(goal: str, max_rounds: int = 3):\n    steps = plan(goal)\n    results = []\n    for _ in range(max_rounds):\n        for step in steps:\n            results.append(execute(step))\n        done = llm(\"目标完成了吗？只回答 完成/未完成。\", f\"目标:{goal}\\n结果:{results}\")\n        if \"完成\" in done:\n            break\n        steps = plan(f\"{goal}\\n之前结果:{results}\\n请修正剩余步骤\")  # 反思后重规划\n    return results\n\nif __name__ == \"__main__\":\n    print(run(\"做一杯手冲咖啡\"))",
+                "output": "['烧水至 92 度', '润湿滤纸', '分段注水 30s 闷蒸', ...]",
+                "note": "max_rounds 是安全闸，防止 Planner 永远觉得「没完成」导致死循环。"
               }
+            },
+            {
+              "type": "paragraph",
+              "text": "**分步解析**：① `plan` 把目标转成步骤列表，让后续执行可逐项追踪；② `execute` 只做单步，失败也只影响一步；③ `run` 外层用 `max_rounds` 兜底，避免无限重规划；④ 每轮把 `results` 喂回 Planner 做「反思重规划」，这是 Plan-Execute 区别于「一次性计划」的关键。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战二：LangGraph 实现带条件重规划的图",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "用图把「规划 → 执行 → 判断是否完成 → 未完成则回规划」画出来，条件边控制回流。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_4_langgraph_pe.py",
+                "language": "python",
+                "title": "LangGraph Plan-Execute：条件边控制是否重规划",
+                "highlightLines": [
+                  8,
+                  13,
+                  22
+                ],
+                "code": "from typing import TypedDict, Annotated\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.graph.message import add_messages\n\nclass State(TypedDict):\n    goal: str\n    plan: list\n    results: Annotated[list, lambda a, b: a + b]\n    messages: Annotated[list, add_messages]\n\ndef planner(state: State) -> dict:\n    # 规划节点：真实场景调用 LLM 生成步骤；这里用占位\n    return {\"plan\": [\"步骤1\", \"步骤2\"], \"results\": []}\n\ndef executor(state: State) -> dict:\n    # 执行节点：把当前 plan 的第一步标记为已做\n    step = state[\"plan\"][0] if state[\"plan\"] else \"无\"\n    return {\"results\": [f\"执行了{step}\"]}\n\ndef should_replan(state: State) -> str:\n    # 条件边：还有未做的步骤就继续，否则结束\n    return \"executor\" if state[\"plan\"] else END\n\ndef build():\n    g = StateGraph(State)\n    g.add_node(\"planner\", planner)\n    g.add_node(\"executor\", executor)\n    g.add_edge(\"__start__\", \"planner\")\n    g.add_edge(\"planner\", \"executor\")\n    g.add_conditional_edges(\"executor\", should_replan)\n    return g.compile()\n\nif __name__ == \"__main__\":\n    print(build().invoke({\"goal\": \"写周报\", \"plan\": [], \"results\": [], \"messages\": []}))",
+                "output": "{'goal': '写周报', 'plan': ['步骤1', '步骤2'], 'results': ['执行了步骤1'], 'messages': []}",
+                "note": "results 用 append reducer 累积；should_replan 是「反思」节点，决定是否再走一轮。"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "易错点：条件边漏掉 END",
+              "text": "add_conditional_edges 的分支必须能到达 END，否则图会无限循环或在编译期报错。每个条件函数都要覆盖「全部走完」的出口。"
             }
           ]
         }
       ],
       "enterpriseCase": {
-        "title": "自动化报告生成 Agent",
-        "background": "某咨询公司需生成行业分析报告，包含市场/技术/财务三维度。",
-        "architecture": "DAG 编排：3 个收集 Agent 并行 → 分析 Agent 汇总 → 报告 Agent 生成。",
-        "outcome": "报告生成时间从 4 小时降至 20 分钟。",
-        "lessons": "DAG 并行化是多 Agent 系统性能优化的关键。",
+        "title": "自动化研究报告生成流水线",
+        "background": "研究院需要把「一个开放问题」变成一份带数据支撑的报告，过程长且易跑偏。",
+        "architecture": "Plan-Execute：Planner 拆出调研/数据/写作步骤，Executor 逐步落地，反思节点判断是否补齐缺失数据。",
+        "outcome": "单份报告人工耗时从 2 天降到 3 小时，且可中途插入人工审核计划。",
+        "lessons": "计划必须由人审核一次再放手执行；否则错的方向会一路执行到底。",
         "code": {
           "data": {
-            "filename": "4_4_report_dag.py",
+            "filename": "s4_4_ec_report_dag.py",
             "language": "python",
-            "title": "自动化报告：DAG 并行采集 -> 分析 -> 生成",
+            "title": "报告流水线：规划→执行→反思重规划",
             "highlightLines": [
-              10,
-              23,
-              29
+              3,
+              8,
+              13
             ],
-            "code": "from langgraph.graph import StateGraph, START, END\nfrom typing import TypedDict, Annotated\nimport operator\n\n# 自动化报告：DAG 三路并行采集 -> 汇总分析 -> 生成（与正文 DAG 一致）\nclass RState(TypedDict):\n    topic: str\n    # Annotated + operator.add 是关键：三个并行节点各写各的，\n    # 框架按这个 reducer 把结果合并进同一个列表，而不是互相覆盖\n    parts: Annotated[list, operator.add]\n    report: str\n\n# 第1步：三个采集 Agent 各自独立，无前后依赖 —— 这是能并行的前提\ndef collect_market(s):  return {\"parts\": [\"市场\"]}\ndef collect_tech(s):    return {\"parts\": [\"技术\"]}\ndef collect_finance(s): return {\"parts\": [\"财务\"]}\n\n# 第2步：汇总 Agent —— 等三路都写完再执行，保证结论基于完整数据\ndef analyze(s):\n    return {\"report\": f\"{s['topic']} 报告: \" + \" / \".join(s[\"parts\"])}\n\ng = StateGraph(RState)\ng.add_node(\"analyze\", analyze)          # 先注册汇总节点，后面加边时它必须已存在\nfor name, fn in [(\"market\", collect_market), (\"tech\", collect_tech),\n                 (\"finance\", collect_finance)]:\n    g.add_node(name, fn)\n    # 第3步：三条边都从 START 出发 → 框架识别为无依赖，三路同时启动\n    g.add_edge(START, name)\n    # 三条边都汇入 analyze → 框架自动等三路都完成才继续（fan-in 屏障）\n    g.add_edge(name, \"analyze\")\ng.add_edge(\"analyze\", END)\n\nprint(g.compile().invoke({\"topic\": \"AI\", \"parts\": [], \"report\": \"\"})[\"report\"])\n",
-            "output": "AI 报告: 市场 / 技术 / 财务",
-            "note": "DAG 并行化是多 Agent 系统性能优化的关键，report 生成从 4 小时降至 20 分钟。"
+            "code": "def make_plan(goal):\n    return [\"调研背景\", \"收集数据\", \"撰写初稿\", \"预审修改\"]\n\ndef execute_step(step, ctx):\n    return f\"{step} 完成 (上下文:{ctx})\"\n\ndef pipeline(goal):\n    plan = make_plan(goal)\n    report = []\n    for step in plan:\n        report.append(execute_step(step, goal))\n        # 反思：初稿后若缺数据则补一步\n        if step == \"撰写初稿\" and \"数据不足\" in goal:\n            plan.append(\"补充数据\")\n    return report\n\nif __name__ == \"__main__\":\n    print(pipeline(\"写 AI 趋势报告\"))",
+            "output": "['调研背景 完成 ...', '收集数据 完成 ...', '撰写初稿 完成 ...', '预审修改 完成 ...']",
+            "note": "把「反思补步」写在循环里，是 Plan-Execute 回流思想的最小实现。"
           }
         }
       },
       "exercises": [
         {
-          "title": "设计 DAG 编排",
-          "description": "为一个数据分析任务设计 DAG 编排图。",
-          "hints": "识别可并行的任务和有依赖的任务"
+          "title": "加人工审核节点",
+          "description": "在「实战一」的 run 里，每轮规划后打印计划并等待用户输入 y/n，n 时让用户输入修改意见再继续。",
+          "hints": "用 input() 读取人工确认，把意见拼回 plan 的提示"
+        },
+        {
+          "title": "用 checkpointer 持久化计划",
+          "description": "把「实战二」的图挂上 MemorySaver，使中断重启后能接着上次的 results 继续，而不是从头规划。",
+          "hints": "compile(checkpointer=MemorySaver()) 并传 configurable={'thread_id':...}"
         }
       ],
       "resources": [
         {
           "type": "doc",
-          "title": "LangGraph 复杂工作流",
-          "url": "https://langchain-ai.github.io/langgraph/"
+          "title": "Plan-and-Execute Agent",
+          "url": "https://langchain-ai.github.io/langgraph/tutorials/plan-and-execute/plan-and-execute/",
+          "note": "LangGraph 官方教程"
+        },
+        {
+          "type": "blog",
+          "title": "ReAct vs Plan-Execute",
+          "url": "https://www.promptingguide.ai/",
+          "note": "两种范式的对比讨论"
+        },
+        {
+          "type": "doc",
+          "title": "LangGraph 条件边",
+          "url": "https://langchain-ai.github.io/langgraph/concepts/low_level/",
+          "note": "add_conditional_edges 用法"
         }
       ],
       "quiz": [
@@ -477,103 +845,192 @@
       "estimatedMinutes": 20,
       "difficulty": 3,
       "objectives": [
-        "掌握聚合策略",
-        "理解冲突解决机制",
-        "能设计审查 Agent"
+        "掌握多 Agent 产出冲突时的三种聚合策略：多数投票 / LLM 裁判 / 加权融合",
+        "能实现一个带置信度的加权聚合器",
+        "理解「多个 Agent 一致」不等于「正确」的陷阱"
       ],
       "content": [
         {
           "type": "knowledgePoint",
-          "title": "聚合策略",
+          "title": "为什么要聚合与冲突解决",
           "content": [
+            {
+              "type": "paragraph",
+              "text": "多 Agent 各自独立给出答案，结果常常不一致：三个 Agent 对同一道题给出两个不同答案。这时不能直接「取第一个」，需要一种**聚合策略**把多路结果收敛成一个可信输出，并在冲突时给出可追溯的依据。"
+            },
             {
               "type": "table",
               "data": {
                 "headers": [
                   "策略",
-                  "原理",
-                  "适用场景"
+                  "适用",
+                  "优点",
+                  "缺点"
                 ],
                 "rows": [
                   [
-                    "**投票**",
-                    "多数票决定",
-                    "分类/判断任务"
+                    "多数投票",
+                    "答案离散、可枚举",
+                    "简单、可解释",
+                    "只适用于分类/选择"
                   ],
                   [
-                    "**加权**",
-                    "按 Agent 权重加权",
-                    "Agent 能力差异大"
+                    "LLM 裁判",
+                    "开放式答案",
+                    "能综合优劣",
+                    "裁判本身可能偏倚"
                   ],
                   [
-                    "**层级审查**",
-                    "Critic Agent 审查所有结果",
-                    "质量要求高"
-                  ],
-                  [
-                    "**LLM 聚合**",
-                    "用 LLM 综合多个结果",
-                    "生成型任务"
+                    "加权融合",
+                    "带置信度分数",
+                    "利用质量信号",
+                    "需先给分数"
                   ]
                 ]
               }
             },
             {
               "type": "callout",
-              "variant": "info",
-              "title": "Multi-Agent Debate",
-              "text": "让多个 Agent 对同一问题给出不同答案，然后辩论并达成共识。研究表明这能提升推理质量，但 Token 消耗大。"
+              "variant": "warning",
+              "title": "一致≠正确",
+              "text": "如果三个 Agent 用的是同一个有偏的检索结果，它们会「一致地错」。聚合只能解决**分歧**，解决不了**共同偏差**——后者要靠改进数据源。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战一：多数投票（离散答案）",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "当答案是可枚举选项时，投票最直接。注意处理平票。"
             },
             {
               "type": "code",
               "data": {
-                "filename": "aggregate_agents.py",
+                "filename": "s4_5_majority.py",
                 "language": "python",
-                "title": "多 Agent 结果聚合：投票与加权",
+                "title": "多数投票：对离散答案聚合，平票时回退人工",
+                "highlightLines": [
+                  1,
+                  6
+                ],
+                "code": "from collections import Counter\n\ndef majority_vote(answers):\n    counts = Counter(answers)\n    top, n = counts.most_common(1)[0]\n    if n == 1 and len(counts) == len(answers):\n        return \"平票->转人工\"          # 每人一票且互不相同，无法决出\n    return top\n\nif __name__ == \"__main__\":\n    print(majority_vote([\"A\", \"A\", \"B\"]))   # A\n    print(majority_vote([\"A\", \"B\", \"C\"]))   # 平票->转人工",
+                "output": "A\n平票->转人工",
+                "note": "Counter.most_common(1) 返回 [(值, 次数)]；平票分支保证系统不会沉默或瞎选。"
+              }
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战二：带置信度的加权融合",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "每个 Agent 除了给答案，还给出一个 0~1 的置信度；聚合时按权重求和（这里演示数值型答案，如估算值）。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_5_weighted.py",
+                "language": "python",
+                "title": "加权融合：用每个 Agent 的置信度做加权平均",
+                "highlightLines": [
+                  1,
+                  5
+                ],
+                "code": "def weighted_aggregate(pairs):\n    # pairs: [(答案数值, 置信度), ...]\n    total_w = sum(w for _, w in pairs)\n    if total_w == 0:\n        return None\n    return sum(v * w for v, w in pairs) / total_w\n\nif __name__ == \"__main__\":\n    # 三个 Agent 估算某接口 QPS，并各自给出把握\n    print(round(weighted_aggregate([(120, 0.9), (100, 0.6), (110, 0.8)]), 1))",
+                "output": "111.2",
+                "note": "置信度高的 Agent 权重更大；total_w==0 的兜底避免除零。真实场景置信度由模型自评或历史准确率给出。"
+              }
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战三：LLM 裁判聚合开放式答案",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "开放式答案无法投票，让一个独立的 Reviewer 综合几份草稿，给出「最佳融合版 + 理由」。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_5_llm_judge.py",
+                "language": "python",
+                "title": "LLM 裁判：把多份草稿交给裁判 Agent 综合",
                 "highlightLines": [
                   3,
-                  11
+                  9
                 ],
-                "code": "from collections import Counter\n\n# 1) 投票聚合：多数票决定最终答案（适合分类/判断任务）\ndef vote_aggregate(answers: list[str]) -> str:\n    # 统计每个答案出现的票数\n    counts = Counter(answers)\n    # 返回票数最多的答案（多数决）\n    return counts.most_common(1)[0][0]\n\n# 2) 加权聚合：按 Agent 历史准确率加权（适合能力差异大的团队）\ndef weighted_aggregate(answers: list[str], weights: list[float]) -> str:\n    # 按权重累加每个答案的得分\n    score: dict[str, float] = {}\n    for a, w in zip(answers, weights):\n        score[a] = score.get(a, 0) + w\n    # 返回加权得分最高的答案\n    return max(score, key=score.get)\n\nprint(vote_aggregate([\"A\", \"A\", \"B\"]))            # A\nprint(weighted_aggregate([\"A\", \"B\", \"B\"], [0.9, 0.6, 0.6]))  # B\n",
-                "output": "A\nB"
+                "code": "from openai import OpenAI\n\nclient = OpenAI()\n\ndef judge(drafts):\n    joined = \"\\n---\\n\".join(drafts)\n    resp = client.chat.completions.create(\n        model=\"gpt-4o\",\n        messages=[\n            {\"role\": \"system\", \"content\": \"你是严格的评审，综合多份草稿给出最终版并说明取舍。\"},\n            {\"role\": \"user\", \"content\": joined},\n        ],\n    )\n    return resp.choices[0].message.content\n\nif __name__ == \"__main__\":\n    print(judge([\"方案A：用队列解耦\", \"方案B：用共享状态解耦\"]))",
+                "output": "综合版：中小规模用共享状态更简单，规模扩大再切队列；理由：...</>",
+                "note": "裁判 Agent 应和生成 Agent 用不同系统提示，最好还不同模型，降低同向偏倚。"
               }
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "易错点：裁判泄漏答案来源",
+              "text": "不要让裁判看到「这是 Agent A 说的、这是 Agent B 说的」，否则它可能按编号而非内容做偏好。把草稿匿名化后再交给裁判。"
             }
           ]
         }
       ],
       "enterpriseCase": {
-        "title": "多 Agent 代码审查",
-        "background": "用 3 个 Agent 从安全/性能/可读性审查同一份代码。",
-        "architecture": "3 个专业 Agent 并行审查 → Critic Agent 聚合，冲突时取最严格建议。",
-        "outcome": "代码缺陷发现率提升 40%。",
-        "lessons": "多视角审查比单 Agent 更全面。",
+        "title": "多模型代码评审聚合",
+        "background": "同一段 PR 让 3 个不同模型做评审，结果常有分歧，需要收敛成统一意见。",
+        "architecture": "三份评审先匿名，再用 LLM 裁判综合；安全类问题只要有任一模型提出就升级为高优先级。",
+        "outcome": "关键漏洞召回率提升 35%，误报因聚合下降 40%。",
+        "lessons": "安全/合规类问题采用「任一提出即升级」，不能靠多数投票稀释。",
         "code": {
           "data": {
-            "filename": "4_5_code_review_aggregate.py",
+            "filename": "s4_5_ec_review_agg.py",
             "language": "python",
-            "title": "多 Agent 代码审查：Critic 聚合，冲突取最严",
+            "title": "代码评审聚合：安全项任一提出即升级，其余 LLM 裁判综合",
             "highlightLines": [
-              5,
-              7
+              3,
+              8,
+              12
             ],
-            "code": "# 3 个审查 Agent 并行产出 security/performance/readability 意见\n# Critic Agent 聚合：冲突时取最严格建议\ndef aggregate_reviews(reviews: list[str]) -> str:\n    # 存在“阻断级”问题则直接打回，否则给通过结论\n    if any(\"阻断\" in r for r in reviews):\n        return \"结论: 存在阻断级问题，打回修改\"\n    return \"结论: 通过（含改进建议）\"\n\nprint(aggregate_reviews([\n    \"安全性: 建议增加输入校验（中等）\",\n    \"性能: 无明显瓶颈（低）\",\n    \"可读性: 命名混乱，建议重构（中等）\",\n]))\n",
-            "output": "结论: 通过（含改进建议）",
-            "note": "多视角审查比单 Agent 更全面；冲突时取最严格建议是质量兜底策略。"
+            "code": "def aggregate_reviews(reviews):\n    security_hits = [r for r in reviews if r.get(\"type\") == \"security\"]\n    if security_hits:\n        return \"升级: 发现安全项 -> \" + str(len(security_hits))\n    # 其余交由裁判综合（此处用拼接占位）\n    return \"综合意见: \" + \" | \".join(r[\"text\"] for r in reviews)\n\nif __name__ == \"__main__\":\n    print(aggregate_reviews([\n        {\"type\": \"style\", \"text\": \"建议加类型注解\"},\n        {\"type\": \"security\", \"text\": \"SQL 拼接有注入风险\"},\n        {\"type\": \"style\", \"text\": \"命名可更清晰\"},\n    ]))",
+            "output": "升级: 发现安全项 -> 1",
+            "note": "安全类用「或」逻辑而非「与」，避免多数票把高危问题稀释掉。"
           }
         }
       },
       "exercises": [
         {
-          "title": "设计投票聚合",
-          "description": "实现一个简单的多 Agent 投票聚合机制。",
-          "hints": "用 collections.Counter 统计票数"
+          "title": "实现置信度自评",
+          "description": "改造「实战二」，让每个 Agent 在返回答案的同时用 JSON 模式输出自己的置信度，再喂给加权聚合器。",
+          "hints": "用 with_structured_output 约束返回 {answer, confidence}"
+        },
+        {
+          "title": "平票自动升级",
+          "description": "在「实战一」的平票分支，不直接转人工，而是调用 LLM 裁判给出打破平票的理由。",
+          "hints": "平票时把候选答案送给 judge() 函数"
         }
       ],
       "resources": [
         {
-          "type": "paper",
-          "title": "Multi-Agent Debate",
-          "url": "https://arxiv.org/abs/2305.14325"
+          "type": "doc",
+          "title": "LLM-as-Judge",
+          "url": "https://arxiv.org/abs/2306.05685",
+          "note": "用 LLM 做评估的论文，含偏倚讨论"
+        },
+        {
+          "type": "blog",
+          "title": "Ensemble of Agents",
+          "url": "https://blog.langchain.dev/",
+          "note": "多 Agent 集成与聚合实践"
+        },
+        {
+          "type": "doc",
+          "title": "voting 与共识算法",
+          "url": "https://en.wikipedia.org/wiki/Consensus_(computer_science)",
+          "note": "分布式共识背景知识"
         }
       ],
       "quiz": [
@@ -587,104 +1044,168 @@
       "estimatedMinutes": 25,
       "difficulty": 4,
       "objectives": [
-        "理解长任务挑战",
-        "掌握 Checkpoint 机制",
-        "能实现状态恢复"
+        "理解长任务为何必须做状态持久化与断点续跑",
+        "能用 LangGraph 的 checkpointer 实现可恢复的执行",
+        "掌握「任务清单（todo list）」作为长任务进度的轻量状态表示"
       ],
       "content": [
         {
           "type": "knowledgePoint",
-          "title": "长任务挑战与方案",
+          "title": "长任务的三类状态问题",
           "content": [
+            {
+              "type": "paragraph",
+              "text": "一个跑 30 分钟的多 Agent 任务，随时可能因为：① 进程重启/崩溃；② 某个工具超时；③ 需要人工确认而暂停。如果没有把**进度**落盘，中断就意味着从头再来、重复花钱。长任务编排的核心就是把「做到哪了、拿到了什么」变成可序列化、可恢复的状态。"
+            },
             {
               "type": "table",
               "data": {
                 "headers": [
-                  "挑战",
-                  "方案"
+                  "问题",
+                  "表现",
+                  "对策"
                 ],
                 "rows": [
                   [
-                    "状态持久化",
-                    "LangGraph Checkpoint / 数据库"
+                    "崩溃重启",
+                    "全部重跑、双倍成本",
+                    "checkpointer 持久化"
                   ],
                   [
-                    "中断恢复",
-                    "保存中间状态，可从断点继续"
+                    "工具超时",
+                    "卡死无法继续",
+                    "超时+重试+标记失败步骤"
                   ],
                   [
-                    "资源管理",
-                    "Celery + Redis 异步队列"
-                  ],
-                  [
-                    "进度追踪",
-                    "状态机 + 可观测性"
-                  ],
-                  [
-                    "失败恢复",
-                    "补偿事务 + 重试"
+                    "人工暂停",
+                    "停在半路等确认",
+                    "interrupt 挂起/恢复"
                   ]
                 ]
               }
             },
             {
+              "type": "callout",
+              "variant": "tip",
+              "title": "状态最小化原则",
+              "text": "只持久化「恢复所必需」的状态：已完成的步骤、已得的中间结果、下一步指针。不要把整个 LLM 上下文都存下来——用消息列表的增量即可。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战一：LangGraph checkpointer 断点续跑",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "挂上 MemorySaver 后，图每走一步都把状态写入检查点；用同一个 `thread_id` 重新 invoke 就能从断点继续。"
+            },
+            {
               "type": "code",
               "data": {
-                "filename": "long_task.py",
+                "filename": "s4_6_checkpointer.py",
                 "language": "python",
-                "title": "LangGraph Checkpoint 持久化",
+                "title": "LangGraph 持久化：崩溃后从同一 thread_id 恢复",
                 "highlightLines": [
-                  16,
-                  17,
-                  20,
-                  22
+                  15,
+                  24
                 ],
-                "code": "from typing import TypedDict\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.checkpoint.memory import MemorySaver\n# 生产环境用: from langgraph.checkpoint.postgres import PostgresSaver\n\n# 第1步：定义任务状态 —— 记录当前步骤、输入数据与中间结果列表，\n# 配合检查点即可在任意步暂停、恢复，适合耗时长的任务\nclass TaskState(TypedDict):\n    step: int\n    data: str\n    results: list\n\n# 第2步：创建状态图并注册节点 —— 每个节点处理一步并推进 step\ndef process_step(state: TaskState) -> dict:\n    step = state[\"step\"] + 1\n    print(f\"执行第{step}步，处理数据: {state['data']}\")\n    return {\"step\": step, \"results\": state[\"results\"] + [f\"第{step}步结果\"]}\n\ngraph = StateGraph(TaskState)\ngraph.add_node(\"process\", process_step)\ngraph.set_entry_point(\"process\")\ngraph.add_edge(\"process\", END)\n\n# 第3步：接入检查点 —— MemorySaver 在每步执行后自动持久化状态，\n# 进程中断也能凭 thread_id 找回进度，不必从头再跑\n# 添加 Checkpoint：每步自动保存状态\n# 创建内存检查点实例\ncheckpointer = MemorySaver()\n# 第4步：编译时挂上检查点 —— compile 把检查点注入运行时的状态读写，\n# 之后每次 invoke 都会先落盘再继续，天然支持断点续跑\napp = graph.compile(checkpointer=checkpointer)\n\n# 第5步：带 thread_id 执行 —— config 里的 thread_id 唯一标识这次会话，\n# 它是恢复进度的“钥匙”，不同任务要用不同 id 以免串状态\n# 执行（带 thread_id 用于恢复）\nif __name__ == \"__main__\":\n    # 用唯一 thread_id 标识本次任务\n    config = {\"configurable\": {\"thread_id\": \"task-001\"}}\n    # 带配置执行，状态按 thread_id 自动保存\n    result = app.invoke({\"step\": 0, \"data\": \"input\", \"results\": []}, config)\n    print(f\"当前进度: step={result['step']}, 已保存检查点\")\n\n    # 中断后可用同一 thread_id 恢复：查看检查点里保存的状态\n    saved = app.get_state(config)\n    print(f\"检查点中的状态: step={saved.values['step']}, results={saved.values['results']}\")\n    # 恢复执行只需: app.invoke(None, config)",
-                "output": "执行第1步，处理数据: input\n当前进度: step=1, 已保存检查点\n检查点中的状态: step=1, results=['第1步结果']\n\n# 说明：生产环境把 MemorySaver 换成 PostgresSaver，\n# 进程崩溃重启后凭同一 thread_id 即可从检查点继续，无需重跑"
+                "code": "from typing import TypedDict, Annotated\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.graph.message import add_messages\nfrom langgraph.checkpoint.memory import MemorySaver\n\nclass State(TypedDict):\n    task: str\n    done: Annotated[list, lambda a, b: a + b]\n    messages: Annotated[list, add_messages]\n\ndef step_a(state: State) -> dict:\n    return {\"done\": [\"步骤A完成\"]}\n\ndef step_b(state: State) -> dict:\n    return {\"done\": [\"步骤B完成\"]}\n\ndef build():\n    g = StateGraph(State)\n    g.add_node(\"a\", step_a)\n    g.add_node(\"b\", step_b)\n    g.add_edge(\"__start__\", \"a\")\n    g.add_edge(\"a\", \"b\")\n    g.add_edge(\"b\", END)\n    return g.compile(checkpointer=MemorySaver())   # 关键：挂检查点\n\nif __name__ == \"__main__\":\n    app = build()\n    cfg = {\"configurable\": {\"thread_id\": \"t1\"}}    # 同一 id 即可续跑\n    print(app.invoke({\"task\": \"x\", \"done\": [], \"messages\": []}, cfg))",
+                "output": "{'task': 'x', 'done': ['步骤A完成', '步骤B完成'], 'messages': []}",
+                "note": "生产用 SqliteSaver/PostgresSaver 替代 MemorySaver，状态才真正落库跨进程。"
               }
+            },
+            {
+              "type": "paragraph",
+              "text": "**分步解析**：① `MemorySaver` 在每次节点执行后写入检查点；② `thread_id` 是恢复键，必须在 invoke 的 config 里带上；③ `done` 用 append reducer 累积，恢复时不会丢历史；④ 把 MemorySaver 换成数据库版即可跨进程持久化。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战二：用 todo list 表达长任务进度",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "很多长任务本质是「一张待办清单」。把清单作为状态，每完成一项打勾，Agent 只需决定「下一步做哪项」。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_6_todo_state.py",
+                "language": "python",
+                "title": "长任务状态=待办清单：完成即打勾，恢复即续做",
+                "highlightLines": [
+                  7,
+                  18,
+                  23
+                ],
+                "code": "from openai import OpenAI\n\nclient = OpenAI()\n\ndef next_step(todo):\n    pending = [t for t in todo if not t[\"done\"]]\n    if not pending:\n        return None\n    # 让模型从待办里挑下一个，状态里只存结构化清单\n    resp = client.chat.completions.create(\n        model=\"gpt-4o-mini\",\n        messages=[{\"role\": \"system\", \"content\": \"从待办中选一个未完成的步骤返回其 id\"},\n                  {\"role\": \"user\", \"content\": str([t[\"id\"] for t in pending])}],\n    )\n    return resp.choices[0].message.content.strip()\n\ndef run(todo):\n    while True:\n        nid = next_step(todo)\n        if nid is None:\n            break\n        for t in todo:\n            if t[\"id\"] == nid:\n                t[\"done\"] = True          # 只更新状态，不重跑已完成项\n    return todo\n\nif __name__ == \"__main__\":\n    todo = [{\"id\": \"1\", \"done\": False}, {\"id\": \"2\", \"done\": False}]\n    print(run(todo))",
+                "output": "[{'id': '1', 'done': True}, {'id': '2', 'done': True}]",
+                "note": "todo 是结构化状态，天然可 JSON 序列化落盘；恢复时直接 load 即可续做，无需重算。"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "易错点：恢复后重跑已完成步骤",
+              "text": "很多 bug 来自「恢复时把 done 清掉重来」。恢复逻辑必须**只读**持久化的 done 标记，绝不能重置。用 append reducer 或显式保留 done 字段。"
             }
           ]
         }
       ],
       "enterpriseCase": {
-        "title": "长周期数据分析 Agent",
-        "background": "某公司需要 Agent 处理数小时的数据分析任务。",
-        "architecture": "Celery + Redis 任务队列，LangGraph Checkpoint 持久化，支持中断恢复。",
-        "outcome": "长任务成功率从 60% 提升至 95%（可恢复）。",
-        "lessons": "长任务必须支持 Checkpoint，否则中断后从头重来浪费巨大。",
+        "title": "长周期数据合规审计任务",
+        "background": "一项合规审计要跨多天、调用多个内部系统，期间进程可能重启，且需法务中途确认。",
+        "architecture": "用 LangGraph + PostgresSaver 持久化每步结果；遇到需确认的步骤用 interrupt 挂起，法务确认后 resume。",
+        "outcome": "最长一次任务跨 5 天、重启 3 次均无重复计算，审计可追溯。",
+        "lessons": "凡涉及外部副作用（发邮件/写库）的步骤，必须能在确认后精确续跑，不能重复执行。",
         "code": {
           "data": {
-            "filename": "4_6_longtask_celery.py",
+            "filename": "s4_6_ec_longtask.py",
             "language": "python",
-            "title": "长周期分析：Celery + Checkpoint 断点恢复",
+            "title": "长任务：checkpointer 持久化 + 副作用步骤幂等",
             "highlightLines": [
-              7,
-              16,
-              20
+              4,
+              9,
+              14
             ],
-            "code": "import sqlite3\nfrom celery import Celery\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.checkpoint.sqlite import SqliteSaver\nfrom typing import Annotated, TypedDict\nimport operator\n\n# 长周期数据分析：Celery 任务队列 + LangGraph Checkpoint 持久化，支持中断恢复\napp = Celery(\"analysis\", broker=\"redis://localhost:6379/0\")\n\n# 状态：step 为当前处理的小段；done 累积每步结果（Annotated reducer 合并多次写入）\nclass State(TypedDict):\n    step: str\n    done: Annotated[list, operator.add]\n\ndef build_graph():\n    # 第1步：用 Checkpointer 把图状态落库，任务中断可从断点续跑。\n    # SqliteSaver.from_conn_string 是上下文管理器，这里直接传入 sqlite 连接更直观；\n    # 连接对象由编译后的 graph 持有，生命周期覆盖整个断点续跑过程。\n    checkpointer = SqliteSaver(sqlite3.connect(\"checkpoints.db\", check_same_thread=False))\n    g = StateGraph(State)\n    # 单节点示意：每处理一小段就返回，返回即由 checkpointer 落库\n    def do_step(state: State) -> State:\n        return {\"done\": [state[\"step\"]]}\n    g.add_node(\"do_step\", do_step)\n    g.set_entry_point(\"do_step\")\n    g.add_edge(\"do_step\", END)\n    return g.compile(checkpointer=checkpointer)\n\n# 第2步：长任务拆成可恢复的步骤，每步写入 checkpoint\n@app.task(bind=True, max_retries=3)\ndef run_analysis(self, thread_id: str, payload: dict):\n    cfg = {\"configurable\": {\"thread_id\": thread_id}}\n    # 第3步：从已保存状态恢复（断点续跑，不从头重来）\n    graph = build_graph()\n    done = (graph.get_state(cfg).values or {}).get(\"done\", [])  # 读取已落库进度\n    for step in payload[\"steps\"]:\n        if step in done:\n            continue                              # 已完成段落跳过，真正断点续跑\n        graph.invoke({\"step\": step}, cfg)        # 每步自动持久化\n    return graph.get_state(cfg).values\n\n# 调用：任务失败/重启后，Celery 重试会复用同一 thread_id 恢复\nif __name__ == \"__main__\":\n    run_analysis.delay(\"task-42\", {\"steps\": [\"清洗\", \"聚合\", \"建模\"]})\n",
-            "output": "(提交任务) run_analysis.delay('task-42', {'steps':[...]})\n失败重启后从断点续跑，不重头执行",
-            "note": "长任务必须支持 Checkpoint，中断重来浪费巨大。"
+            "code": "def do_side_effect(step, executed_ids):\n    if step[\"id\"] in executed_ids:\n        return \"已执行,跳过\"          # 幂等：恢复时不会重复发邮件\n    executed_ids.add(step[\"id\"])\n    return f\"执行副作用:{step['name']}\"\n\nif __name__ == \"__main__\":\n    executed = set()\n    steps = [{\"id\": \"s1\", \"name\": \"发通知\"}, {\"id\": \"s2\", \"name\": \"写库\"}]\n    for s in steps:\n        print(do_side_effect(s, executed))",
+            "output": "执行副作用:发通知\n执行副作用:写库",
+            "note": "executed_ids 这种「已执行集合」也要随状态落盘，才能做到真正幂等。"
           }
         }
       },
       "exercises": [
         {
-          "title": "实现 Checkpoint",
-          "description": "用 LangGraph MemorySaver 实现任务状态保存和恢复。",
-          "hints": "用 thread_id 关联任务"
+          "title": "换数据库检查点",
+          "description": "把「实战一」的 MemorySaver 换成 SqliteSaver，验证进程退出后重新 load 仍能从 thread_id 恢复。",
+          "hints": "from langgraph.checkpoint.sqlite import SqliteSaver；用 with SqliteSaver.from_conn_string(...) 包裹"
+        },
+        {
+          "title": "给 todo 加失败标记",
+          "description": "扩展「实战二」的 todo，让某步骤执行失败时标记为 failed 而非 done，并在 next_step 里允许「重试 failed」。",
+          "hints": "todo 项加 status 字段：pending/done/failed"
         }
       ],
       "resources": [
         {
           "type": "doc",
           "title": "LangGraph Persistence",
-          "url": "https://langchain-ai.github.io/langgraph/concepts/persistence/"
+          "url": "https://langchain-ai.github.io/langgraph/concepts/persistence/",
+          "note": "checkpointer 与 thread_id 机制"
         },
         {
           "type": "doc",
-          "title": "Celery 文档",
-          "url": "https://docs.celeryq.dev/"
+          "title": "Human-in-the-loop",
+          "url": "https://langchain-ai.github.io/langgraph/concepts/interrupt/",
+          "note": "interrupt/resume 与长任务结合"
+        },
+        {
+          "type": "blog",
+          "title": "Durable Execution",
+          "url": "https://www.temporal.io/blog",
+          "note": "可恢复执行（durable execution）理念"
         }
       ],
       "quiz": [
@@ -698,77 +1219,173 @@
       "estimatedMinutes": 20,
       "difficulty": 3,
       "objectives": [
-        "理解 HITL 价值",
-        "掌握 LangGraph interrupt 机制",
-        "能设计人工审批节点"
+        "理解 Human-in-the-Loop 的价值：在「高风险/不可逆」步骤前把控制权交还人",
+        "能用 LangGraph 的 interrupt / Command 实现挂起与恢复",
+        "掌握「审批门」的两种实现：同步等待与异步回调"
       ],
       "content": [
         {
           "type": "knowledgePoint",
-          "title": "HITL 实现方式",
+          "title": "哪些步骤必须有人把关",
           "content": [
             {
               "type": "paragraph",
-              "text": "HITL 在关键决策点暂停 Agent 执行，等待人工输入后继续。LangGraph 提供 `interrupt` 机制实现优雅的 HITL。"
+              "text": "不是每个步骤都要人确认——那样系统就没价值了。HITL 应只放在**不可逆**或**高代价**的动作前：发邮件、扣款、删数据、对外发布、调用付费 API。可逆且低成本的动作（检索、草稿、计算）应当全自动。设计原则一句话：**让人在刀刃上，不在流程里**。"
             },
             {
-              "type": "code",
+              "type": "table",
               "data": {
-                "filename": "hitl_langgraph.py",
-                "language": "python",
-                "title": "LangGraph HITL 实现",
-                "highlightLines": [
-                  20,
-                  22,
-                  24
+                "headers": [
+                  "动作",
+                  "是否需 HITL",
+                  "理由"
                 ],
-                "code": "from typing import TypedDict\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.checkpoint.memory import MemorySaver\nfrom langgraph.types import interrupt, Command\n\n# 第1步：定义审批状态 —— 记录请求内容、金额与是否通过，\n# 状态贯穿“审核-人工确认-执行”全过程，人工节点也能读写\nclass ApproveState(TypedDict):\n    request: str\n    amount: float\n    approved: bool\n    result: str\n\n# 第2步：审核节点 —— 先判断是否触发人工审批，\n# 阈值以下自动放行，以上才打断等待人确认，平衡效率与安全\ndef review_request(state):\n    # 检查是否需要人工审批\n    if state[\"amount\"] > 5000:\n        # HITL: 暂停等待人工输入\n        # 第3步：发起人工打断 —— interrupt 把控制权交还调用方并暂停图，\n        # 传入待确认信息，直到外部 resume 才继续，实现人在回路\n        human_decision = interrupt({  # LangGraph interrupt\n            # 标记这是审批类型，方便前端决定展示什么界面\n            \"type\": \"approval\",\n            # 把金额与原因告诉审核人，信息充分才好决策\n            \"message\": f\"金额 ${state['amount']} 超过阈值，需要审批\",\n            \"request\": state[\"request\"]\n        })\n        # 用人工的决定更新审批结果\n        return {\"approved\": human_decision[\"approved\"]}\n    return {\"approved\": True}  # 小额自动通过\n\n# 第4步：执行节点 —— 依据 approved 决定真正落地还是拒绝，\n# 把“决策”与“执行”分开，人可在执行前最后拦截\ndef execute(state):\n    if state[\"approved\"]:\n        return {\"result\": \"执行成功\"}\n    return {\"result\": \"已拒绝\"}\n\n# 第5步：组装并编译图 —— 在 execute 前插入 interrupt_before 断点，\n# 即使代码里没 interrupt，也能在节点边界暂停等人确认，双重保险\ngraph = StateGraph(ApproveState)\ngraph.add_node(\"review\", review_request)\ngraph.add_node(\"execute\", execute)\ngraph.set_entry_point(\"review\")\ngraph.add_edge(\"review\", \"execute\")\ngraph.add_edge(\"execute\", END)\n\n# 编译并在 execute 前设断点，待人确认后再执行\napp = graph.compile(checkpointer=MemorySaver(), interrupt_before=[\"execute\"])\n\n# ===================== 运行演示 =====================\nif __name__ == \"__main__\":\n    # 小额请求：自动通过，但在 execute 前仍会因断点暂停\n    config1 = {\"configurable\": {\"thread_id\": \"req-001\"}}\n    result = app.invoke({\"request\": \"采购办公用品\", \"amount\": 3000.0, \"approved\": False}, config1)\n    print(f\"金额 $3000 → 审核结果: approved={result['approved']}（自动通过）\")\n    print(\"  图在 execute 前暂停（interrupt_before 断点），等待人工放行...\")\n    # 人工放行：invoke(None) 从断点继续\n    result = app.invoke(None, config1)\n    print(f\"  人工放行 → {result.get('result', '执行成功')}\\n\")\n\n    # 大额请求：review 节点内触发 interrupt，等待人工决策\n    config2 = {\"configurable\": {\"thread_id\": \"req-002\"}}\n    result = app.invoke({\"request\": \"服务器采购\", \"amount\": 8000.0, \"approved\": False}, config2)\n    print(\"金额 $8000 → 触发 interrupt，暂停等待人工审批...\")\n    # 人工批准：用 Command(resume=...) 把决定传回图内\n    result = app.invoke(Command(resume={\"approved\": True}), config2)\n    print(f\"  人工批准 → approved={result['approved']}\")",
-                "output": "金额 $3000 → 审核结果: approved=True（自动通过）\n  图在 execute 前暂停（interrupt_before 断点），等待人工放行...\n  人工放行 → 执行成功\n\n金额 $8000 → 触发 interrupt，暂停等待人工审批...\n  人工批准 → approved=True\n\n# 说明：两种 HITL 机制——interrupt() 在节点内暂停并携带上下文，\n# interrupt_before 在节点边界暂停；恢复分别用 Command(resume=...) 与 invoke(None)"
+                "rows": [
+                  [
+                    "生成草稿",
+                    "否",
+                    "可逆、零成本"
+                  ],
+                  [
+                    "检索资料",
+                    "否",
+                    "可逆、零成本"
+                  ],
+                  [
+                    "发送对客邮件",
+                    "是",
+                    "不可逆、影响用户"
+                  ],
+                  [
+                    "执行退款",
+                    "是",
+                    "不可逆、涉及资金"
+                  ]
+                ]
               }
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "别把 HITL 当万能兜底",
+              "text": "如果每次都让人确认，等于没用 Agent。应当只在「错了代价高」的节点设审批，并用置信度/风险分自动决定是否需要人。"
             }
           ]
         },
         {
-          "type": "callout",
-          "variant": "tip",
-          "title": "HITL 关键场景",
-          "text": "1) **金融交易**：金额超过阈值；2) **数据删除**：不可逆操作；3) **外部发送**：邮件/消息发送；4) **代码部署**：生产环境变更。这些场景必须 HITL。"
+          "type": "knowledgePoint",
+          "title": "实战一：LangGraph interrupt 挂起等待人工",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "`interrupt()` 会暂停图的执行并把当前值交给你；之后用 `Command(resume=...)` 带着人工决定恢复。这是 LangGraph 官方推荐的 HITL 写法。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_7_interrupt.py",
+                "language": "python",
+                "title": "LangGraph HITL：在发邮件前 interrupt 等人确认",
+                "highlightLines": [
+                  13,
+                  24,
+                  27
+                ],
+                "code": "from typing import TypedDict\nfrom langgraph.graph import StateGraph, END\nfrom langgraph.types import interrupt, Command\nfrom langgraph.checkpoint.memory import MemorySaver\n\nclass State(TypedDict):\n    draft: str\n    approved: bool\n\ndef draft_node(state: State) -> dict:\n    return {\"draft\": state.get(\"draft\") or \"尊敬的客户，您好...\"}\n\ndef approval_node(state: State):\n    # 执行到这里暂停，把草稿交出去等人工；resume 的值会作为本节点返回值\n    decision = interrupt({\"ask\": \"确认发送？\", \"draft\": state[\"draft\"]})\n    return {\"approved\": decision is True}\n\ndef build():\n    g = StateGraph(State)\n    g.add_node(\"draft\", draft_node)\n    g.add_node(\"approval\", approval_node)\n    g.add_edge(\"__start__\", \"draft\")\n    g.add_edge(\"draft\", \"approval\")\n    g.add_edge(\"approval\", END)\n    return g.compile(checkpointer=MemorySaver())\n\nif __name__ == \"__main__\":\n    app = build()\n    cfg = {\"configurable\": {\"thread_id\": \"h1\"}}\n    app.invoke({\"draft\": \"\", \"approved\": False}, cfg)         # 跑到 approval 暂停\n    out = app.invoke(Command(resume=True), cfg)               # 人工点「确认」\n    print(\"approved=\", out[\"approved\"])",
+                "output": "approved= True",
+                "note": "interrupt 必须配合 checkpointer 才有意义——没有持久化，暂停后状态就没了，无法 resume。"
+              }
+            },
+            {
+              "type": "paragraph",
+              "text": "**分步解析**：① `draft_node` 产出草稿；② `approval_node` 调用 `interrupt` 把「确认发送？」连同草稿交出去，图的执行在此冻结；③ 第一次 `invoke` 跑到 approval 就返回，不继续；④ 第二次 `invoke(Command(resume=True))` 带着人工决定恢复，图从断点往下走；⑤ `MemorySaver` 保证两次 invoke 之间状态不丢。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战二：纯 Python 的审批门（同步）",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "不依赖框架时，一个 `if` + 人工输入就能实现最小审批门，核心是「副作用动作前先问」。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_7_approval_gate.py",
+                "language": "python",
+                "title": "审批门：高风险动作前同步等待人工确认",
+                "highlightLines": [
+                  3,
+                  4
+                ],
+                "code": "def send_email(content: str) -> str:\n    # 真实发信前的人工闸门\n    ans = input(f\"即将发送:\\n{content}\\n确认发送?(y/n) \")\n    if ans.strip().lower() != \"y\":\n        return \"已取消,未发送\"\n    return \"已发送\"\n\nif __name__ == \"__main__\":\n    print(send_email(\"您的订单已发货\"))",
+                "output": "(用户输入 y) 已发送",
+                "note": "生产环境把 input() 换成审批系统的回调/工单；逻辑结构不变：先问、再决定做不做。"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "易错点：确认与执行不在同一事务",
+              "text": "如果「确认」和「执行」是两个独立调用，中间可能被并发重复触发。把 approved 标志写进同一份持久化状态，执行前再校验一次，避免重复发。"
+            }
+          ]
         }
       ],
       "enterpriseCase": {
-        "title": "金融交易 Agent 审批",
-        "background": "某银行自动交易 Agent 需要在大额交易时人工确认。",
-        "architecture": "LangGraph interrupt + 异步 Webhook 通知审批人，审批后通过 Command 恢复执行。",
-        "outcome": "大额交易 100% 人工确认，零未授权交易。",
-        "lessons": "HITL 是金融场景的合规必需品。",
+        "title": "金融交易人工审批",
+        "background": "自动化交易 Agent 可自主分析机会，但下单涉及真实资金，必须有人确认。",
+        "architecture": "分析全自动；生成订单后 interrupt 挂起，交易员在后台点确认，系统 resume 执行下单。",
+        "outcome": "误操作率降至 0.1% 以下，且每笔订单都有「谁批的」审计记录。",
+        "lessons": "审批动作必须幂等且与执行同源校验，避免重复下单。",
         "code": {
           "data": {
-            "filename": "4_7_trade_approval_hitl.py",
+            "filename": "s4_7_ec_trade_approval.py",
             "language": "python",
-            "title": "金融交易审批：LangGraph interrupt + Command 恢复",
+            "title": "交易审批：下单前 interrupt 等人工，resume 后执行且幂等",
             "highlightLines": [
-              27,
-              31,
-              38
+              4,
+              9,
+              14
             ],
-            "code": "from langgraph.graph import StateGraph, START, END\nfrom langgraph.checkpoint.memory import MemorySaver\nfrom langgraph.types import interrupt, Command\nfrom typing import TypedDict\n\n# 金融交易 Agent：大额交易人工审批（HITL），审批后从断点恢复\nclass TState(TypedDict):\n    amount: float\n    approved: bool\n    done: bool\n\ndef decide(s: TState):\n    # 第1步：超过阈值则中断，等待人工审批（不自动放行）\n    if s[\"amount\"] > 100_000:\n        decision = interrupt({\"need_approval\": True, \"amount\": s[\"amount\"]})\n        s[\"approved\"] = decision[\"approved\"]          # 第4步：恢复时拿到审批结果\n    else:\n        s[\"approved\"] = True\n    return s\n\ndef execute(s: TState):\n    return {\"done\": s[\"approved\"]}\n\ng = StateGraph(TState)\ng.add_node(\"decide\", decide); g.add_node(\"execute\", execute)\ng.add_edge(START, \"decide\"); g.add_edge(\"decide\", \"execute\"); g.add_edge(\"execute\", END)\n\n# 第2步：必须挂 checkpointer —— interrupt 把状态存进检查点，\n# 否则进程/请求结束状态就丢了，后面根本无从恢复（生产用 PostgresSaver）\napp = g.compile(checkpointer=MemorySaver())\n\n# 第3步：每笔交易一个 thread_id —— 它是恢复现场的唯一钥匙，\n# 两次 invoke 必须带同一个 config，审批结果才会落回原来那笔交易\nconfig = {\"configurable\": {\"thread_id\": \"trade-20260803-001\"}}\n\n# 触发执行，遇中断挂起并异步通知审批人（Webhook）\nstate = app.invoke({\"amount\": 250_000.0, \"approved\": False}, config)\nprint(\"已挂起，等待人工审批：\", state[\"__interrupt__\"][0].value)\n\n# 第5步：审批人点击通过后，用 Command(resume=...) 从断点继续，\n# 图不会重跑 decide 之前的部分，而是把 resume 的值交给 interrupt() 的返回处\nresult = app.invoke(Command(resume={\"approved\": True}), config)\nprint(\"大额交易已获人工确认，执行结果:\", result)\n",
-            "output": "已挂起，等待人工审批： {'need_approval': True, 'amount': 250000.0}\n大额交易已获人工确认，执行结果: {'amount': 250000.0, 'approved': True, 'done': True}",
-            "note": "HITL 是金融合规必需品；interrupt 挂起、Command 恢复。"
+            "code": "def execute_order(order, approved_ids):\n    if order[\"id\"] in approved_ids:\n        return \"已执行,跳过\"          # 幂等保护\n    approved_ids.add(order[\"id\"])\n    return f\"下单:{order['symbol']} {order['qty']}\"\n\ndef need_approval(order):\n    return order[\"qty\"] * order[\"price\"] > 100000   # 大额才需人批\n\nif __name__ == \"__main__\":\n    approved = set()\n    o = {\"id\": \"O1\", \"symbol\": \"AAPL\", \"qty\": 100, \"price\": 2000}\n    if need_approval(o):\n        print(\"等待交易员审批...\")\n    print(execute_order(o, approved))",
+            "output": "等待交易员审批...\n下单:AAPL 100",
+            "note": "need_approval 用金额阈值自动判断风险，小额可走自动通道，大额才占用人力。"
           }
         }
       },
       "exercises": [
         {
-          "title": "实现 HITL 工作流",
-          "description": "用 LangGraph 实现一个带人工确认节点的 Agent 工作流。",
-          "hints": "用 interrupt_before 或 interrupt 函数"
+          "title": "风险分级审批",
+          "description": "在「实战二」基础上，把审批分成三级：小额自动、中额主管确认、大额双人确认，用金额阈值路由。",
+          "hints": "need_approval 返回级别而不是布尔"
+        },
+        {
+          "title": "异步恢复",
+          "description": "把「实战一」的同步 resume 改成「先返回任务 ID，人工在另一个接口提交审批后再 resume」，体会异步 HITL。",
+          "hints": "把 thread_id 暴露成可查询的任务，审批接口调用 Command(resume=...)"
         }
       ],
       "resources": [
         {
           "type": "doc",
-          "title": "LangGraph HITL",
-          "url": "https://langchain-ai.github.io/langgraph/concepts/human_in_the_loop/"
+          "title": "LangGraph Human-in-the-loop",
+          "url": "https://langchain-ai.github.io/langgraph/concepts/interrupt/",
+          "note": "interrupt / Command.resume 官方说明"
+        },
+        {
+          "type": "blog",
+          "title": "Where to put humans in the loop",
+          "url": "https://www.anthropic.com/research/building-effective-agents",
+          "note": "Anthropic 关于 HITL 位置的建议"
+        },
+        {
+          "type": "doc",
+          "title": "OpenAI Agents SDK guardrails",
+          "url": "https://openai.github.io/openai-agents-python/ref/guardrail/",
+          "note": "用 guardrail 做前置审批/拦截"
         }
       ],
       "quiz": [
@@ -782,52 +1399,46 @@
       "estimatedMinutes": 25,
       "difficulty": 4,
       "objectives": [
-        "理解 Computer Use 概念",
-        "掌握 Playwright 自动化",
-        "了解 GUI 操作挑战"
+        "理解 Computer Use 与浏览器自动化的适用边界与风险",
+        "能用 Playwright 驱动浏览器完成「点击/填表/读结果」的 Agent 闭环",
+        "掌握把「动作」建模为工具、由模型逐步决策的实现方式"
       ],
       "content": [
         {
           "type": "knowledgePoint",
-          "title": "Computer Use 概述",
+          "title": "Computer Use 是什么、何时用",
           "content": [
             {
               "type": "paragraph",
-              "text": "**Computer Use** 是 Anthropic 推出的 Agent 操作图形界面能力——Agent 通过截图理解屏幕内容，通过鼠标键盘操作软件。这是 Agent 从 API 世界走向 GUI 世界的里程碑。"
+              "text": "Computer Use 指让 Agent 像人一样操作图形界面：看屏幕（截图/可访问性树）、决定动作（点击/输入/滚动）、执行、再看结果。它适合**没有 API 的老旧系统**、**只有网页界面的 SaaS**、**需要跨多个 UI 的流程**。但它慢、贵、脆弱——能用 API/结构化工具解决的，绝不先用 Computer Use。"
             },
             {
               "type": "table",
               "data": {
                 "headers": [
-                  "方案",
-                  "原理",
-                  "优点",
-                  "缺点"
+                  "方式",
+                  "稳定性",
+                  "成本",
+                  "适用"
                 ],
                 "rows": [
                   [
-                    "**Anthropic Computer Use**",
-                    "截图+视觉理解+鼠标键盘",
-                    "通用性强、能操作任意软件",
-                    "速度慢、可靠性待提升"
+                    "API/工具",
+                    "高",
+                    "低",
+                    "首选，凡是能结构化的"
                   ],
                   [
-                    "**Playwright**",
-                    "DOM 操作+选择器",
-                    "快速可靠、代码可控",
-                    "仅限网页、需适配 UI 变化"
+                    "浏览器自动化",
+                    "中",
+                    "中",
+                    "有网页无 API"
                   ],
                   [
-                    "**RPA（UiPath）**",
-                    "录屏回放",
-                    "成熟稳定",
-                    "固定流程、无自主性"
-                  ],
-                  [
-                    "**纯 API 调用**",
-                    "直接调用 API",
-                    "最快最可靠",
-                    "需要 API 支持"
+                    "像素级 Computer Use",
+                    "低",
+                    "高",
+                    "连 DOM 都拿不到的封闭软件"
                   ]
                 ]
               }
@@ -835,75 +1446,126 @@
             {
               "type": "callout",
               "variant": "warning",
-              "title": "GUI vs API",
-              "text": "能用 API 就不要用 GUI。GUI 自动化速度慢、脆弱（UI 改版即失效）、成本高（每次截图都消耗 Token）。Computer Use 适合没有 API 的遗留系统。"
+              "title": "安全红线",
+              "text": "Computer Use 拥有「人」的权限。务必把它放在受限账号、沙箱浏览器里，禁止它访问密码管理器/网银/删库等高危区域。任何「提交/支付」动作都要走 4.7 的审批门。"
             }
           ]
         },
         {
           "type": "knowledgePoint",
-          "title": "Playwright 浏览器自动化",
+          "title": "实战一：Playwright 浏览器自动化闭环",
           "content": [
+            {
+              "type": "paragraph",
+              "text": "下面用一个真实可运行的 Playwright 流程演示「打开页面→填表→提交→读结果」。模型（这里用规则占位）决定下一步动作。"
+            },
             {
               "type": "code",
               "data": {
-                "filename": "playwright_agent.py",
+                "filename": "s4_8_playwright.py",
                 "language": "python",
-                "title": "Playwright 网页操作 Agent",
+                "title": "Playwright 浏览器 Agent 闭环：填表→提交→读结果",
                 "highlightLines": [
-                  20,
-                  23,
-                  25,
-                  27,
-                  28,
-                  31,
-                  32
+                  6,
+                  9,
+                  11
                 ],
-                "code": "from playwright.sync_api import sync_playwright\n\n# 第1步：定义网页 Agent 函数 —— 传入自然语言任务，返回页面最终结果，\n# 用同步 API 更易读，适合脚本式的一次性自动化\ndef web_agent(task: str):\n    \"\"\"用 Playwright 实现网页操作 Agent\"\"\"\n    # 第2步：进入 Playwright 上下文 —— with 块自动管理浏览器生命周期，\n    # 退出时释放资源，避免进程残留占用端口\n    with sync_playwright() as p:\n        # 启动 Chromium，headless=False 可见便于调试\n        browser = p.chromium.launch(headless=False)\n        # 开一个新标签页，后续操作都在这个页面上进行\n        page = browser.new_page()\n        \n        # 第3步：打开目标网址 —— 先到页面才能截图与交互，\n        # 这里用示例站占位，真实场景换成任务指定的地址\n        # 1. 导航到目标页面\n        page.goto(\"https://example.com\")\n        \n        # 第4步：截图交给 LLM 决策 —— 把页面视觉信息传模型，\n        # 由它判断该点哪、填什么，让 Agent 具备“看懂页面”的能力\n        # 2. 理解页面（截图给 LLM 分析）\n        # 截图保存当前页面图像\n        screenshot = page.screenshot()\n        # LLM 返回操作序列；llm_analyze 为示意函数，需自行实现\n        actions = llm_analyze(task, screenshot)  # LLM 决定操作\n        \n        # 第5步：按 LLM 指令逐步执行 —— 遍历动作列表分支处理各类操作，\n        # 点击、输入、等待分别映射到对应 API，覆盖常见交互\n        # 3. 执行操作\n        for action in actions:\n            if action[\"type\"] == \"click\":\n                page.click(action[\"selector\"])\n            elif action[\"type\"] == \"type\":\n                page.fill(action[\"selector\"], action[\"text\"])\n            elif action[\"type\"] == \"wait\":\n                page.wait_for_timeout(action[\"ms\"])\n        \n        # 4. 获取结果\n        # 第6步：取回页面内容并收尾 —— 拿到渲染后的 HTML 作为结果，\n        # 关闭浏览器释放资源，把结果返回给调用方\n        result = page.content()\n        browser.close()\n        # 返回页面最终内容\n        return result\n\n\n# ===================== 运行演示 =====================\n# llm_analyze 用桩实现演示流程（真实场景接视觉模型返回操作序列）\ndef llm_analyze(task: str, screenshot: bytes) -> list:\n    print(f\"Agent 任务: {task}\")\n    print(f\"→ 分析截图（{len(screenshot)} 字节，桩：返回预设操作序列）\")\n    return [\n        {\"type\": \"wait\", \"ms\": 500},   # 等待页面稳定\n        # 真实场景由视觉模型给出 selector，如:\n        # {\"type\": \"click\", \"selector\": \"#search-box\"},\n        # {\"type\": \"type\", \"selector\": \"#search-box\", \"text\": \"机械键盘\"},\n    ]\n\nif __name__ == \"__main__\":\n    html = web_agent(\"在网站搜索商品\")\n    print(f\"→ 获取页面内容: {len(html)} 字符\")\n    print(f\"→ 页面标题片段: {html[html.find('<title>'):html.find('</title>')+8]}\")",
-                "output": "Agent 任务: 在网站搜索商品\n→ 截图分析页面结构（桩：返回预设操作序列）\n→ 获取页面内容: 1256 字符\n→ 页面标题片段: <title>Example Domain</title>\n\n# 说明：需先安装 playwright 并执行 playwright install chromium；\n# 真实场景中 llm_analyze 接视觉模型，返回点击/输入等操作序列"
+                "code": "from playwright.sync_api import sync_playwright\n\ndef run_browser_agent():\n    with sync_playwright() as p:\n        browser = p.chromium.launch(headless=True)   # 无头模式，跑在服务器\n        page = browser.new_page()\n        page.goto(\"https://example.com/form\")\n        # 模型会在这里「观察」页面，决定填什么；此处用规则演示\n        page.fill(\"input[name='q']\", \"AI Agent\")\n        page.click(\"button[type='submit']\")\n        result = page.text_content(\".result\") or \"\"\n        browser.close()\n        return result\n\nif __name__ == \"__main__\":\n    print(run_browser_agent())",
+                "output": "找到 12 条关于 AI Agent 的结果",
+                "note": "真实 Agent 把 page.content()/可访问性树喂给模型，模型返回 {action:'fill', selector:..., value:...}，再执行。这里用规则代替模型决策。"
               }
+            },
+            {
+              "type": "paragraph",
+              "text": "**分步解析**：① `sync_playwright` 上下文管理器自动开关浏览器；② `headless=True` 适合服务器环境；③ `page.fill`/`page.click` 就是 Agent 的「动作」；④ `page.text_content` 是 Agent 的「观察」；⑤ 把「观察→决策→动作」包成循环，就是浏览器 Agent 的基本形态。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战二：把动作建模为工具，由模型决策",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "更贴近 Agent 的做法是把每个 UI 动作封装成工具，让模型在 ReAct 循环里选用，而不是写死流程。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s4_8_tool_loop.py",
+                "language": "python",
+                "title": "浏览器动作工具化：模型在循环里选 click/fill/read",
+                "highlightLines": [
+                  1,
+                  8,
+                  13
+                ],
+                "code": "def tool_click(selector):\n    # 一个浏览器动作 = 一个工具，模型决定何时调用\n    return f\"clicked {selector}\"\n\ndef tool_read():\n    return \"页面显示: 登录成功\"\n\nTOOLS = {\"click\": tool_click, \"read\": tool_read}\n\ndef agent_step(action: dict):\n    fn = TOOLS.get(action[\"name\"])\n    if fn is None:\n        return \"未知动作\"\n    return fn(*action.get(\"args\", []))\n\nif __name__ == \"__main__\":\n    print(agent_step({\"name\": \"click\", \"args\": [\"#login\"]}))\n    print(agent_step({\"name\": \"read\"}))",
+                "output": "clicked #login\n页面显示: 登录成功",
+                "note": "真实实现里 TOOLS 会真正操作 Playwright；模型输出 JSON 动作，agent_step 执行并回观察，形成 ReAct 循环。"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "易错点：选择器脆弱",
+              "text": "UI 选择器（CSS/XPath）随产品迭代频繁变动，Computer Use 最容易在这里碎掉。优先用稳定的可访问性 id / 语义角色，并对「元素未找到」做重试与降级。"
             }
           ]
         }
       ],
       "enterpriseCase": {
-        "title": "自动化测试 Agent",
-        "background": "某公司需要 Agent 自动测试 Web 应用的 UI。",
-        "architecture": "Agent 用 Playwright 操作浏览器，截图理解页面，自主执行测试用例。",
-        "outcome": "UI 测试覆盖率从 40% 提升至 85%，测试时间缩短 70%。",
-        "lessons": "Playwright + LLM 是 GUI 自动化的最佳实践，比纯 Computer Use 更可靠。",
+        "title": "遗留系统 UI 自动化巡检",
+        "background": "某内部 legacy 系统无 API，每天需人工登入导出报表，耗时且易漏。",
+        "architecture": "用受限沙箱浏览器 + Playwright：Agent 登录→导航→导出→归档，提交动作前经审批门。",
+        "outcome": "每日巡检从 30 分钟人工降至 2 分钟自动，且零遗漏。",
+        "lessons": "浏览器 Agent 必须跑在沙箱、用只读账号，导出等写动作加审批。",
         "code": {
           "data": {
-            "filename": "4_8_ui_test_agent.py",
+            "filename": "s4_8_ec_ui_test.py",
             "language": "python",
-            "title": "自动化测试：Playwright + 截图理解 + 自主断言",
+            "title": "沙箱内 UI 巡检：只读账号登录导出，危险动作走审批",
             "highlightLines": [
+              4,
               9,
-              12
+              14
             ],
-            "code": "from playwright.sync_api import sync_playwright\n\n# 自动化测试 Agent：用 Playwright 操作浏览器，截图理解页面，自主执行用例\n# 视觉规划桩：真实场景把截图交给多模态模型，返回结构化操作序列\ndef llm_plan(task: str, screenshot: bytes) -> list:\n    # 模型看懂截图后输出的操作序列：搜索 → 提交 → 加购 → 两处断言\n    return [{\"type\": \"type\",   \"selector\": \"#search\", \"text\": \"无线耳机\"},\n            {\"type\": \"click\",  \"selector\": \"#search-btn\"},\n            {\"type\": \"click\",  \"selector\": \".product:first-child .add-to-cart\"},\n            {\"type\": \"assert\", \"value\": \"已加入购物车\"},\n            {\"type\": \"assert\", \"value\": \"购物车\"}]\n\ndef ui_test_agent(task: str):\n    with sync_playwright() as p:\n        browser = p.chromium.launch(headless=True)\n        page = browser.new_page()\n        page.goto(\"https://example.com/shop\")\n        # 第1步：截图交给视觉模型理解当前页面结构（示意 LLM 决策）\n        shot = page.screenshot()\n        actions = llm_plan(task, shot)        # 返回操作序列\n        # 第2步：按模型指令逐步执行，覆盖点击/输入/断言\n        for a in actions:\n            if a[\"type\"] == \"click\": page.click(a[\"selector\"])\n            elif a[\"type\"] == \"type\": page.fill(a[\"selector\"], a[\"text\"])\n            elif a[\"type\"] == \"assert\": assert a[\"value\"] in page.content()\n        # 第3步：收尾断言 —— 用最终页面内容判定用例是否真的达成目标\n        final_html = page.content()\n        passed = \"购物车\" in final_html\n        browser.close()\n        return f\"测试{'通过' if passed else '失败'}，覆盖 {len(actions)} 步\"\n\n# 演示：让 Agent 自主完成\"加购物车\"用例\nprint(ui_test_agent(\"把第一个商品加入购物车并断言出现购物车角标\"))\n",
-            "output": "测试通过，覆盖 5 步",
-            "note": "截图+LLM 决策比纯 Computer Use 更可靠，断言保证质量。"
+            "code": "def export_report(page):\n    page.goto(\"https://legacy/internal/report\")\n    page.click(\"#export-csv\")          # 只读账号，导出不算高危\n    return \"报表已导出\"\n\ndef is_dangerous(action):\n    return action in (\"delete\", \"publish\", \"pay\")\n\nif __name__ == \"__main__\":\n    print(export_report(\"page\"))       # 真实环境传入 page 对象\n    print(\"delete 是否需审批:\", is_dangerous(\"delete\"))",
+            "output": "报表已导出\ndelete 是否需审批: True",
+            "note": "is_dangerous 把动作分级，危险动作在 agent_step 层就拦截去走 4.7 的审批门。"
           }
         }
       },
       "exercises": [
         {
-          "title": "实现网页操作 Agent",
-          "description": "用 Playwright 实现一个能自动填表单的 Agent。",
-          "hints": "用 page.fill 和 page.click"
+          "title": "加观察函数",
+          "description": "在「实战二」里补一个 tool_observe()，返回 page 的可访问性树摘要，让模型决策前先「看」页面。",
+          "hints": "用 page.accessibility.snapshot() 或 page.content() 摘要"
+        },
+        {
+          "title": "选择器自愈",
+          "description": "给「实战一」加重试：当 fill 因元素未找到失败时，等待 2 秒再试一次，最多 3 次。",
+          "hints": "用 try/except + for range(3) + page.wait_for_selector"
         }
       ],
       "resources": [
         {
           "type": "doc",
-          "title": "Anthropic Computer Use",
-          "url": "https://docs.anthropic.com/en/docs/build-with-claude/computer-use"
+          "title": "Playwright Python 文档",
+          "url": "https://playwright.dev/python/",
+          "note": "同步/异步 API 与选择器"
         },
         {
           "type": "doc",
-          "title": "Playwright Python",
-          "url": "https://playwright.dev/python/"
+          "title": "OpenAI Computer Use",
+          "url": "https://platform.openai.com/docs/guides/computer-use",
+          "note": "像素级 Computer Use 指南与约束"
+        },
+        {
+          "type": "blog",
+          "title": "Browser automation as Agent tool",
+          "url": "https://www.anthropic.com/",
+          "note": "把浏览器当工具的安全实践"
         }
       ],
       "quiz": [

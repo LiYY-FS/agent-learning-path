@@ -127,7 +127,7 @@
         {
           "id": "3.1",
           "title": "框架选型与对比",
-          "estimatedMinutes": 20,
+          "estimatedMinutes": 45,
           "difficulty": 2
         },
         {
@@ -139,43 +139,43 @@
         {
           "id": "3.3",
           "title": "LangGraph 实战",
-          "estimatedMinutes": 35,
+          "estimatedMinutes": 55,
           "difficulty": 3
         },
         {
           "id": "3.4",
           "title": "OpenAI Agents SDK",
-          "estimatedMinutes": 25,
+          "estimatedMinutes": 45,
           "difficulty": 2
         },
         {
           "id": "3.5",
           "title": "LlamaIndex 与 RAG",
-          "estimatedMinutes": 30,
+          "estimatedMinutes": 50,
           "difficulty": 3
         },
         {
           "id": "3.6",
           "title": "MCP 协议与 Python SDK",
-          "estimatedMinutes": 30,
+          "estimatedMinutes": 45,
           "difficulty": 3
         },
         {
           "id": "3.7",
           "title": "低代码平台对比",
-          "estimatedMinutes": 20,
+          "estimatedMinutes": 55,
           "difficulty": 2
         },
         {
           "id": "3.8",
           "title": "可观测性与监控",
-          "estimatedMinutes": 25,
+          "estimatedMinutes": 45,
           "difficulty": 3
         },
         {
           "id": "3.9",
           "title": "代码沙箱与执行环境",
-          "estimatedMinutes": 20,
+          "estimatedMinutes": 45,
           "difficulty": 3
         }
       ]

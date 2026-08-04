@@ -1369,7 +1369,7 @@
       "section": "3.8",
       "type": "single",
       "difficulty": 3,
-      "question": "可观测性的三大支柱是什么？",
+      "question": "传统软件系统（非 Agent）可观测性的三大支柱是什么？",
       "options": [
         {
           "key": "A",
@@ -1389,7 +1389,7 @@
           "text": "输入、处理、输出"
         }
       ],
-      "explanation": "可观测性三大支柱：Logs（日志）、Metrics（指标）、Traces（链路追踪），帮助理解系统行为和定位问题。"
+      "explanation": "传统可观测性三大支柱：Logs（日志）、Metrics（指标）、Traces（链路追踪）。在 LLM Agent 场景里，Traces / Metrics 之外常以 Evals（评估）替代 Logs 成为第三支柱，因为 Agent 输出是开放文本，靠日志很难判断\"对不对\"。"
     },
     {
       "id": "ch4-4.1-q1",
@@ -1978,6 +1978,1126 @@
         }
       ],
       "explanation": "能用 API 就不要用 GUI：API 最快最可靠、成本低；GUI 自动化慢且脆弱。"
+    },
+    {
+      "id": "ch3-3.1-q3",
+      "chapter": "ch3",
+      "section": "3.1",
+      "type": "single",
+      "difficulty": 2,
+      "question": "团队要做一个 5 步的采购审批 Agent：第 3 步必须由主管点击确认才能继续，且任意一步失败后要能从失败处恢复。以下哪个框架最贴合这两个硬需求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "LangChain，因为它生态最大、教程最多"
+        },
+        {
+          "key": "B",
+          "text": "LangGraph，它的 checkpointer 支持断点续跑，`interrupt()` 支持挂起等待人工输入",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "LlamaIndex，因为它的 Workflow 也能编排多步流程"
+        },
+        {
+          "key": "D",
+          "text": "OpenAI Agents SDK，因为它最轻量、上手最快"
+        }
+      ],
+      "explanation": "题目给出的两个硬需求正是“状态持久化”和“HITL”两个维度。LangGraph 的 checkpointer 与 interrupt / Command 恢复机制是为此设计的一等公民能力。LangChain 缺少内建持久化与挂起；LlamaIndex 的强项在检索侧；OpenAI Agents SDK 抽象薄，审批与续跑都要自建。"
+    },
+    {
+      "id": "ch3-3.1-q4",
+      "chapter": "ch3",
+      "section": "3.1",
+      "type": "single",
+      "difficulty": 2,
+      "question": "关于“要不要上框架”，下列哪种判断最符合工程实践？",
+      "options": [
+        {
+          "key": "A",
+          "text": "任何 Agent 项目第一天就应该选定框架，否则后面一定要重写"
+        },
+        {
+          "key": "B",
+          "text": "永远不要用框架，自建才能完全掌控"
+        },
+        {
+          "key": "C",
+          "text": "先用最裸的方式跑通一条端到端主链路，当出现断点续跑、人工审批、追踪定位这类需求时再引入框架",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "按 GitHub star 数选，star 最多的框架适配性最好"
+        }
+      ],
+      "explanation": "过早抽象会让团队把时间耗在跟框架搏斗上；过晚抽象则会演变成自研一个更烂的框架。健康节奏是先跑通主链路，再用“是否需要状态持久化 / HITL / 可观测性”这些信号来决定引入时机。star 数反映的是传播度而不是适配度。"
+    },
+    {
+      "id": "ch3-3.1-q5",
+      "chapter": "ch3",
+      "section": "3.1",
+      "type": "single",
+      "difficulty": 3,
+      "question": "某团队用低代码平台搭客服 Agent，初期很顺利。半年后画布长到 40 多个节点，出现了“改一个分支就莫名影响另一条链路、无法 code review、没人敢动”的情况。以下哪个是最合理的根因分析与止损方向？",
+      "options": [
+        {
+          "key": "A",
+          "text": "根因是平台性能不足，应该升级到更高配置的服务器"
+        },
+        {
+          "key": "B",
+          "text": "根因是模型能力不够，应该把 gpt-4o-mini 换成更强的模型"
+        },
+        {
+          "key": "C",
+          "text": "根因是把低代码当万能：画布规模超过阈值后 diff、单测、复用、review 全部失效；应设节点数红线，把复杂逻辑下沉为代码实现的 API，画布只做前端编排",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "根因是选型时没选 star 数最多的平台，应该立刻整体迁移到 LangGraph 重写"
+        }
+      ],
+      "explanation": "这是典型的“低代码万能论”反模式。症状（无法 diff、无法单测、没人敢改）指向工程可维护性失效，而不是算力或模型能力问题。止损做法是设定复杂度红线并做分层：复杂逻辑用代码实现并暴露为 API，画布只保留编排。选项 D 的整体重写既昂贵，也没有解决“逻辑写在画布里”这个本质问题。"
+    },
+    {
+      "id": "ch3-3.1-q6",
+      "chapter": "ch3",
+      "section": "3.1",
+      "type": "single",
+      "difficulty": 3,
+      "question": "“逃生舱”设计的核心原则是什么？",
+      "options": [
+        {
+          "key": "A",
+          "text": "同时接入两个框架并行运行，随时可以切换流量"
+        },
+        {
+          "key": "B",
+          "text": "把领域逻辑写成不 import 任何框架的纯函数，框架只负责调用顺序，换框架时只重写最外层的壳",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "只使用低代码平台，因为可视化配置天然与代码解耦"
+        },
+        {
+          "key": "D",
+          "text": "把所有状态都存进框架自带的存储里，迁移时直接导出即可"
+        }
+      ],
+      "explanation": "逃生舱的目标不是“永不换框架”，而是“让换框架变得便宜”。做法是分层：领域层是纯函数、可单测、零框架依赖；编排壳负责适配具体框架。选项 A 成本翻倍；C 恰恰是绑定更深；D 把状态交给框架反而增加了迁移难度。"
+    },
+    {
+      "id": "ch3-3.1-q7",
+      "chapter": "ch3",
+      "section": "3.1",
+      "type": "single",
+      "difficulty": 2,
+      "question": "用打分脚本对 RAG 问答场景排序后得到：LangChain 47 分、LlamaIndex 46 分、LangGraph 43 分。此时最恰当的做法是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "直接选 LangChain，分数最高就是最优解"
+        },
+        {
+          "key": "B",
+          "text": "1 分差距在主观打分的噪声范围内，应对前两名做 spike，用最难用例的实际表现来决定",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "继续微调权重，直到某个框架明显领先为止"
+        },
+        {
+          "key": "D",
+          "text": "三个都放弃，重新寻找一个能拿到 60 分以上的框架"
+        }
+      ],
+      "explanation": "打分表的权重是主观的、分数是有时效的，它的作用是收敛候选集和暴露团队分歧，而不是给出结论。47 比 46 的差距没有统计意义。选项 C 是典型的用调参凑结论（先射箭后画靶）；正确做法是转入 spike 验证。"
+    },
+    {
+      "id": "ch3-3.3-q2",
+      "chapter": "ch3",
+      "section": "3.3",
+      "type": "single",
+      "difficulty": 2,
+      "question": "关于 `add_conditional_edges` 的路由函数，下列说法正确的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "它是一个普通节点，返回值会被合并进 State"
+        },
+        {
+          "key": "B",
+          "text": "它只读状态并返回一个字符串，该字符串是目标节点名或 path_map 的键",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "它必须返回布尔值，True 走第一条边、False 走第二条边"
+        },
+        {
+          "key": "D",
+          "text": "它必须返回 END 或 START 之一"
+        }
+      ],
+      "explanation": "路由函数只负责「选路」，不参与状态更新：它接收 state，返回一个字符串作为下一站。省略 path_map 时该字符串必须直接是节点名；提供 path_map 时则是它的键。返回值不在可选集合内会在运行时报错。"
+    },
+    {
+      "id": "ch3-3.3-q3",
+      "chapter": "ch3",
+      "section": "3.3",
+      "type": "single",
+      "difficulty": 2,
+      "question": "`config={\"configurable\": {\"thread_id\": \"u-001\"}}` 中 thread_id 的作用是什么？",
+      "options": [
+        {
+          "key": "A",
+          "text": "指定图执行使用的线程池大小，用于并发提速"
+        },
+        {
+          "key": "B",
+          "text": "标识一条独立会话线：同一 thread_id 续接历史状态，不同 thread_id 互相隔离",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "checkpoint 文件名，必须与 sqlite 文件同名"
+        },
+        {
+          "key": "D",
+          "text": "只在 interrupt 场景需要，普通多轮对话可以省略"
+        }
+      ],
+      "explanation": "thread_id 是 checkpointer 的会话标识，与操作系统线程无关。同一个 thread_id 的多次 invoke 会自动从上次 checkpoint 续跑，不同 thread_id 的状态彼此不可见，因此它天然承担多用户/多会话隔离。"
+    },
+    {
+      "id": "ch3-3.3-q4",
+      "chapter": "ch3",
+      "section": "3.3",
+      "type": "single",
+      "difficulty": 3,
+      "question": "某同学写了 `graph = builder.compile(interrupt_before=[\"execute_refund\"])`，第一次 invoke 后确实停住了，但接着执行 `graph.invoke(None, config)` 却报错、无法从断点恢复。最可能的原因是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "compile 时没有传 checkpointer，断点现场没被持久化，自然无法恢复",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "interrupt_before 只能配合 interrupt_after 一起使用"
+        },
+        {
+          "key": "C",
+          "text": "恢复时必须传入完整的初始输入，不能传 None"
+        },
+        {
+          "key": "D",
+          "text": "recursion_limit 默认值太小，需要调大到 50"
+        }
+      ],
+      "explanation": "断点能「停下再继续」的前提是状态被 checkpointer 保存。没有 checkpointer 时，图跑完这次调用现场就丢了，`invoke(None, config)` 拿不到任何可恢复的状态。正确写法是 `compile(checkpointer=cp, interrupt_before=[...])`，并且恢复时使用同一个 thread_id。"
+    },
+    {
+      "id": "ch3-3.3-q5",
+      "chapter": "ch3",
+      "section": "3.3",
+      "type": "single",
+      "difficulty": 3,
+      "question": "State 里的 `messages` 字段被多个节点写入后总是互相覆盖、只剩最后一条，应该怎么改？",
+      "options": [
+        {
+          "key": "A",
+          "text": "在每个节点里手动 `state[\"messages\"].append(...)` 并返回整个 state"
+        },
+        {
+          "key": "B",
+          "text": "把字段声明为 `Annotated[list[AnyMessage], add_messages]`，节点只返回新增消息",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "把 State 从 TypedDict 换成 Pydantic BaseModel 即可自动累加"
+        },
+        {
+          "key": "D",
+          "text": "改用 interrupt_after 让每个节点执行后立刻落盘"
+        }
+      ],
+      "explanation": "State 字段默认是覆盖语义，要累加必须声明 reducer。消息列表的标准写法是 `Annotated[list[AnyMessage], add_messages]`（通用列表可用 `operator.add`），此时节点只返回新增部分，框架负责合并；返回整个 state 反而会造成重复累加。"
+    },
+    {
+      "id": "ch3-3.3-q6",
+      "chapter": "ch3",
+      "section": "3.3",
+      "type": "single",
+      "difficulty": 2,
+      "question": "下列哪种需求最应该用 LangGraph StateGraph 而不是纯 LCEL 链？",
+      "options": [
+        {
+          "key": "A",
+          "text": "把一段长文本批量改写成三种语气的营销文案"
+        },
+        {
+          "key": "B",
+          "text": "固定「检索 → 拼 Prompt → 生成」三步的单轮 RAG 问答"
+        },
+        {
+          "key": "C",
+          "text": "退款 Agent：自动核算金额，大额时暂停等人工审批，通过后继续打款并支持服务重启续跑",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "调用一次模型做结构化信息抽取并解析成 JSON"
+        }
+      ],
+      "explanation": "A/B/D 都是一次跑完的直线流程，LCEL 更简洁。C 同时需要条件分支、执行中暂停（HITL）和跨进程恢复（checkpointer），这三项都是 LangGraph 的原生能力，用 LCEL 只能自己造轮子。"
+    },
+    {
+      "id": "ch3-3.4-q2",
+      "chapter": "ch3",
+      "section": "3.4",
+      "type": "single",
+      "difficulty": 2,
+      "question": "相比 LangChain / LangGraph，OpenAI Agents SDK 最突出的特点是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "提供完整的图状态机和 Checkpointer"
+        },
+        {
+          "key": "B",
+          "text": "轻量、原语化，几行代码即可跑起 Agent",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "内置持久化长期记忆数据库"
+        },
+        {
+          "key": "D",
+          "text": "只支持单个 Agent，不支持多 Agent"
+        }
+      ],
+      "explanation": "Agents SDK 定位就是轻量原语运行时，核心抽象是 Agent/Handoff/Guardrail/Session/Tracing，不提供 LangGraph 那样的图状态机。"
+    },
+    {
+      "id": "ch3-3.4-q3",
+      "chapter": "ch3",
+      "section": "3.4",
+      "type": "single",
+      "difficulty": 2,
+      "question": "Runner.run_sync(agent, input) 的返回值是什么类型，其中哪个字段是模型的最终答案？",
+      "options": [
+        {
+          "key": "A",
+          "text": "str，返回值是 final_output 字符串"
+        },
+        {
+          "key": "B",
+          "text": "RunResult，final_output 是最终答案",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "list，返回值是对话消息列表"
+        },
+        {
+          "key": "D",
+          "text": "dict，键为 answer"
+        }
+      ],
+      "explanation": "Runner.run_sync 返回 RunResult 对象，final_output 是模型最终产出，to_input_list() 可回放完整对话轨迹。"
+    },
+    {
+      "id": "ch3-3.4-q4",
+      "chapter": "ch3",
+      "section": "3.4",
+      "type": "single",
+      "difficulty": 2,
+      "question": "关于 @function_tool 与 handoff，下列说法正确的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "function_tool 需要手写 JSON schema，handoff 只能用于两个 Agent"
+        },
+        {
+          "key": "B",
+          "text": "function_tool 自动从函数签名生成 schema；handoff 让主 Agent 把任务转交给子 Agent",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "handoff 必须在异步环境下才能使用"
+        },
+        {
+          "key": "D",
+          "text": "function_tool 只能装饰异步函数"
+        }
+      ],
+      "explanation": "function_tool 自动根据签名与文档字符串生成工具 schema；handoff 把子 Agent 放入主 Agent 的 handoffs 列表即可实现转交，同步异步都可用。"
+    },
+    {
+      "id": "ch3-3.4-q5",
+      "chapter": "ch3",
+      "section": "3.4",
+      "type": "single",
+      "difficulty": 3,
+      "question": "InputGuardrail 的护栏函数返回 GuardrailFunctionOutput(tripwire_triggered=True) 时，会发生什么？",
+      "options": [
+        {
+          "key": "A",
+          "text": "主 Agent 正常继续运行，仅记录日志"
+        },
+        {
+          "key": "B",
+          "text": "抛出 GuardrailTripwireTriggered，主流程被中断",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "自动把输入替换为空字符串"
+        },
+        {
+          "key": "D",
+          "text": "SDK 直接终止整个 Python 进程"
+        }
+      ],
+      "explanation": "tripwire 触发会抛出 GuardrailTripwireTriggered 异常，可用 try/except 捕获并做兜底处理，而不是让程序崩溃。"
+    },
+    {
+      "id": "ch3-3.4-q6",
+      "chapter": "ch3",
+      "section": "3.4",
+      "type": "single",
+      "difficulty": 3,
+      "question": "排查题：你用多次 Runner.run_sync 调用同一个 Agent 想实现多轮对话，但 Agent 总忘记上一轮内容，最可能的原因是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "需要在 Agent 上设置 memory=True 参数"
+        },
+        {
+          "key": "B",
+          "text": "Agents SDK 不支持多轮，必须换 LangGraph"
+        },
+        {
+          "key": "C",
+          "text": "SDK 不内置长期记忆，需把上一轮 result.to_input_list() 回灌到下一轮输入",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "必须开启 Tracing 才能记住对话"
+        }
+      ],
+      "explanation": "Agents SDK 每次调用都是无状态的，没有内置长期记忆；正确做法是用 RunResult.to_input_list() 把历史拼接进下一轮输入来模拟记忆。"
+    },
+    {
+      "id": "ch3-3.5-q2",
+      "chapter": "ch3",
+      "section": "3.5",
+      "type": "single",
+      "difficulty": 2,
+      "question": "在 LlamaIndex 中，`Document` 与 `Node` 的关系是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Node 是原始文档，Document 是切分后的片段"
+        },
+        {
+          "key": "B",
+          "text": "Document 是一篇原始文档，Node 是切分后带 metadata 的片段，检索命中的是 Node",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "两者完全等价，只是不同版本的命名差异"
+        },
+        {
+          "key": "D",
+          "text": "Document 存文本，Node 只存向量，不含文本内容"
+        }
+      ],
+      "explanation": "Document 表示一篇原始文档（text + metadata），经 NodeParser 切分后得到若干 Node，Node 会继承 Document 的 metadata 并保留前后/父子关系。向量检索的最小单元是 Node 而不是 Document。"
+    },
+    {
+      "id": "ch3-3.5-q3",
+      "chapter": "ch3",
+      "section": "3.5",
+      "type": "single",
+      "difficulty": 2,
+      "question": "用户要求「把这份 30 页的季度报告整体总结成 5 条要点」，最合适的索引类型是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "VectorStoreIndex，语义检索最准"
+        },
+        {
+          "key": "B",
+          "text": "KeywordTableIndex，关键词命中最快"
+        },
+        {
+          "key": "C",
+          "text": "SummaryIndex，配合 tree_summarize 遍历全部 Node 聚合",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "任何索引都可以，结果没有区别"
+        }
+      ],
+      "explanation": "全局总结类需求要求「看完所有内容」。VectorStoreIndex 只会返回 top-k 个相似片段，必然遗漏信息；SummaryIndex 顺序遍历全部 Node，配合 tree_summarize 自底向上归并，才是正确选择。"
+    },
+    {
+      "id": "ch3-3.5-q4",
+      "chapter": "ch3",
+      "section": "3.5",
+      "type": "single",
+      "difficulty": 3,
+      "question": "句子窗口检索（SentenceWindowNodeParser）为什么要搭配 `MetadataReplacementPostProcessor` 使用？",
+      "options": [
+        {
+          "key": "A",
+          "text": "用于把 metadata 中的敏感字段脱敏后再返回给用户"
+        },
+        {
+          "key": "B",
+          "text": "检索命中的是单句 Node，需要把内容替换成 metadata 里存的前后窗口，补足生成所需上下文",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "用于把多个 Node 的 metadata 合并成一个，减少 token 消耗"
+        },
+        {
+          "key": "D",
+          "text": "它负责重新计算相似度分数并对 Node 排序"
+        }
+      ],
+      "explanation": "句子窗口把「检索单元」和「生成单元」解耦：向量化用单句以提高命中精度，窗口（前后若干句）存在 Node 的 metadata 里。命中后必须用 MetadataReplacementPostProcessor 把 Node 内容替换成窗口文本，否则 LLM 只拿到孤立一句话，答不完整。"
+    },
+    {
+      "id": "ch3-3.5-q5",
+      "chapter": "ch3",
+      "section": "3.5",
+      "type": "single",
+      "difficulty": 3,
+      "question": "线上 RAG 突然大面积答非所问，排查发现是有人把 `Settings.embed_model` 从 `text-embedding-3-small` 换成了另一个模型，但索引文件没有重建。最准确的解释是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "只是生成质量下降，检索结果仍然正确，改回 response_mode 即可"
+        },
+        {
+          "key": "B",
+          "text": "换 embedding 只影响速度不影响效果，真正原因应该在别处"
+        },
+        {
+          "key": "C",
+          "text": "查询向量与索引中的向量来自不同模型、不在同一向量空间，相似度计算失去意义，召回近似随机，必须用新模型重建索引",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "LlamaIndex 会自动检测并转换向量维度，不会有问题"
+        }
+      ],
+      "explanation": "向量检索的前提是查询向量和库中向量由**同一个 embedding 模型**产生，处于同一向量空间。换模型后即使维度恰好相同也不可比，相似度排序完全失效。唯一正确做法是用新模型重新跑一遍 ingestion 重建索引；这也是要把 embedding 模型名与索引一起版本化记录的原因。"
+    },
+    {
+      "id": "ch3-3.5-q6",
+      "chapter": "ch3",
+      "section": "3.5",
+      "type": "single",
+      "difficulty": 2,
+      "question": "想只拿到检索结果做自定义处理、不让 LlamaIndex 调用 LLM 生成答案，应该用？",
+      "options": [
+        {
+          "key": "A",
+          "text": "`index.as_retriever().retrieve(q)` 或 `as_query_engine(response_mode=\"no_text\")`",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "`index.as_query_engine(response_mode=\"refine\")`"
+        },
+        {
+          "key": "C",
+          "text": "`index.as_chat_engine()` 并把 temperature 设为 0"
+        },
+        {
+          "key": "D",
+          "text": "只能先生成答案，再从 response 里丢弃文本"
+        }
+      ],
+      "explanation": "Retriever 只负责召回、不调用 LLM，返回 List[NodeWithScore]；`response_mode=\"no_text\"` 同样跳过生成只返回 source_nodes。这两种方式都是评估召回质量时的标准做法，既快又不产生生成费用。"
+    },
+    {
+      "id": "ch3-3.6-q2",
+      "chapter": "ch3",
+      "section": "3.6",
+      "type": "single",
+      "difficulty": 2,
+      "question": "关于 MCP 中 Host、Client、Server 三个角色，下列说法正确的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "一个 Client 可以同时连接多个 Server，从而减少连接数"
+        },
+        {
+          "key": "B",
+          "text": "Client 与 Server 是 1:1 的关系，Host 连接 N 个 Server 就会持有 N 个 Client",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "Server 需要知道 Host 使用的模型名称，才能生成合适的工具描述"
+        },
+        {
+          "key": "D",
+          "text": "Host 就是 MCP Server 的另一种叫法，二者可以互换使用"
+        }
+      ],
+      "explanation": "MCP 规范中 Client 是宿主内部的协议连接器，与 Server 保持 1:1 的会话；Host 持有 LLM 推理循环并可同时管理多个 Client。Server 完全不感知宿主与模型，这正是解耦的意义。"
+    },
+    {
+      "id": "ch3-3.6-q3",
+      "chapter": "ch3",
+      "section": "3.6",
+      "type": "single",
+      "difficulty": 2,
+      "question": "你要在 MCP Server 中暴露一份「服务限流配置」供模型参考，该配置只读、无副作用、可能被宿主反复读取。最合适的原语是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "用 `@mcp.tool()` 定义一个 get_config 工具，让模型每轮自己调"
+        },
+        {
+          "key": "B",
+          "text": "用 `@mcp.prompt()` 把配置内容拼进提示词模板"
+        },
+        {
+          "key": "C",
+          "text": "用 `@mcp.resource(\"config://service/limits\")` 暴露为只读资源",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "写进 Server 启动日志，让宿主从 stderr 里解析"
+        }
+      ],
+      "explanation": "Resources 的语义就是「只读、无副作用、由宿主/用户决定是否放入上下文」，类比 HTTP GET。做成 Tool 会白白消耗模型的调用轮次；Prompt 是给用户触发的模板，不适合承载数据。"
+    },
+    {
+      "id": "ch3-3.6-q4",
+      "chapter": "ch3",
+      "section": "3.6",
+      "type": "single",
+      "difficulty": 3,
+      "question": "你的 stdio MCP Server 在 Inspector 里能正常跑，但被 Claude Desktop 加载后立刻断连，日志显示 JSON 解析错误。最可能的原因是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "工具函数里用了 `print()` 往 stdout 打调试日志，污染了 JSON-RPC 通道",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "没有为 Server 配置 OAuth 2.1 鉴权"
+        },
+        {
+          "key": "C",
+          "text": "工具的 docstring 写得太短，模型无法识别"
+        },
+        {
+          "key": "D",
+          "text": "没有调用 `session.initialize()` 完成握手"
+        }
+      ],
+      "explanation": "stdio 传输下 stdout 是协议通道，任何 print 都会混入 JSON-RPC 消息流导致解析失败、连接中断。日志必须写 stderr。B 只对远程传输有意义；C 不会导致断连；D 是客户端侧的职责，Inspector 已经能跑说明握手正常。"
+    },
+    {
+      "id": "ch3-3.6-q5",
+      "chapter": "ch3",
+      "section": "3.6",
+      "type": "single",
+      "difficulty": 2,
+      "question": "在 FastMCP 中，工具函数因为「查询的文档不存在」而失败，推荐的处理方式是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "调用 `sys.exit(1)` 让 Server 退出，由宿主重启"
+        },
+        {
+          "key": "B",
+          "text": "直接 `raise ValueError(...)`，FastMCP 会返回 isError=True 的结果，模型可读到错误并重试",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "返回空字符串，避免给模型造成困扰"
+        },
+        {
+          "key": "D",
+          "text": "必须抛 `McpError`，否则连接会断开"
+        }
+      ],
+      "explanation": "业务级失败用普通异常即可，FastMCP 会捕获并封装成 isError=True 的工具结果，错误文本会回传给模型用于自我纠正。`McpError` 更适合参数非法等协议级错误（带标准错误码）。退出进程和静默返回空值都会让问题更难排查。"
+    },
+    {
+      "id": "ch3-3.6-q6",
+      "chapter": "ch3",
+      "section": "3.6",
+      "type": "single",
+      "difficulty": 3,
+      "question": "团队要把一个内部订单查询能力开放给「自研 Agent + Claude Desktop + IDE 插件」三个宿主使用，且希望它独立部署、可单独审计。最合适的做法是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "在三个宿主里各写一份 Function Calling 工具函数，保持各自灵活"
+        },
+        {
+          "key": "B",
+          "text": "实现一个 MCP Server 并以 Streamable HTTP 传输部署，三个宿主通过各自的 MCP Client 接入",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "只写一个 stdio MCP Server，让三个宿主分别把它当子进程拉起"
+        },
+        {
+          "key": "D",
+          "text": "把订单能力做成某一个平台的私有插件，其他宿主通过爬取该平台调用"
+        }
+      ],
+      "explanation": "多宿主复用 + 独立部署 + 独立审计，正是 MCP 的典型收益场景；跨机房/跨应用访问需要远程传输，因此选 Streamable HTTP。A 退回 M×N 重复集成；C 的 stdio 无法做到独立部署与集中审计（每个宿主各起一份本地进程）；D 是明显的反模式。"
+    },
+    {
+      "id": "ch3-3.7-q2",
+      "chapter": "ch3",
+      "section": "3.7",
+      "type": "single",
+      "difficulty": 2,
+      "question": "关于 Dify 与 Coze（扣子）的差异，下列说法最准确的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Dify 只能做知识库问答，Coze 才能做 Agent"
+        },
+        {
+          "key": "B",
+          "text": "Dify 开源且可完整自托管，适合数据不出内网的工程团队；Coze 的核心优势在插件市场与多渠道一键分发",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "两者都完全闭源，只能通过 SaaS 使用"
+        },
+        {
+          "key": "D",
+          "text": "Coze 支持工作流编排，Dify 只支持单轮问答，不能编排"
+        }
+      ],
+      "explanation": "两者的编排能力都不弱，本质差异在部署形态与生态：Dify 是开源项目，docker compose 即可完整私有化，适合有合规约束的企业；Coze 以 SaaS 托管为主（2025 年开源了 Coze Studio 社区版），真正的差异化价值是官方插件市场和一键发布到飞书、微信公众号、豆包等多个渠道。A、C、D 都与事实不符。"
+    },
+    {
+      "id": "ch3-3.7-q3",
+      "chapter": "ch3",
+      "section": "3.7",
+      "type": "single",
+      "difficulty": 2,
+      "question": "某公司要做内部 SOP 知识问答，硬约束是「文档不得出内网」，团队有成熟的 K8s 运维能力，且业务方要求每条回答都能展示引用来源。按本节的决策路径，最合适的方案是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "用 Coze 托管版快速搭建，把文档上传到平台知识库"
+        },
+        {
+          "key": "B",
+          "text": "直接用 LangGraph 从零手写，因为低代码一定满足不了企业需求"
+        },
+        {
+          "key": "C",
+          "text": "自托管 Dify 或 FastGPT，用其知识库能力并开启引用溯源",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "用 Flowise 部署到生产，因为它是 Apache-2.0 协议"
+        }
+      ],
+      "explanation": "「数据不能出内网」直接排除 SaaS 托管方案（A）；有 K8s 运维能力则自托管无障碍，Dify 与 FastGPT 都开源可自托管且原生支持引用溯源，正是这条路径的终点（C）。B 属于过度工程，需求还没验证就投入手写成本；D 的问题不在协议而在生产化能力——Flowise 的多租户、权限与审计较弱，更适合原型和学习。"
+    },
+    {
+      "id": "ch3-3.7-q4",
+      "chapter": "ch3",
+      "section": "3.7",
+      "type": "single",
+      "difficulty": 3,
+      "question": "你在自托管 Dify 上写脚本给知识库灌文档，调用 `POST /v1/datasets/{dataset_id}/document/create-by-text` 时始终返回 401，但同一份代码里调 `/v1/chat-messages` 却完全正常。最可能的原因是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "知识库接口必须用 POST 之外的方法，应改成 PUT"
+        },
+        {
+          "key": "B",
+          "text": "用了应用密钥（`app-` 开头）去调知识库接口，应改用知识库密钥（`dataset-` 开头）",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "自托管版本不支持知识库 API，只有 SaaS 版才有"
+        },
+        {
+          "key": "D",
+          "text": "请求体里缺少 `response_mode` 字段，导致鉴权失败"
+        }
+      ],
+      "explanation": "Dify 的密钥分两类且互不通用：应用密钥 `app-` 用于 `/chat-messages`、`/workflows/run` 等应用接口，知识库密钥 `dataset-` 用于 `/datasets/*` 系列接口。`/chat-messages` 能通恰恰说明你手里拿的是应用密钥，拿它打知识库接口必然 401。C 不成立（自托管同样提供知识库 API）；D 描述的是参数问题，会返回 400 而不是 401；A 纯属虚构。"
+    },
+    {
+      "id": "ch3-3.7-q5",
+      "chapter": "ch3",
+      "section": "3.7",
+      "type": "single",
+      "difficulty": 3,
+      "question": "团队用低代码平台做了半年，现在出现「多人改同一个工作流互相覆盖」「改坏了线上才发现」两个问题。下列哪组「逃生舱」措施最对症？",
+      "options": [
+        {
+          "key": "A",
+          "text": "把工作流拆成更多小节点，并给每个节点加更长的备注"
+        },
+        {
+          "key": "B",
+          "text": "立刻放弃低代码平台，整体用 LangGraph 重写"
+        },
+        {
+          "key": "C",
+          "text": "定期导出 DSL 提交 Git 用 PR 评审，并维护黄金问答集用 API 跑批量回归、把命中率接进 CI",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "换一个 UI 更好看的平台，并给每个人分配独立账号"
+        }
+      ],
+      "explanation": "两个问题分别对应「版本与协作弱」和「评测与回归缺失」。前者的标准解法是把工作流导出成文本 DSL 进 Git，借用成熟的 PR/diff/review 流程；后者的解法是黄金问答集 + 批量回归脚本 + CI 卡口，让每次改动都有数字兜底。A 只是加注释，救不了并发覆盖；B 是把洗澡水和孩子一起倒掉，成本过高；D 换平台不解决流程问题，独立账号也阻止不了同一个工作流被互相覆盖。"
+    },
+    {
+      "id": "ch3-3.7-q6",
+      "chapter": "ch3",
+      "section": "3.7",
+      "type": "single",
+      "difficulty": 2,
+      "question": "需求是「每天早上 8 点自动拉取昨日工单系统数据，用 LLM 归类总结，写入表格并推送到群」。在本节介绍的平台里，最贴合这个需求的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "n8n，因为它以定时触发和数百个系统连接器见长，Agent 只是流程中的一环",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "FastGPT，因为它的知识库能力最强"
+        },
+        {
+          "key": "C",
+          "text": "Flowise，因为它基于 LangChain，功能最全"
+        },
+        {
+          "key": "D",
+          "text": "Coze，因为它可以一键发布到多个渠道"
+        }
+      ],
+      "explanation": "这个需求的重心是「跨系统自动化 + 定时调度 + 失败重试」，LLM 只承担其中一步归类总结，正是 n8n 的主场（Cron 触发、数百个连接器、错误分支与重试）。B 的知识库能力在此用不上；C 偏原型与链式实验，调度与集成能力弱；D 的分发生态解决的是「机器人给谁用」，与定时 ETL 类需求不匹配。"
+    },
+    {
+      "id": "ch3-3.8-q2",
+      "chapter": "ch3",
+      "section": "3.8",
+      "type": "single",
+      "difficulty": 2,
+      "question": "Agent 可观测性的三大支柱通常指？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Traces / Metrics / Logs"
+        },
+        {
+          "key": "B",
+          "text": "Traces / Metrics / Evals",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "Logs / Metrics / Errors"
+        },
+        {
+          "key": "D",
+          "text": "Traces / Logs / Evals"
+        }
+      ],
+      "explanation": "对 Agent 而言，可观测性三大支柱具体化为 Traces（链路）、Metrics（指标）、Evals（评估），Logs 虽重要但不属于这里强调的三支柱。"
+    },
+    {
+      "id": "ch3-3.8-q3",
+      "chapter": "ch3",
+      "section": "3.8",
+      "type": "single",
+      "difficulty": 2,
+      "question": "在一次 Agent 调用中，每一个 LLM 调用、工具调用通常对应可观测性中的？",
+      "options": [
+        {
+          "key": "A",
+          "text": "一个 Trace"
+        },
+        {
+          "key": "B",
+          "text": "一个 Span",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "一个 Metric"
+        },
+        {
+          "key": "D",
+          "text": "一个 Log"
+        }
+      ],
+      "explanation": "Trace 表示一次完整请求的端到端生命周期；其中的每个最小工作单元（LLM 调用、工具调用）是一个 Span。"
+    },
+    {
+      "id": "ch3-3.8-q4",
+      "chapter": "ch3",
+      "section": "3.8",
+      "type": "single",
+      "difficulty": 3,
+      "question": "你在 LangSmith 中看不到任何 trace，最可能的原因是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "没安装 langchain 包"
+        },
+        {
+          "key": "B",
+          "text": "环境变量 LANGSMITH_TRACING 未设为 true",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "Python 版本太低"
+        },
+        {
+          "key": "D",
+          "text": "没有给函数加 @observe 装饰器"
+        }
+      ],
+      "explanation": "LangChain 的 LLM 调用在开启 LANGSMITH_TRACING=true 后会自动上报，无需 @observe 等埋点；看不到 trace 多半是 tracing 开关没打开或 API Key 缺失。"
+    },
+    {
+      "id": "ch3-3.8-q5",
+      "chapter": "ch3",
+      "section": "3.8",
+      "type": "single",
+      "difficulty": 2,
+      "question": "OpenTelemetry / OpenLLMetry 相对 LangSmith / Langfuse 的主要优势是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "只支持 LangChain 框架"
+        },
+        {
+          "key": "B",
+          "text": "是开放标准，可接入既有 APM（Grafana/Jaeger）",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "必须私有化部署"
+        },
+        {
+          "key": "D",
+          "text": "是免费的 SaaS 服务"
+        }
+      ],
+      "explanation": "OpenTelemetry 是 CNCF 开放标准，OpenLLMetry 在其上提供 LLM 自动埋点，能把 LLM 调用汇入团队已有的 APM 体系，而非另起一套。"
+    },
+    {
+      "id": "ch3-3.8-q6",
+      "chapter": "ch3",
+      "section": "3.8",
+      "type": "single",
+      "difficulty": 3,
+      "question": "评估 Agent 输出质量时，「LLM-as-judge」指的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "完全依赖人工标注"
+        },
+        {
+          "key": "B",
+          "text": "用另一个 LLM 评判输出质量",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "只做精确字符串匹配"
+        },
+        {
+          "key": "D",
+          "text": "用单元测试断言"
+        }
+      ],
+      "explanation": "LLM-as-judge 是用一个（通常更强的）模型作为评委，对生成结果打分或判断好坏，适合开放式问答这类难以精确匹配的场景。"
+    },
+    {
+      "id": "ch3-3.9-q2",
+      "chapter": "ch3",
+      "section": "3.9",
+      "type": "single",
+      "difficulty": 2,
+      "question": "团队用 Docker 沙箱执行 LLM 生成的代码，已经设置了 `mem_limit`、`pids_limit` 和 `user=nobody`。某次事故中，沙箱里的代码成功把宿主环境变量里的 API Key 发送到了外部服务器。最可能漏掉的是哪一项？",
+      "options": [
+        {
+          "key": "A",
+          "text": "没有设置 `read_only=True`"
+        },
+        {
+          "key": "B",
+          "text": "没有设置 `network_disabled=True`（即 `--network none`）",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "没有设置 `cap_drop=[\"ALL\"]`"
+        },
+        {
+          "key": "D",
+          "text": "没有设置 `nano_cpus` 限制 CPU"
+        }
+      ],
+      "explanation": "数据外泄的必要条件是「能连出去」。`mem_limit`/`pids_limit` 管资源，`user=nobody` 管权限，都拦不住网络请求。只有禁网（`--network none`）才能从根上断掉外联通道。另外环境变量本身也不该继承宿主的，执行沙箱必须显式白名单传入环境变量。"
+    },
+    {
+      "id": "ch3-3.9-q3",
+      "chapter": "ch3",
+      "section": "3.9",
+      "type": "single",
+      "difficulty": 3,
+      "question": "关于 RestrictedPython，下面哪个说法是**正确**的？",
+      "options": [
+        {
+          "key": "A",
+          "text": "它能阻止 `while True: pass` 这样的死循环耗尽 CPU"
+        },
+        {
+          "key": "B",
+          "text": "它把代码放到独立进程执行，因此崩溃不影响主服务"
+        },
+        {
+          "key": "C",
+          "text": "`import os` 之所以失败，是因为 `safe_builtins` 里没有 `__import__`，属于运行期拦截",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "只要用了 `compile_restricted`，就不需要再替换 `__builtins__`"
+        }
+      ],
+      "explanation": "RestrictedPython 是**语言级**限制，代码仍在当前进程、当前解释器里跑，既挡不住死循环也挡不住内存耗尽（A、B 错）。它的防护是两层：编译期改写 AST（拒绝下划线开头的名字/属性）+ 运行期用安全的 `__builtins__` 和 guard 函数，两层缺一不可（D 错）。`import os` 语法上是合法的，失败发生在运行时找不到 `__import__`。"
+    },
+    {
+      "id": "ch3-3.9-q4",
+      "chapter": "ch3",
+      "section": "3.9",
+      "type": "single",
+      "difficulty": 3,
+      "question": "【排查】用 `subprocess.Popen` + `communicate(timeout=5)` 实现沙箱，超时后调用了 `proc.kill()`。上线后发现机器上堆积了大量本该被杀掉的进程，CPU 长期打满。最可能的原因是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "`timeout` 参数对 `communicate()` 不生效，要用 `wait(timeout=)`"
+        },
+        {
+          "key": "B",
+          "text": "`proc.kill()` 只杀直接子进程，它 fork 出的孙进程会被 init 收养并继续运行",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "`SIGKILL` 会被 Python 的信号处理器捕获并忽略"
+        },
+        {
+          "key": "D",
+          "text": "`preexec_fn` 里设置的 `RLIMIT_CPU` 覆盖了 kill 行为"
+        }
+      ],
+      "explanation": "`proc.kill()` 只对直接子进程的 PID 生效。如果被执行的代码自己 `fork` 或 `Popen` 了新进程，父进程死后这些孙进程会被 PID 1 收养继续跑。正确做法是在 `preexec_fn` 里 `os.setsid()` 让子进程独立成组，超时时用 `os.killpg(os.getpgid(pid), SIGKILL)` 整组杀掉。`SIGKILL` 无法被捕获或忽略（C 错）。"
+    },
+    {
+      "id": "ch3-3.9-q5",
+      "chapter": "ch3",
+      "section": "3.9",
+      "type": "single",
+      "difficulty": 2,
+      "question": "经典的 Python 沙箱逃逸链 `().__class__.__bases__[0].__subclasses__()` 利用的是什么？纯 AST 白名单方案是怎么堵住它的？",
+      "options": [
+        {
+          "key": "A",
+          "text": "利用 `eval` 的编译漏洞；靠限制表达式长度堵住"
+        },
+        {
+          "key": "B",
+          "text": "利用属性穿透从任意对象拿到 `object` 的全部子类进而找到危险类；白名单直接不放行 `ast.Attribute` 节点",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "利用元组的哈希碰撞；靠禁止元组字面量堵住"
+        },
+        {
+          "key": "D",
+          "text": "利用 `__builtins__` 未清空；只要设 `{\"__builtins__\": {}}` 就完全安全了"
+        }
+      ],
+      "explanation": "这条链子从一个普通空元组出发，沿着 `__class__` → `__bases__` → `__subclasses__` 一路爬到 `object` 的所有子类，从中翻出能执行命令的类。它的每一步都是**属性访问**，所以只要白名单里不包含 `ast.Attribute`，整条链在语法检查阶段就被拒了。清空 `__builtins__` 是必要条件但不充分——正是因为有属性穿透，光清 builtins 并不安全。"
+    },
+    {
+      "id": "ch3-3.9-q6",
+      "chapter": "ch3",
+      "section": "3.9",
+      "type": "single",
+      "difficulty": 2,
+      "question": "把沙箱接进 Agent 时，关于「代码执行工具」的输出处理，下面哪种做法最合理？",
+      "options": [
+        {
+          "key": "A",
+          "text": "只回传 stdout，执行出错时统一返回「执行失败」，避免泄露信息"
+        },
+        {
+          "key": "B",
+          "text": "把 stdout 和 traceback 都截断后回传给模型，并限制重试次数",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "完整回传 stdout 和 stderr，不做截断，保证模型拿到全部信息"
+        },
+        {
+          "key": "D",
+          "text": "出错时自动换一个更强的模型重写代码，不设次数上限"
+        }
+      ],
+      "explanation": "「报错 → 模型自己改代码 → 重跑」是代码 Agent 最有价值的循环，所以错误信息必须回传（A 错），但要过滤掉宿主路径等环境信息。不截断则会被 `for i in range(10**7): print(i)` 这类输出瞬间撑爆上下文并烧掉大量 token（C 错）。无上限重试可能在一个装不上的包上无限打转（D 错）。"
     }
   ],
   "chapterQuizzes": [
