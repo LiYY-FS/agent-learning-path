@@ -84,16 +84,30 @@ def _content_hash(path):
 
 
 def _apply_cache_bust(data_js_path):
+    """把 data.js 改名为 content-hash 文件名，并更新 index.html 引用。
+
+    用文件名做缓存破坏（比 query string 更可靠）：某些 CDN/运营商代理会忽略
+    query string 的缓存策略，但文件路径变化会强制重新拉取。
+    """
     ver = _content_hash(data_js_path)
+    hashed_name = f"data.{ver}.js"
+    hashed_path = os.path.join(os.path.dirname(data_js_path), hashed_name)
+
+    # 保留原始 data.js（便于直接访问、调试、旧链接兼容），同时生成 hash 版本
+    import shutil
+    shutil.copy2(data_js_path, hashed_path)
+
     idx = os.path.join(REPO_ROOT, "index.html")
     if not os.path.exists(idx):
         print("⚠️  未找到 index.html，跳过缓存破坏")
         return
     with open(idx, "r", encoding="utf-8") as f:
         html = f.read()
+
+    # 同时替换旧 query-string 形式和普通文件名形式
     new_html, n = re.subn(
-        r'assets/js/data\.js(?:\?v=[A-Za-z0-9]+)?',
-        f'assets/js/data.js?v={ver}',
+        r'assets/js/data(?:\.[a-f0-9]+)?\.js(?:\?v=[A-Za-z0-9]+)?',
+        f'assets/js/{hashed_name}',
         html,
     )
     if n == 0:
@@ -101,7 +115,7 @@ def _apply_cache_bust(data_js_path):
         return
     with open(idx, "w", encoding="utf-8") as f:
         f.write(new_html)
-    print(f"✅ index.html 的 data.js 引用已加版本号 ?v={ver}（替换 {n} 处）")
+    print(f"✅ index.html 已引用 {hashed_name}（替换 {n} 处）")
 
 
 if __name__ == "__main__":
