@@ -3098,6 +3098,1401 @@
         }
       ],
       "explanation": "「报错 → 模型自己改代码 → 重跑」是代码 Agent 最有价值的循环，所以错误信息必须回传（A 错），但要过滤掉宿主路径等环境信息。不截断则会被 `for i in range(10**7): print(i)` 这类输出瞬间撑爆上下文并烧掉大量 token（C 错）。无上限重试可能在一个装不上的包上无限打转（D 错）。"
+    },
+    {
+      "id": "ch6-6.1-q2",
+      "chapter": "ch6",
+      "section": "6.1",
+      "type": "single",
+      "difficulty": 1,
+      "question": "最小 Agent 运行时「四件套」不包含以下哪项？",
+      "options": [
+        {
+          "key": "A",
+          "text": "调度器",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "权限沙箱",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "状态仓库",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "编译器",
+          "correct": true
+        }
+      ],
+      "explanation": "四件套是调度器/权限沙箱/状态仓库/消息总线；编译器不是运行时的组成部分。"
+    },
+    {
+      "id": "ch6-6.1-q3",
+      "chapter": "ch6",
+      "section": "6.1",
+      "type": "single",
+      "difficulty": 2,
+      "question": "「OS 给 Agent 用」与「Agent 组成 OS」的区别在于？",
+      "options": [
+        {
+          "key": "A",
+          "text": "前者人调度 Agent，后者 Agent 自组织",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "前者更快后者更慢",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "前者用 Linux 后者用 Windows",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "两者完全等价",
+          "correct": false
+        }
+      ],
+      "explanation": "前者把 Agent 当受管负载跑在底座上（可控可审计），后者是大量自主 Agent 自组织成系统。"
+    },
+    {
+      "id": "ch6-6.1-q4",
+      "chapter": "ch6",
+      "section": "6.1",
+      "type": "single",
+      "difficulty": 2,
+      "question": "在 Agent OS 中，传统 OS 的「地址空间保护」大致对应？",
+      "options": [
+        {
+          "key": "A",
+          "text": "进程调度",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "权限沙箱",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "文件系统",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "IPC",
+          "correct": false
+        }
+      ],
+      "explanation": "权限沙箱限定每个 Agent 能触达的工具/数据，类比 OS 的地址空间保护。"
+    },
+    {
+      "id": "ch6-6.1-q5",
+      "chapter": "ch6",
+      "section": "6.1",
+      "type": "single",
+      "difficulty": 2,
+      "question": "给运行时做「预算记账」的主要价值是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "让代码跑得更快",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "按 Agent 维度归因模型/工具成本",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "替代单元测试",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "减少代码行数",
+          "correct": false
+        }
+      ],
+      "explanation": "预算记账让每个 Agent 的 token/调用成本可归因，是治理与优化依据。"
+    },
+    {
+      "id": "ch6-6.1-q6",
+      "chapter": "ch6",
+      "section": "6.1",
+      "type": "single",
+      "difficulty": 1,
+      "question": "以下哪项不是引入 Agent OS 的典型动机？",
+      "options": [
+        {
+          "key": "A",
+          "text": "资源争抢",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "权限失控",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "状态散落难恢复",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "模型训练精度不足",
+          "correct": true
+        }
+      ],
+      "explanation": "三个典型痛点是资源争抢/权限失控/状态散落；模型精度是训练侧问题，不是运行时问题。"
+    },
+    {
+      "id": "ch6-6.2-q1",
+      "chapter": "ch6",
+      "section": "6.2",
+      "type": "single",
+      "difficulty": 1,
+      "question": "具身智能区别于纯软件 Agent 的关键在于？",
+      "options": [
+        {
+          "key": "A",
+          "text": "用了更大的模型",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "在物理/仿真世界里形成感知-行动闭环",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "只处理文本",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "不需要规划",
+          "correct": false
+        }
+      ],
+      "explanation": "具身 Agent 必须在环境中感知并行动，动作带来延迟/噪声/不可逆，这是与软件 Agent 的本质差异。"
+    },
+    {
+      "id": "ch6-6.2-q2",
+      "chapter": "ch6",
+      "section": "6.2",
+      "type": "single",
+      "difficulty": 2,
+      "question": "把软件 Agent 直接搬到物理世界，通常不会踩到哪个坑？",
+      "options": [
+        {
+          "key": "A",
+          "text": "感知噪声与遮挡",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "动作连续且不可逆",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "模型参数量太小",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "安全风险（撞坏设备/伤人）",
+          "correct": false
+        }
+      ],
+      "explanation": "物理世界的挑战在感知噪声、动作不可逆与安全，与模型参数量无直接关系。"
+    },
+    {
+      "id": "ch6-6.2-q3",
+      "chapter": "ch6",
+      "section": "6.2",
+      "type": "single",
+      "difficulty": 1,
+      "question": "具身 Agent 最小控制循环的正确顺序是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "感知→规划→执行→反馈",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "执行→感知→规划→反馈",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "规划→反馈→感知→执行",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "反馈→执行→规划→感知",
+          "correct": false
+        }
+      ],
+      "explanation": "闭环是感知获取信息、规划决定动作、执行改变环境、反馈再次进入感知。"
+    },
+    {
+      "id": "ch6-6.2-q4",
+      "chapter": "ch6",
+      "section": "6.2",
+      "type": "single",
+      "difficulty": 2,
+      "question": "VLA（Vision-Language-Action）模型指的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "把视觉-语言直接映射为动作",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "三种独立模型拼接",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "只做视觉识别",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "一种数据库",
+          "correct": false
+        }
+      ],
+      "explanation": "VLA 把「看到的图像 + 听到的指令」直接映射为动作 token，是具身智能的主流范式之一。"
+    },
+    {
+      "id": "ch6-6.2-q5",
+      "chapter": "ch6",
+      "section": "6.2",
+      "type": "single",
+      "difficulty": 2,
+      "question": "在具身 Agent 中引入 HITL（人在回路）的主要作用是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "让机器人更慢",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "对危险/不可逆动作做人工确认",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "替代所有规划",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "减少传感器数量",
+          "correct": false
+        }
+      ],
+      "explanation": "HITL 在不可逆或高风险动作前请人确认，是物理世界安全的兜底手段。"
+    },
+    {
+      "id": "ch6-6.2-q6",
+      "chapter": "ch6",
+      "section": "6.2",
+      "type": "single",
+      "difficulty": 1,
+      "question": "sim-to-real 是指？",
+      "options": [
+        {
+          "key": "A",
+          "text": "从仿真训练迁移到真实机器人",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "从真实到仿真",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "模型量化",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "数据加密",
+          "correct": false
+        }
+      ],
+      "explanation": "sim-to-real 指在仿真中学会策略，再迁移到真实机器人，降低真实环境试错成本。"
+    },
+    {
+      "id": "ch6-6.3-q2",
+      "chapter": "ch6",
+      "section": "6.3",
+      "type": "single",
+      "difficulty": 2,
+      "question": "工程上默认更推荐哪条技术路线？",
+      "options": [
+        {
+          "key": "A",
+          "text": "端到端大模型（全塞进一个大模型）",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "模块化 Agent 系统（模型只规划、工具外挂）",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "两者都不行",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "完全不用模型",
+          "correct": false
+        }
+      ],
+      "explanation": "只要场景要合规、可审计、能回滚，模块化系统更稳；端到端更适合探索性玩法。"
+    },
+    {
+      "id": "ch6-6.3-q3",
+      "chapter": "ch6",
+      "section": "6.3",
+      "type": "single",
+      "difficulty": 2,
+      "question": "自改进 Agent 的核心元循环是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "执行→自评→修订",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "睡觉→做梦→醒来",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "训练→部署→遗忘",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "复制→粘贴→删除",
+          "correct": false
+        }
+      ],
+      "explanation": "自改进靠「执行产出→独立评测打分→把差距反馈修订」的闭环不断提升。"
+    },
+    {
+      "id": "ch6-6.3-q4",
+      "chapter": "ch6",
+      "section": "6.3",
+      "type": "single",
+      "difficulty": 2,
+      "question": "「对齐（Alignment）」最贴切的理解是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "让模型参数更多",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "让 Agent 的目标与人类真实意图一致",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "让回答更流畅",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "让训练更快",
+          "correct": false
+        }
+      ],
+      "explanation": "对齐关注 Agent 是否在做「你想要的事」，尤其在目标模糊时不会精确而错误地完成。"
+    },
+    {
+      "id": "ch6-6.3-q5",
+      "chapter": "ch6",
+      "section": "6.3",
+      "type": "single",
+      "difficulty": 1,
+      "question": "L4 自改进 Agent 的主要新增风险是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "价值偏离（跑偏）",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "响应太慢",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "内存不足",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "不支持中文",
+          "correct": false
+        }
+      ],
+      "explanation": "能力越强自主越高，若评测/目标有偏，可能「高效但错误地」偏离人类意图。"
+    },
+    {
+      "id": "ch6-6.3-q6",
+      "chapter": "ch6",
+      "section": "6.3",
+      "type": "single",
+      "difficulty": 2,
+      "question": "关于「能力 vs 控制」，正确的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "能力越强越不需要控制",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "能力越强越需要控制（权限/对齐/审计）",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "控制只影响速度",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "两者无关",
+          "correct": false
+        }
+      ],
+      "explanation": "Agent 能影响现实世界，能力增长会放大失控后果，因此控制必须同步加强。"
+    },
+    {
+      "id": "ch6-6.4-q1",
+      "chapter": "ch6",
+      "section": "6.4",
+      "type": "single",
+      "difficulty": 1,
+      "question": "多模态 Agent 的输入/输出特点是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "只有文本",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "图/音/视频与文本混合",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "只有图像",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "只有语音",
+          "correct": false
+        }
+      ],
+      "explanation": "多模态 Agent 能处理文本、图像、音频、视频等多种通道的信息。"
+    },
+    {
+      "id": "ch6-6.4-q2",
+      "chapter": "ch6",
+      "section": "6.4",
+      "type": "single",
+      "difficulty": 1,
+      "question": "多模态 Agent 的标准架构三段式是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "编码→中枢→执行",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "输入→睡觉→输出",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "训练→推理→部署",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "加密→传输→解密",
+          "correct": false
+        }
+      ],
+      "explanation": "模态编码层把图/音/视频转成表示，中枢 MLLM 理解规划，执行层调工具/生成。"
+    },
+    {
+      "id": "ch6-6.4-q3",
+      "chapter": "ch6",
+      "section": "6.4",
+      "type": "single",
+      "difficulty": 2,
+      "question": "用 gpt-4o 做图像理解时，正确的输入方式是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "image_url + base64 编码",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "把图片路径当纯文本发",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "只发文件名",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "不需要编码",
+          "correct": false
+        }
+      ],
+      "explanation": "gpt-4o 原生支持 image_url 类型，图片以 data URL（base64）形式传入。"
+    },
+    {
+      "id": "ch6-6.4-q4",
+      "chapter": "ch6",
+      "section": "6.4",
+      "type": "single",
+      "difficulty": 1,
+      "question": "多模态落地的工程挑战不包括？",
+      "options": [
+        {
+          "key": "A",
+          "text": "模态对齐",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "延迟",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "成本",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "模型不能写诗",
+          "correct": true
+        }
+      ],
+      "explanation": "对齐/延迟/成本是真实挑战；「不能写诗」不是工程问题。"
+    },
+    {
+      "id": "ch6-6.4-q5",
+      "chapter": "ch6",
+      "section": "6.4",
+      "type": "single",
+      "difficulty": 2,
+      "question": "「别让模型看戏」的含义是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "先用 OCR/裁剪拿到关键区再送模型",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "不让模型看图片",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "把模型关掉",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "只发整张图",
+          "correct": false
+        }
+      ],
+      "explanation": "很多场景只需关键字段，先裁剪/OCR 再送模型，成本与延迟都能大幅下降。"
+    },
+    {
+      "id": "ch6-6.4-q6",
+      "chapter": "ch6",
+      "section": "6.4",
+      "type": "single",
+      "difficulty": 2,
+      "question": "为降低多模态成本，最合理的做法是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "只把必要帧/区域送模型，文本能解的不上图",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "永远发整张高清图",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "完全不用多模态",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "只发视频不发文本",
+          "correct": false
+        }
+      ],
+      "explanation": "按需送最小必要信息，是平衡效果与成本的关键工程原则。"
+    },
+    {
+      "id": "ch6-6.5-q2",
+      "chapter": "ch6",
+      "section": "6.5",
+      "type": "single",
+      "difficulty": 2,
+      "question": "防护「四件套」指的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "最小权限+沙箱+HITL+审计日志",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "四个模型",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "四种提示词",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "四个数据库",
+          "correct": false
+        }
+      ],
+      "explanation": "四件套对应四类风险：权限过大/越权破坏/不可逆操作/事后追溯。"
+    },
+    {
+      "id": "ch6-6.5-q3",
+      "chapter": "ch6",
+      "section": "6.5",
+      "type": "single",
+      "difficulty": 2,
+      "question": "护栏（guardrail）最应该包在哪儿？",
+      "options": [
+        {
+          "key": "A",
+          "text": "包在工具外面，统一做权限/敏感拦截",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "包在模型内部",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "不需要",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "只包在日志里",
+          "correct": false
+        }
+      ],
+      "explanation": "把护栏放在工具外层，可横切到所有 Agent，与业务解耦、易复用。"
+    },
+    {
+      "id": "ch6-6.5-q4",
+      "chapter": "ch6",
+      "section": "6.5",
+      "type": "single",
+      "difficulty": 1,
+      "question": "「提示注入」是指？",
+      "options": [
+        {
+          "key": "A",
+          "text": "外部内容里藏指令劫持 Agent",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "模型自己写错字",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "网络延迟",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "数据库连接失败",
+          "correct": false
+        }
+      ],
+      "explanation": "攻击者在网页/邮件/文档中嵌入指令，间接操控 Agent 偏离原意。"
+    },
+    {
+      "id": "ch6-6.5-q5",
+      "chapter": "ch6",
+      "section": "6.5",
+      "type": "single",
+      "difficulty": 2,
+      "question": "对于转账、删除等敏感操作，正确做法是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "默认挂起 + 人工确认 + 审计留痕",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "AI 自作主张直接执行",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "完全禁止一切操作",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "只记录不确认",
+          "correct": false
+        }
+      ],
+      "explanation": "敏感操作应默认挂起、需显式确认并留痕，从接口层杜绝越权执行。"
+    },
+    {
+      "id": "ch6-6.5-q6",
+      "chapter": "ch6",
+      "section": "6.5",
+      "type": "single",
+      "difficulty": 2,
+      "question": "红队评测集（注入/越权测试）的目的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "主动攻击验证护栏是否真的有效",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "让模型更慢",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "减少代码量",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "替代单元测试",
+          "correct": false
+        }
+      ],
+      "explanation": "安全要主动攻防，把注入/越权用例并入 CI，每次改动都重跑。"
+    },
+    {
+      "id": "ch6-6.6-q1",
+      "chapter": "ch6",
+      "section": "6.6",
+      "type": "single",
+      "difficulty": 1,
+      "question": "「Agent 经济」的核心意象是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Agents 作为自主市场主体去发现、协商、交易",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "卖更多显卡",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "只做免费开源",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "关闭所有 API",
+          "correct": false
+        }
+      ],
+      "explanation": "Agent 经济里 Agent 能自动发现需求、协商价格、调用彼此并结算。"
+    },
+    {
+      "id": "ch6-6.6-q2",
+      "chapter": "ch6",
+      "section": "6.6",
+      "type": "single",
+      "difficulty": 2,
+      "question": "Agent 服务市场里被交易的主要是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "可发现、可计费的「能力单元」（函数/模型/工具）",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "只有整机服务器",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "只有域名",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "只有论文",
+          "correct": false
+        }
+      ],
+      "explanation": "市场把翻译、合规检查、行业模型等能力单元自描述、按需计费地暴露。"
+    },
+    {
+      "id": "ch6-6.6-q3",
+      "chapter": "ch6",
+      "section": "6.6",
+      "type": "single",
+      "difficulty": 2,
+      "question": "与传统 SaaS 相比，Agent 经济的关键不同是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "按能力/调用计费且 Agent 自主协商",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "仍然按月固定订阅、人手动集成",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "更贵的硬件",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "不支持 API",
+          "correct": false
+        }
+      ],
+      "explanation": "Agent 经济把集成与计费自动化，能力按需调用、按结果微支付。"
+    },
+    {
+      "id": "ch6-6.6-q4",
+      "chapter": "ch6",
+      "section": "6.6",
+      "type": "single",
+      "difficulty": 2,
+      "question": "Agent 经济的信任基础设施不包括？",
+      "options": [
+        {
+          "key": "A",
+          "text": "身份与授权",
+          "correct": false
+        },
+        {
+          "key": "B",
+          "text": "可验证执行",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "支付与争议处理",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "强制每天发邮件",
+          "correct": true
+        }
+      ],
+      "explanation": "信任层来自身份/可验证执行/支付仲裁；发邮件不是基础设施。"
+    },
+    {
+      "id": "ch6-6.6-q5",
+      "chapter": "ch6",
+      "section": "6.6",
+      "type": "single",
+      "difficulty": 1,
+      "question": "按调用计费（pay-per-call）实现的关键是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "调用前验余额、扣费并记账",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "月底一次性猜账",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "不记账",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "只收现金",
+          "correct": false
+        }
+      ],
+      "explanation": "计费内核是「调用前校验余额→扣费→入账本」，保证可审计。"
+    },
+    {
+      "id": "ch6-6.6-q6",
+      "chapter": "ch6",
+      "section": "6.6",
+      "type": "single",
+      "difficulty": 2,
+      "question": "没有结算基础设施，Agent 经济会怎样？",
+      "options": [
+        {
+          "key": "A",
+          "text": "无法计费与验证，市场无从形成（白嫖/互坑）",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "反而更繁荣",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "模型会更快",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "没有影响",
+          "correct": false
+        }
+      ],
+      "explanation": "先有账本与验证，才有可信交易；否则市场难以自组织。"
+    },
+    {
+      "id": "ch6-6.7-q1",
+      "chapter": "ch6",
+      "section": "6.7",
+      "type": "single",
+      "difficulty": 1,
+      "question": "MCP（Model Context Protocol）主要解决？",
+      "options": [
+        {
+          "key": "A",
+          "text": "让工具以统一协议接入任意模型/Agent",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "让 Agent 之间聊天",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "训练大模型",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "做数据库迁移",
+          "correct": false
+        }
+      ],
+      "explanation": "MCP 是工具侧互操作标准，类比 USB 接口，让能力可移植。"
+    },
+    {
+      "id": "ch6-6.7-q2",
+      "chapter": "ch6",
+      "section": "6.7",
+      "type": "single",
+      "difficulty": 1,
+      "question": "A2A 协议主要解决？",
+      "options": [
+        {
+          "key": "A",
+          "text": "不同 Agent 之间互相发现与通信",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "图片压缩",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "模型量化",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "写前端样式",
+          "correct": false
+        }
+      ],
+      "explanation": "A2A 让异构 Agent 能彼此协作，类似 Agent 间的通信协议。"
+    },
+    {
+      "id": "ch6-6.7-q3",
+      "chapter": "ch6",
+      "section": "6.7",
+      "type": "single",
+      "difficulty": 2,
+      "question": "本地开源模型（如通过 Ollama 运行 Qwen）对构建者的主要价值是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "降本 + 数据不出域 + 可控",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "一定比云端更强",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "不需要任何接口",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "只能离线写诗",
+          "correct": false
+        }
+      ],
+      "explanation": "本地模型在成本、隐私、可控上有红利，适合高频简单或敏感任务。"
+    },
+    {
+      "id": "ch6-6.7-q4",
+      "chapter": "ch6",
+      "section": "6.7",
+      "type": "single",
+      "difficulty": 2,
+      "question": "面对「框架爆炸」，最稳的跟进策略是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "固定信源 + 建评估集 + 按任务取舍",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "每个新框架都立刻全量采用",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "只看热榜决定技术栈",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "完全不关注生态",
+          "correct": false
+        }
+      ],
+      "explanation": "让评估集说话、做减法，比追热榜更可持续。"
+    },
+    {
+      "id": "ch6-6.7-q5",
+      "chapter": "ch6",
+      "section": "6.7",
+      "type": "single",
+      "difficulty": 2,
+      "question": "关于框架选型，正确的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "先想清要编排/检索/多Agent协同，再选对应框架",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "哪个最火用哪个",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "框架越多越好",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "完全不需要框架",
+          "correct": false
+        }
+      ],
+      "explanation": "框架侧重不同，先明确任务类型再匹配，避免混用增熵。"
+    },
+    {
+      "id": "ch6-6.7-q6",
+      "chapter": "ch6",
+      "section": "6.7",
+      "type": "single",
+      "difficulty": 1,
+      "question": "混合路由（本地+云端）的核心决策维度通常是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "敏感度与复杂度",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "模型颜色",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "星期几",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "随机数",
+          "correct": false
+        }
+      ],
+      "explanation": "用「是否敏感、是否复杂」双维度路由，兼顾成本、隐私与能力。"
+    },
+    {
+      "id": "ch6-6.8-q1",
+      "chapter": "ch6",
+      "section": "6.8",
+      "type": "single",
+      "difficulty": 1,
+      "question": "前六章建议的学习顺序是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "基础→框架→多Agent→行业→安全→趋势",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "趋势→安全→行业→多Agent→框架→基础",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "随便跳着看",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "只看第 6 章",
+          "correct": false
+        }
+      ],
+      "explanation": "路径由地基到上层：概念→实战→系统设计→落地→安全→趋势回望。"
+    },
+    {
+      "id": "ch6-6.8-q2",
+      "chapter": "ch6",
+      "section": "6.8",
+      "type": "single",
+      "difficulty": 2,
+      "question": "动手项目的最佳进阶是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "最小 Agent→加记忆/RAG→多Agent→带 HITL+评估集上线",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "直接上线最复杂的系统",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "只读书不写码",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "抄别人的成品",
+          "correct": false
+        }
+      ],
+      "explanation": "循序渐进，每一步都有可运行产物，最后才上生产级能力。"
+    },
+    {
+      "id": "ch6-6.8-q3",
+      "chapter": "ch6",
+      "section": "6.8",
+      "type": "single",
+      "difficulty": 2,
+      "question": "社区与持续成长的关键习惯是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "保持亲手做 + 写笔记 + 建评估集",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "只收藏不实践",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "追每个新名词",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "闭门造车",
+          "correct": false
+        }
+      ],
+      "explanation": "真正成长来自改坏一次、修好一次、写进评估集；少收藏多动手。"
+    },
+    {
+      "id": "ch6-6.8-q4",
+      "chapter": "ch6",
+      "section": "6.8",
+      "type": "single",
+      "difficulty": 2,
+      "question": "为第一个 Agent 建「评估集」的主要作用是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "作为回归基准，防止后续改动退化",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "凑字数",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "替代代码",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "给老板看",
+          "correct": false
+        }
+      ],
+      "explanation": "评估集是回归基准，任何改动都重跑，保障能力不退化。"
+    },
+    {
+      "id": "ch6-6.8-q5",
+      "chapter": "ch6",
+      "section": "6.8",
+      "type": "single",
+      "difficulty": 1,
+      "question": "能力地图里强制写「evidence（证据）」字段的意义是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "强制拿得出成果，避免目标流于口号",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "凑长度",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "给模型看",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "无意义",
+          "correct": false
+        }
+      ],
+      "explanation": "evidence 字段要求「拿出成果」，把进度从自我安慰变成可验证。"
+    },
+    {
+      "id": "ch6-6.8-q6",
+      "chapter": "ch6",
+      "section": "6.8",
+      "type": "single",
+      "difficulty": 1,
+      "question": "ROADMAP 进度追踪器的主要价值是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "把学习变可勾选清单，进度一目了然",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "让学习更慢",
+          "correct": false
+        },
+        {
+          "key": "C",
+          "text": "替代课程",
+          "correct": false
+        },
+        {
+          "key": "D",
+          "text": "没有价值",
+          "correct": false
+        }
+      ],
+      "explanation": "可勾选清单提供即时反馈，避免「学了很多却没落地」。"
     }
   ],
   "chapterQuizzes": [
@@ -3185,10 +4580,54 @@
       "title": "第 6 章综合测验 - 前沿趋势展望",
       "questions": [
         "ch6-6.1-q1",
+        "ch6-6.1-q2",
+        "ch6-6.1-q3",
+        "ch6-6.1-q4",
+        "ch6-6.1-q5",
+        "ch6-6.1-q6",
+        "ch6-6.2-q1",
+        "ch6-6.2-q2",
+        "ch6-6.2-q3",
+        "ch6-6.2-q4",
+        "ch6-6.2-q5",
+        "ch6-6.2-q6",
         "ch6-6.3-q1",
-        "ch6-6.5-q1"
-      ],
-      "passingScore": 70
+        "ch6-6.3-q2",
+        "ch6-6.3-q3",
+        "ch6-6.3-q4",
+        "ch6-6.3-q5",
+        "ch6-6.3-q6",
+        "ch6-6.4-q1",
+        "ch6-6.4-q2",
+        "ch6-6.4-q3",
+        "ch6-6.4-q4",
+        "ch6-6.4-q5",
+        "ch6-6.4-q6",
+        "ch6-6.5-q1",
+        "ch6-6.5-q2",
+        "ch6-6.5-q3",
+        "ch6-6.5-q4",
+        "ch6-6.5-q5",
+        "ch6-6.5-q6",
+        "ch6-6.6-q1",
+        "ch6-6.6-q2",
+        "ch6-6.6-q3",
+        "ch6-6.6-q4",
+        "ch6-6.6-q5",
+        "ch6-6.6-q6",
+        "ch6-6.7-q1",
+        "ch6-6.7-q2",
+        "ch6-6.7-q3",
+        "ch6-6.7-q4",
+        "ch6-6.7-q5",
+        "ch6-6.7-q6",
+        "ch6-6.8-q1",
+        "ch6-6.8-q2",
+        "ch6-6.8-q3",
+        "ch6-6.8-q4",
+        "ch6-6.8-q5",
+        "ch6-6.8-q6"
+      ]
     }
   ]
 }
