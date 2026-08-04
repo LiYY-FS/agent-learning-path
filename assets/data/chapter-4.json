@@ -178,7 +178,7 @@
             "language": "python",
             "title": "层级式客服路由：Router 先分类再转专业 Agent",
             "highlightLines": [
-              3,
+              2,
               6,
               9
             ],
@@ -612,7 +612,7 @@
             "title": "跨团队报告：三个 Agent 经总线写入共享状态，Orchestrator 汇总",
             "highlightLines": [
               4,
-              9,
+              8,
               14
             ],
             "code": "from collections import defaultdict\n\nreport = defaultdict(str)   # 共享报告状态（黑板）\nbus_log = []                # 通信审计日志\n\ndef agent_contribute(team, content):\n    report[team] = content\n    bus_log.append(f\"{team} -> report: {content[:20]}...\")\n\nif __name__ == \"__main__\":\n    agent_contribute(\"market\", \"市场规模年增 20%\")\n    agent_contribute(\"tech\", \"核心技术已就绪\")\n    agent_contribute(\"finance\", \"ROI 预计 18 个月回本\")\n    print(\"最终报告:\", dict(report))\n    print(\"审计:\", bus_log)",
@@ -792,7 +792,7 @@
             "language": "python",
             "title": "报告流水线：规划→执行→反思重规划",
             "highlightLines": [
-              3,
+              2,
               8,
               13
             ],
@@ -1168,7 +1168,7 @@
             "highlightLines": [
               4,
               9,
-              14
+              11
             ],
             "code": "def do_side_effect(step, executed_ids):\n    if step[\"id\"] in executed_ids:\n        return \"已执行,跳过\"          # 幂等：恢复时不会重复发邮件\n    executed_ids.add(step[\"id\"])\n    return f\"执行副作用:{step['name']}\"\n\nif __name__ == \"__main__\":\n    executed = set()\n    steps = [{\"id\": \"s1\", \"name\": \"发通知\"}, {\"id\": \"s2\", \"name\": \"写库\"}]\n    for s in steps:\n        print(do_side_effect(s, executed))",
             "output": "执行副作用:发通知\n执行副作用:写库",
@@ -1347,7 +1347,7 @@
             "title": "交易审批：下单前 interrupt 等人工，resume 后执行且幂等",
             "highlightLines": [
               4,
-              9,
+              8,
               14
             ],
             "code": "def execute_order(order, approved_ids):\n    if order[\"id\"] in approved_ids:\n        return \"已执行,跳过\"          # 幂等保护\n    approved_ids.add(order[\"id\"])\n    return f\"下单:{order['symbol']} {order['qty']}\"\n\ndef need_approval(order):\n    return order[\"qty\"] * order[\"price\"] > 100000   # 大额才需人批\n\nif __name__ == \"__main__\":\n    approved = set()\n    o = {\"id\": \"O1\", \"symbol\": \"AAPL\", \"qty\": 100, \"price\": 2000}\n    if need_approval(o):\n        print(\"等待交易员审批...\")\n    print(execute_order(o, approved))",
@@ -1528,7 +1528,7 @@
             "highlightLines": [
               4,
               9,
-              14
+              11
             ],
             "code": "def export_report(page):\n    page.goto(\"https://legacy/internal/report\")\n    page.click(\"#export-csv\")          # 只读账号，导出不算高危\n    return \"报表已导出\"\n\ndef is_dangerous(action):\n    return action in (\"delete\", \"publish\", \"pay\")\n\nif __name__ == \"__main__\":\n    print(export_report(\"page\"))       # 真实环境传入 page 对象\n    print(\"delete 是否需审批:\", is_dangerous(\"delete\"))",
             "output": "报表已导出\ndelete 是否需审批: True",
