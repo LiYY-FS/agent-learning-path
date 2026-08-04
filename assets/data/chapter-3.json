@@ -892,6 +892,126 @@
           "variant": "danger",
           "title": "易错点：只看 GitHub Star 不选",
           "text": "Star 高不等于适合你。先在候选里挑 1 个做 3 天 spike：跑通「接工具 + 断点续跑 + 可观测」三件事，能跑通才进正式选型。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：选型是「用评分矩阵做减法」，不是追榜单",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "框架榜单年年变，但能力维度稳定：多步编排、持久状态、低代码、RAG 内建、生态成熟度。用一张评分矩阵把模糊的「哪个好」变成可比较的数字，再结合团队熟悉度与长期维护成本定夺。调研阶段用 spike（最小验证）而非 PPT 决策——跑通一个最小闭环比读十篇对比文更可靠。"
+            },
+            {
+              "type": "paragraph",
+              "text": "评分矩阵的价值是「显式化权衡」：当你说不清为什么选 A 不选 B，往往是因为没把维度拆开。下面的代码用能力维度给框架打分，把选型变成可复现的计算。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_1_rz.py",
+            "language": "python",
+            "title": "框架选型：能力评分矩阵（离线）",
+            "highlightLines": [
+              4,
+              6,
+              7,
+              8,
+              9
+            ],
+            "code": "# 框架选型：用能力评分矩阵量化（离线）\ndef score(name, dims):\n    total = sum(dims.values())\n    return f\"{name}: {total}分\"\n\nFRAMEWORKS = {\n    \"LangChain\": {\"编排\": 4, \"低代码\": 2, \"RAG\": 4},\n    \"LangGraph\": {\"编排\": 5, \"低代码\": 1, \"RAG\": 3},\n}\n\nif __name__ == \"__main__\":\n    for n, d in FRAMEWORKS.items():\n        print(score(n, d))\n",
+            "output": "LangChain: 10分\nLangGraph: 9分",
+            "note": "真实选型还要乘「团队熟悉度」与「维护成本」权重；分数接近时用 spike 验证。矩阵维度可按业务定，不必照搬本例。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，给两个框架打出可比较的分数。",
+                "加入你关心的维度（如「中文文档」「社区活跃度」）重算。",
+                "把权重加进去（编排×0.4 + RAG×0.3 + ...），得到加权分。",
+                "对 top2 框架各写一个最小 spike（同一任务），记录耗时与坑。",
+                "把矩阵与 spike 结论写成选型 ADR，留痕可回溯。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 只看榜单排名：榜单不等于你的适配度。② 维度拍脑袋：没拆维度导致说不清为什么选。③ 忽略团队熟悉度：选了强但没人会用的框架，维护崩。④ 不跑 spike：纸上谈兵，真做才发现框架短板。⑤ 一次定终身：框架演化快，选型应定期复审。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "用评分矩阵把选型显式化；维度按业务定制并加权；top2 必跑 spike；选型写 ADR 留痕；定期（如半年）复审框架版本与适配度；把框架当可替换外壳，底层原理不变。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：框架本质是「把第 2 章范式工程化」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "LangChain 的 Chain/LCEL、LangGraph 的 StateGraph、Agents SDK 的 Agent+Runner，底层都是第 2 章讲的 ReAct/Plan-Execute/Agent Loop。框架的价值不是创造新范式，而是把这些范式「标准化、可组合、可观测」——你不必每次重写循环、状态、工具分发。理解这点，就不会被框架 API 淹没，而能看穿它在封装哪一层。"
+            },
+            {
+              "type": "paragraph",
+              "text": "所以学框架的正确顺序是「先懂原理（第 2 章），再学框架」：原理是内核，框架是外壳。换框架只是换外壳，内核不变。这也是为什么本教程把原理章放在框架章之前。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_1_sy.py",
+            "language": "python",
+            "title": "框架共性：都封装「循环+状态+工具」三件套（离线示意）",
+            "highlightLines": [
+              3,
+              5,
+              6
+            ],
+            "code": "# 框架共性：都封装 循环+状态+工具 三件套（离线示意）\ndef framework_core(loop, state, tools):\n    return f\"循环:{loop} 状态:{state} 工具:{len(tools)}个\"\n\nif __name__ == \"__main__\":\n    print(framework_core(\"AgentLoop\", \"memory\", [\"search\", \"calc\"]))\n",
+            "output": "循环:AgentLoop 状态:memory 工具:2个",
+            "note": "不同框架对这三件套的抽象粒度不同：LangChain 偏组件组合，LangGraph 偏图状态，Agents SDK 偏 Agent 封装。选框架本质是选「三件套的抽象风格」最顺手的那个。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认框架共性可被一句话概括。",
+                "列出你用过的框架，分别标出它如何抽象「循环/状态/工具」。",
+                "用同一任务在两种框架实现，对比代码量与人机负担。",
+                "把「框架 API」翻译成「第 2 章范式」的语言，加深理解。",
+                "写一页「框架映射表」：范式→各框架对应概念。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 只学 API 不懂原理：框架一升级就不会用。② 被框架绑架：所有逻辑按框架思维写，换框架需重写。③ 过度抽象：为用框架而用框架，简单事变复杂。④ 忽略底层循环：出循环 bug 时看不懂框架在干嘛。⑤ 混用多框架：概念冲突，难以维护。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "先掌握第 2 章范式再学框架；把框架概念映射回范式内核；业务逻辑与框架解耦（核心逻辑不依赖框架 API）；多框架只选一主一备；框架升级先看变更日志的范式层改动。"
         }
       ],
       "enterpriseCase": {
@@ -1543,6 +1663,127 @@
           "variant": "danger",
           "title": "易错点：抽象过厚导致调试黑盒",
           "text": "链一复杂，报错堆栈全是 Runnable 内部。务必接 LangSmith 或自己打印每一步输入输出；不要盲目升级 langchain 大版本，breaking change 频繁。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：LangChain 用「组件 + 组合」搭建流水线",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "LangChain 的核心心智是「一切皆组件，用 | 组合成链」：PromptTemplate、Model、OutputParser 等组件可像管道一样串起来（LCEL 的 `prompt | model | parser`）。这种声明式组合让流水线可读、可测、可复用。理解 LCEL 的「Runnable」协议（每个组件都能 invoke/stream/batch）是掌握 LangChain 的关键。"
+            },
+            {
+              "type": "paragraph",
+              "text": "LCEL 的妙处是每个 Runnable 接口统一，所以组合任意组件都行，且天然支持流式与并行。下面的代码用纯函数模拟一条最小链，体会「组合」胜过「硬编码流程」。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_2_rz.py",
+            "language": "python",
+            "title": "LangChain 风格链：prompt | model | parser（离线模拟）",
+            "highlightLines": [
+              4,
+              5,
+              7
+            ],
+            "code": "# LangChain 风格链：prompt | model | parser（离线模拟）\ndef chain(question):\n    prompt = f\"Q:{question}\"\n    answer = f\"关于「{question}」的回答\"\n    return f\"{prompt} -> {answer}\"\n\nif __name__ == \"__main__\":\n    print(chain(\"什么是Agent\"))\n",
+            "output": "Q:什么是Agent -> 关于「什么是Agent」的回答",
+            "note": "真实 LCEL 是 prompt | model | parser，每个都是 Runnable，支持流式与并行。本例用单函数模拟「组合产出答案」的效果；生产用 langchain 的 RunnableSequence 串联真实组件。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认一条链产出结构化答案。",
+                "把单函数拆成 prompt/model/parser 三个函数再用 | 风格组合。",
+                "接入真实 langchain，写 prompt | ChatModel | StrOutputParser。",
+                "给链加 .with_config(tags) 便于追踪。",
+                "把链抽成可复用函数，在多处调用。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 把链写死成单函数：失去组合与可测性。② 忽略 Runnable 协议：自己造轮子不兼容生态。③ 不分 parser：答案混在文本里难解析。④ 链过长：调试时不知道哪段出错。⑤ 滥用链：简单事也上 LCEL，过度设计。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "坚持 LCEL 组合风格而非硬编码流程；每个组件用 Runnable 接口；链加 tags/metadata 便于观测；复杂链拆子链分别测试；把可复用链沉淀为团队组件库。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：Runnable 统一协议让组合「正交」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "LangChain 让所有组件实现同一套 Runnable 方法（invoke/stream/batch/with_config），于是「任意组件都能接任意组件」，组合是「正交」的——换 prompt 不影响 model，换 parser 不影响前段。这种接口统一正是框架可组合性的根源，也是它优于「each 框架各写各的胶水」的原因。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示：当你设计自己的 Agent 组件时，也应为工具/处理器定义统一接口，而非散落的 ad-hoc 函数。统一接口带来可测试、可替换、可并行。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_2_sy.py",
+            "language": "python",
+            "title": "Runnable 统一接口：组件可互换（离线示意）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              8,
+              9,
+              10
+            ],
+            "code": "# Runnable 统一接口：组件可互换（离线示意）\nclass Runnable:\n    def __init__(self, fn):\n        self.fn = fn\n    def invoke(self, x):\n        return self.fn(x)\n\nprompt = Runnable(lambda q: f\"Q:{q}\")\nmodel = Runnable(lambda p: f\"A:{p}\")\nchain = lambda q: model.invoke(prompt.invoke(q))\n\nif __name__ == \"__main__\":\n    print(chain(\"hi\"))\n",
+            "output": "A:Q:hi",
+            "note": "真实 Runnable 还有 stream/batch/with_config；统一接口让 chain 可任意拼装且支持流式。自己造组件时也该定义统一 invoke 接口，避免胶水代码爆炸。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认组件经统一 invoke 串联。",
+                "给 Runnable 加 stream 方法，体验流式输出。",
+                "把 model 换成另一个实现，确认 chain 不变。",
+                "用 with_config 给链打标签，模拟观测。",
+                "把此模式应用到你的工具/处理器设计。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 组件接口不统一：每个工具签名不同，组合全靠胶水。② 只实现 invoke：不支持流式，体验差。③ 链式调用写死：换组件要改调用处。④ 无配置通道：观测/标签加不上。⑤ 过度抽象：为统一而统一，简单场景也上接口层。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "为自有组件定义统一 Runnable 式接口（invoke/stream）；组件可替换、可并行；加 with_config 传递 tags/metadata；把统一接口作为架构约定写进规范。"
         }
       ],
       "enterpriseCase": {
@@ -2135,6 +2376,131 @@
           "variant": "danger",
           "title": "易错点：忘了 set_entry_point",
           "text": "图必须有入口，否则 compile 后调用会报错。条件边的返回值必须是节点名或 END 字符串，拼错会在运行时才暴露。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：LangGraph 用「状态图」表达多步流程",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "当流程不是直线而是有分支、循环、汇聚时，LCEL 的线性链不够用，LangGraph 用「图」建模：节点（处理函数）+ 边（转移条件）+ 全局状态（State）。每步节点读写共享 State，边按条件决定下一个节点。这天然适配 Agent 的循环、多分支与人工干预（interrupt）。"
+            },
+            {
+              "type": "paragraph",
+              "text": "StateGraph 的关键创新是「显式状态」：所有节点共享一份 State，而非靠隐式传参，这让流程可读、可持久化、可断点续跑。下面的代码用一个最小状态图演示节点+边的执行。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_3_rz.py",
+            "language": "python",
+            "title": "LangGraph 风格：状态图节点+边执行（离线模拟）",
+            "highlightLines": [
+              4,
+              5,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12,
+              13
+            ],
+            "code": "# LangGraph 风格：状态图节点+边执行（离线）\ndef build_graph():\n    graph = {\"nodes\": [\"start\", \"think\", \"end\"],\n             \"edges\": [(\"start\", \"think\"), (\"think\", \"end\")]}\n    return graph\n\ndef run_graph():\n    g = build_graph()\n    path, cur = [], \"start\"\n    while cur != \"end\":\n        path.append(cur)\n        for a, b in g[\"edges\"]:\n            if a == cur:\n                cur = b\n                break\n    path.append(\"end\")\n    return path\n\nif __name__ == \"__main__\":\n    print(run_graph())\n",
+            "output": "['start', 'think', 'end']",
+            "note": "真实 LangGraph 节点是函数(State)->PartialState，边可加条件（如「若需工具则去 tool 节点」），并支持 interrupt 做人工干预。本例用最小图演示「节点+边驱动状态流转」的骨架。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认状态图按边走到 end。",
+                "新增一个 branch 节点，加条件边（如「错误则去 fix」）。",
+                "把 State 做成字典，节点读写其中字段。",
+                "加 interrupt 在关键节点暂停等人工确认。",
+                "把图序列化，支持断点续跑。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 用图却写死流程：没发挥分支/循环优势。② State 设计混乱：字段职责不清，节点互相踩。③ 无限环：条件边永远不指向 end，死循环。④ 忽略持久化：长图进程重启丢状态。⑤ 在节点里做副作用不隔离：难测试。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "用显式 State 做单源真相；边加条件与 interrupt 支持人工干预；图可序列化实现断点续跑；节点纯函数化便于测试；复杂流程用图而非线性链。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：图比链更适合「有条件分支」的 Agent",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "ReAct 循环本质是「根据观察决定下一步」，这天然是图（每步按条件选下一个节点），而非直线链。LangGraph 把这种「动态路由」显式建模，所以多步、需回退/分支/人工的 Agent 用图更自然。代价是图比链复杂，简单线性任务不必上图。"
+            },
+            {
+              "type": "paragraph",
+              "text": "判断用链还是用图：流程固定可预测→链；流程有分支/循环/人工→图。这也是「按需取复杂度」原则在框架层的体现。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_3_sy.py",
+            "language": "python",
+            "title": "链 vs 图：按是否需动态路由选择（离线）",
+            "highlightLines": [
+              3,
+              5,
+              6,
+              7
+            ],
+            "code": "# 链 vs 图：按是否需动态路由选择（离线）\ndef pick(needs_branch):\n    return \"图(LangGraph)\" if needs_branch else \"链(LCEL)\"\n\nif __name__ == \"__main__\":\n    for b in (False, True):\n        print(f\"需分支={b} -> {pick(b)}\")\n",
+            "output": "需分支=False -> 链(LCEL)\n需分支=True -> 图(LangGraph)",
+            "note": "真实选型还要看「是否有循环/人工干预/长程状态」；三者在图里都好表达，在链里要绕。把「需分支否」作为第一道分水岭。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认按分支需求选链/图。",
+                "列出你的任务，标注是否需动态路由。",
+                "把需分支的任务用 LangGraph 画状态图原型。",
+                "把固定任务用 LCEL 实现，对比代码量。",
+                "把选型判据写进框架使用规范。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 固定流程硬上图：复杂度白涨。② 动态流程用链：绕出胶水代码且难维护。③ 不看循环/人工需求：只按分支选，漏掉图的其他优势。④ 图设计无边界：节点职责重叠。⑤ 过早定框架：需求不清时先画流程再选。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "以「是否需动态路由」为第一分水岭选型；固定流程用 LCEL、动态用 LangGraph；流程先画原型再落框架；把选型判据固化进规范避免随意。"
         }
       ],
       "enterpriseCase": {
@@ -2565,6 +2931,125 @@
           "variant": "danger",
           "title": "易错点：handoff 的 Agent 没配工具",
           "text": "被转接的 Agent 若没有对应工具，转过去也只是「换个口吻说话」。handoff 解决的是「谁来处理」，工具解决的是「能不能动手」，两者要一起配。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：OpenAI Agents SDK 走「Agent + Runner」极简模型",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agents SDK 的设计哲学是「少抽象、贴近范式」：一个 Agent = 指令(instructions) + 模型 + 工具；Runner 负责跑循环（把 Agent 丢进 ReAct 式循环直到结束）。它刻意比 LangChain 薄，让开发者直接面对「循环+工具+交接(handoff)」，适合想轻量落地 Agent 的团队。"
+            },
+            {
+              "type": "paragraph",
+              "text": "它的亮点是 handoff（Agent 间交接）：一个 Agent 可在循环中把任务转给另一个专长 Agent，天然支持多 Agent 协作（见第 4 章）。下面的代码用最小骨架演示 Agent + Runner。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_4_rz.py",
+            "language": "python",
+            "title": "OpenAI Agents 风格：Agent + Runner（离线模拟）",
+            "highlightLines": [
+              3,
+              5,
+              6
+            ],
+            "code": "# OpenAI Agents SDK 风格：Agent + Runner（离线）\ndef run_agent(instruction, inp):\n    return f\"[{instruction}] 处理: {inp}\"\n\nif __name__ == \"__main__\":\n    print(run_agent(\"你是客服\", \"退货政策\"))\n",
+            "output": "[你是客服] 处理: 退货政策",
+            "note": "真实 SDK 里 Agent 含 instructions/model/tools，Runner.run 跑循环并支持 handoff 把任务转给其他 Agent。本例演示「指令+输入→处理结果」的最小封装。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认 Agent 按指令处理输入。",
+                "给 Agent 加 tools 列表，模拟工具调用。",
+                "接入真实 SDK，写 Agent(instructions=..., tools=[...])。",
+                "实现两个 Agent 的 handoff（客服→技术专家）。",
+                "用 Runner.run 跑通一次多 Agent 交接。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 把它当 LangChain 用：抽象风格不同，硬套会别扭。② 忽略 handoff：多 Agent 协作又回到手写路由。③ 指令太泛：Agent 行为漂移。④ 工具无 schema：交接后工具调用不稳。⑤ 不跑循环看过程：出错难定位。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "把 Agent 当「指令+工具+模型」的最小单元；多 Agent 用 handoff 而非手写路由；指令写具体可测；工具配 schema；Runner 跑循环并保留轨迹供观测。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：薄框架倒逼你「懂范式」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agents SDK 故意薄，因为它假设开发者已懂第 2 章的循环/工具/状态。薄的好处是「没有魔法」——你写的代码几乎就是范式本身，调试直观、升级无痛；坏处是「啥都要自己接」（记忆、RAG、评估得自己拼）。所以它是「懂原理者」的利器，也是「想开箱即用者」的门槛。"
+            },
+            {
+              "type": "paragraph",
+              "text": "框架厚度是取舍：厚（LangChain）省事但抽象多、升级风险大；薄（Agents SDK）透明但拼装多。按团队原理功底与定制需求选。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_4_sy.py",
+            "language": "python",
+            "title": "框架厚度权衡：薄=透明/厚=省事（离线示意）",
+            "highlightLines": [
+              4,
+              5,
+              7,
+              8
+            ],
+            "code": "# 框架厚度权衡：薄=透明 厚=省事（离线示意）\ndef pick(team_level, need_custom):\n    if need_custom and team_level >= 4:\n        return \"薄框架(Agents SDK): 透明可控\"\n    return \"厚框架(LangChain): 开箱组件多\"\n\nif __name__ == \"__main__\":\n    print(pick(5, True))\n    print(pick(2, False))\n",
+            "output": "薄框架(Agents SDK): 透明可控\n厚框架(LangChain): 开箱组件多",
+            "note": "厚度无绝对优劣：定制多+团队强→薄框架性价比高；想快+少造轮子→厚框架。关键是匹配团队原理功底与定制深度。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，按团队等级与选项得到建议。",
+                "评估你团队的原理功底与定制需求档位。",
+                "对两个候选框架做同一任务的 spike 对比。",
+                "把「厚度 vs 团队」写成选型参考。",
+                "定期复审：团队成长后可从厚迁薄。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 团队弱却上薄框架：啥都要自己写，进度慢。② 团队强却上厚框架：抽象冗余、升级痛。③ 只看开箱多寡：忽略长期维护成本。④ 不 spike 直接定：纸上选型易错。⑤ 忽视定制需求：高度定制被厚框架束缚。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "按「团队原理功底×定制深度」选厚度；薄框架配强团队、厚框架配快起步；两框架都做 spike；选型随团队成长复审；把框架当可替换外壳。"
         }
       ],
       "enterpriseCase": {
@@ -3251,6 +3736,127 @@
           "variant": "danger",
           "title": "易错点：切片过粗或过细",
           "text": "切片太大，召回噪声多；太小，上下文被切断。LlamaIndex 默认按 token 切，但要按文档结构（标题/段落）调 chunk_size，并保留来源 id 做引用回溯。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：LlamaIndex 专注「数据接入 + RAG」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "如果说 LangChain 是「通用Agent胶水」，LlamaIndex 是「RAG 专用框架」：它把「加载文档→切分→建索引→检索→喂给 LLM」这条 RAG 链路做成一流式 API，并内置几十种数据源连接器（PDF、Notion、DB…）。做知识库/文档问答时，LlamaIndex 比自己拼 RAG 省事得多。"
+            },
+            {
+              "type": "paragraph",
+              "text": "它的核心是「索引(Index)」抽象：把文档转成可检索结构，query 时返回最相关节点。下面的代码用最小骨架演示「建索引 + 查询」。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_5_rz.py",
+            "language": "python",
+            "title": "LlamaIndex 风格：建索引 + 查询（离线模拟）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              8,
+              9
+            ],
+            "code": "# LlamaIndex 风格：建索引+查询（离线）\nINDEX = [\"Agent 定义\", \"RAG 定义\"]\n\ndef query(q):\n    hit = [d for d in INDEX if any(w in q for w in d)]\n    return hit[0] if hit else \"无\"\n\nif __name__ == \"__main__\":\n    print(query(\"Agent\"))\n",
+            "output": "Agent 定义",
+            "note": "真实 LlamaIndex 用 VectorStoreIndex.from_documents + query_engine.query，支持多种检索器与重排。本例演示「索引命中」的最小效果；生产把 INDEX 换成向量库。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认能按关键词命中索引项。",
+                "把 INDEX 换成真正切分的文档块列表。",
+                "接入真实 LlamaIndex，从本地文件建 VectorStoreIndex。",
+                "加 query_engine，要求回答附引用。",
+                "评测召回率，调块大小与检索器。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 把它当通用 Agent 框架：它强在 RAG，Agent 编排弱于 LangChain。② 只关键词检索：语义召回差，应上向量。③ 不附引用：无法核查。④ 索引与数据源不同步：查到旧知识。⑤ 块太大/太小：召回质量崩。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "知识库/文档问答优先 LlamaIndex；用向量索引+重排提召回；query 强制附引用；数据源增量更新；召回率纳入监控；RAG 链路与 Agent 编排解耦。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：LlamaIndex 与 LangChain 的边界在「RAG 深度」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "两者都能做 RAG，但 LlamaIndex 把 RAG 做到「开箱即用+深度可调」（各种索引类型、检索器、重排、层级检索），LangChain 的 RAG 更「通用组件拼接」。经验法则：以 RAG 为核心的产品用 LlamaIndex；需要把 RAG 嵌入更大 Agent 编排的用 LangChain（或二者混用，LlamaIndex 作检索组件）。"
+            },
+            {
+              "type": "paragraph",
+              "text": "框架不是互斥的：常见架构是 LangChain/LangGraph 做编排，LlamaIndex 作 RAG 检索子模块。按「谁负责哪段」切分，而非二选一。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_5_sy.py",
+            "language": "python",
+            "title": "框架协作：LangChain 编排 + LlamaIndex 检索（离线示意）",
+            "highlightLines": [
+              3,
+              5,
+              6,
+              8
+            ],
+            "code": "# 框架协作：LangChain 编排 + LlamaIndex 检索（离线示意）\ndef orchestrate(step):\n    return f\"编排:{step}\"\n\ndef retrieve(q):\n    return f\"检索到({q})\"\n\nif __name__ == \"__main__\":\n    print(orchestrate(\"调用\") + \" -> \" + retrieve(\"Agent\"))\n",
+            "output": "编排:调用 -> 检索到(Agent)",
+            "note": "生产可把 LlamaIndex 的 query_engine 包成 LangChain 的 Tool/Retriever，融入更大编排。选框架看「主导能力」，协作看「接口适配」。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认编排与检索可分离协作。",
+                "把 LlamaIndex query_engine 包成 Tool。",
+                "在 LangGraph 里调用该 Tool 完成 RAG 子任务。",
+                "对比「纯 LlamaIndex」与「LangChain+LlamaIndex」的适用边界。",
+                "把协作边界写进架构文档。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 二选一思维：强行只用其一，丢掉互补。② 职责重叠：两框架都做 RAG 导致重复维护。③ 接口不隔离：检索逻辑散落编排中难替换。④ 忽视主导能力：用错主力框架。⑤ 过度耦合：换检索框架要改编排。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "按主导能力选主框架、用接口适配做协作；LlamaIndex 作检索子模块融入编排；检索与编排解耦；协作边界写进架构文档；避免两框架职责重叠。"
         }
       ],
       "enterpriseCase": {
@@ -3847,6 +4453,126 @@
           "variant": "danger",
           "title": "易错点：把 MCP 当普通函数库",
           "text": "MCP 的价值在「跨进程/跨团队的标准解耦」，不是本地函数封装。单 Agent 内部几个工具，直接用 function calling 更简单，不必上 MCP 增加链路。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：MCP 把「工具提供」与「工具使用」解耦",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "MCP（Model Context Protocol）是 Anthropic 提出的开放协议，解决一个痛点：每个 Agent 框架都要自己适配每个工具/数据源，N 个框架 × M 个工具 = N×M 适配。MCP 定义统一协议：工具提供方实现 MCP Server，使用方（任何支持 MCP 的 Client）即插即用，适配降到 N+M。它类似「USB 接口」之于外设。"
+            },
+            {
+              "type": "paragraph",
+              "text": "MCP 的核心角色：Host（如 Claude 桌面端）、Client（连 Server）、Server（暴露工具/资源）。下面的代码演示一个最小 MCP Server 的工具注册与调用。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_6_rz.py",
+            "language": "python",
+            "title": "MCP 风格：工具注册与发现（离线模拟）",
+            "highlightLines": [
+              4,
+              6,
+              7,
+              9
+            ],
+            "code": "# MCP 风格：工具注册与发现（离线）\nTOOLS = {}\ndef register(name, fn):\n    TOOLS[name] = fn\n\ndef call(name, arg):\n    return TOOLS[name](arg)\n\nregister(\"ping\", lambda x: f\"pong:{x}\")\n\nif __name__ == \"__main__\":\n    print(call(\"ping\", \"hi\"))\n",
+            "output": "pong:hi",
+            "note": "真实 MCP Server 通过 stdio/HTTP 暴露 tools/list 与 tools/call；Client 发现工具后把 schema 交给模型。本例演示「注册-发现-调用」的最小骨架，对应 MCP 的解耦思想。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认工具注册后能被发现调用。",
+                "注册第二个工具 calc，验证多工具发现。",
+                "把 TOOLS 结构改成 {name: {schema, fn}} 贴近 MCP。",
+                "用真实 MCP SDK 起一个 stdio Server。",
+                "在支持 MCP 的 Client 里接入你的 Server。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 自造私有协议：回到 N×M 适配泥潭。② Server 无 schema：Client 不知如何调。③ 忽略安全：Server 暴露危险操作无鉴权。④ 把 MCP 当 RPC 滥用：它适合「模型用工具」，非高频内部调用。⑤ 不标准化工具描述：模型选错工具。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "工具提供方实现 MCP Server 统一暴露；使用方用 MCP Client 即插即用；Server 工具配清晰 schema+描述；危险操作加鉴权与沙箱；把 MCP 作为工具互通标准降低适配成本。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：MCP 是「工具层的 USB 标准」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "MCP 的价值类比 USB：设备（工具）只要实现标准接口，就能插到任何支持该接口的电脑（Agent Client）上。在 MCP 之前，每个 Agent 框架各写各的工具适配，工具作者要为每框架写一遍。MCP 把适配收敛到「一次实现 Server，处处可用」，这是生态级的解耦。"
+            },
+            {
+              "type": "paragraph",
+              "text": "对 Agent 工程的深远影响：未来工具会像 npm 包一样「出版即被所有框架消费」，Agent 的能力边界将由「可接入的 MCP Server 生态」决定，而非框架自身内置多少工具。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_6_sy.py",
+            "language": "python",
+            "title": "MCP 降低适配复杂度：N×M -> N+M（离线示意）",
+            "highlightLines": [
+              4,
+              5,
+              7,
+              8
+            ],
+            "code": "# MCP 降低适配复杂度：N框架×M工具 -> N+M（离线示意）\ndef adapt_cost(frameworks, tools, use_mcp=True):\n    nf = len(frameworks) if isinstance(frameworks, (list, tuple, set, dict, str)) else frameworks\n    nt = len(tools) if isinstance(tools, (list, tuple, set, dict, str)) else tools\n    return (nf + nt) if use_mcp else nf * nt\n\nif __name__ == \"__main__\":\n    print(\"无MCP:\", adapt_cost(3, 4, False))\n    print(\"有MCP:\", adapt_cost(3, 4, True))\n",
+            "output": "无MCP: 12\n有MCP: 7",
+            "note": "N=3 框架 M=4 工具时，私有适配要 12 份，MCP 只需 7 份（3+4）。生态越大，MCP 节省越显著。这是协议标准化的经典收益。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，感受 N×M 到 N+M 的复杂度下降。",
+                "算你场景的框架/工具数，量化采用 MCP 的收益。",
+                "把一个内部工具改造成 MCP Server。",
+                "评估哪些工具值得标准化、哪些保持私有。",
+                "把 MCP 纳入工具建设规范。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 小工具也强上 MCP：收益不抵复杂度。② 忽略生态成熟度：MCP 生态早期，部分框架支持不全。③ 安全缺位：标准接口反而放大危险工具的传播。④ 把内部高频调用走 MCP：协议开销不划算。⑤ 重复造 Server：同一工具多人各写一个。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "对「要被多框架/多产品复用」的工具优先 MCP 化；内部高频专用调用保持私有接口；MCP Server 配鉴权与沙箱；建立团队工具注册中心避免重复；按生态成熟度渐进采用。"
         }
       ],
       "enterpriseCase": {
@@ -4468,6 +5194,128 @@
           "variant": "danger",
           "title": "易错点：低代码万能论",
           "text": "低代码适合「流程清晰、变化在配置层」的场景。一旦逻辑要调私有模型、做复杂状态机、接内部未开放系统，就会卡住。先画清「配置能改 / 必须写码」的边界。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：低代码平台用「配置」替代「编码」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "低代码 Agent 平台（如 Dify、Coze、n8n）把「搭 Agent/工作流」从写代码变成「拖节点+填配置」。它降低上手门槛，让非工程师也能搭出可用原型；代价是灵活度受限——复杂逻辑、深度定制、特殊集成往往做不到或要做成插件。适合「快速验证 + 标准化场景」。"
+            },
+            {
+              "type": "paragraph",
+              "text": "低代码的本质是「把常见模式固化成可视化组件」：触发、LLM、知识库、条件分支、HTTP 都是现成节点，连起来即可。下面的代码用一个配置驱动的工作流演示「配置即程序」。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_7_rz.py",
+            "language": "python",
+            "title": "低代码平台：用配置描述工作流（离线模拟）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              10
+            ],
+            "code": "# 低代码平台：用配置描述工作流（离线）\ndef run_workflow(config, inp):\n    steps = config[\"steps\"]\n    out = inp\n    for s in steps:\n        if s[\"op\"] == \"upper\":\n            out = out.upper()\n    return f\"执行{len(steps)}步 -> {out}\"\n\nWF = {\"steps\": [{\"op\": \"upper\"}]}\n\nif __name__ == \"__main__\":\n    print(run_workflow(WF, \"hello\"))\n",
+            "output": "执行1步 -> HELLO",
+            "note": "真实平台节点更多（知识库检索、条件、循环、HTTP），配置即 JSON/UI。本例演示「步骤配置驱动执行」的核心思想；生产用平台 DSL 而非手写循环。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认配置驱动出结果。",
+                "给 WF 加第二个步骤（如加前缀），验证可组合。",
+                "在真实平台拖出同样工作流，对比上手成本。",
+                "找「平台做不到」的复杂逻辑，确定边界。",
+                "把平台工作流导出，评估可维护性。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 复杂逻辑硬上低代码：节点绕出意大利面。② 忽视可维护性：可视化流程一大就难读难改。③ 锁定厂商：导出难、迁移贵。④ 以为零代码：真定制还是要写插件/代码。⑤ 不评估边界：该写代码时还在拖节点。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "标准化、变化少的场景用低代码快速验证；复杂/高频定制逻辑用代码；选可导出、可版本化的平台；把低代码产物当原型，验证后关键路径落代码；评估厂商锁定成本。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：低代码是「模式的固化」，代码是「能力的上限」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "低代码把「已被验证的常见模式」固化成组件，所以快但受限于固化的模式集；代码能表达任意逻辑，所以强但慢。二者不是替代而是分层：低代码覆盖 80% 标准场景，代码兜底 20% 特殊需求。成熟团队往往是「低代码搭骨架 + 代码写插件」。"
+            },
+            {
+              "type": "paragraph",
+              "text": "判断用哪种：看「是否标准模式 + 是否高频变化 + 是否需深度定制」。三者皆标准→低代码；任一为否→代码。这也是第 1 章「演进选型」思想在工具层的延伸。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_7_sy.py",
+            "language": "python",
+            "title": "低代码 vs 代码：按模式成熟度选型（离线）",
+            "highlightLines": [
+              4,
+              5,
+              7,
+              8
+            ],
+            "code": "# 低代码 vs 代码：按模式成熟度选型（离线）\ndef pick(is_standard, need_custom):\n    if is_standard and not need_custom:\n        return \"低代码(快速验证)\"\n    return \"代码(能力上限)\"\n\nif __name__ == \"__main__\":\n    print(pick(True, False))\n    print(pick(False, True))\n",
+            "output": "低代码(快速验证)\n代码(能力上限)",
+            "note": "真实判据更复杂（变化频率、团队、合规），但「标准模式 + 低定制」是低代码的第一信号。把选型判据固化进团队规范可减少争论。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认按标准/定制得到建议。",
+                "列出你场景，逐条标注标准度与定制度。",
+                "用低代码搭出标准部分原型验证。",
+                "把特殊逻辑抽成代码插件接入。",
+                "把选型判据写进规范。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 全低代码：特殊需求被卡。② 全代码：标准场景浪费人力。③ 不看变化频率：常变场景用代码维护贵。④ 厂商绑定无预案：想迁迁不动。⑤ 忽略合规：低代码平台的数据驻留不满足要求。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "标准场景低代码、特殊逻辑代码插件；选可导出可版本化平台；原型验证后关键路径落代码；评估厂商锁定与合规；选型判据写进规范。"
         }
       ],
       "enterpriseCase": {
@@ -4925,6 +5773,127 @@
           "variant": "danger",
           "title": "易错点：只记成功不记失败",
           "text": "失败的调用往往最有价值。trace 要覆盖异常分支（工具报错、超时、模型拒绝），否则你永远看不到「为什么这次挂了」。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：可观测性让你「看见 Agent 内部」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 是多步、有状态、调工具的黑盒，不出问题则已，一出难查。可观测性=给 Agent 装「黑匣子」：记录每步的 input/output/耗时/工具调用/ token 成本，出问题时能回放定位。三大支柱：日志（发生了什么）、追踪（跨步链路）、指标（聚合趋势）。下面的代码演示一个最小 trace/span 采集器。"
+            },
+            {
+              "type": "paragraph",
+              "text": "没有可观测性的 Agent 就像没仪表盘的车：能跑，但坏了不知道哪坏。生产级 Agent 必须把 trace 作为一等公民，而非事后补。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_8_rz.py",
+            "language": "python",
+            "title": "可观测性：trace/span 采集（离线模拟）",
+            "highlightLines": [
+              4,
+              6,
+              7,
+              8,
+              9
+            ],
+            "code": "# 可观测性：trace/span 采集（离线）\nspans = []\ndef span(name, dur):\n    spans.append({\"name\": name, \"dur\": dur})\n\ndef trace():\n    span(\"llm\", 120)\n    span(\"tool\", 30)\n    return sum(s[\"dur\"] for s in spans)\n\nif __name__ == \"__main__\":\n    print(\"总耗时\", trace(), \"ms, spans:\", len(spans))\n",
+            "output": "总耗时 150 ms, spans: 2",
+            "note": "生产用 OpenTelemetry/LangSmith 等：每个 LLM 调用、工具调用都是 span，串成 trace。本例演示「逐段记录→聚合」的最小骨架，对应可观测性的追踪支柱。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认能采集并聚合 span。",
+                "给 span 加 parent_id，串成树状 trace。",
+                "接入 OpenTelemetry，导出到观测后端。",
+                "加 token/成本字段，监控单轮开销。",
+                "设告警：单步耗时/成本超阈值即通知。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 无 trace：出错全靠猜。② 只记结果不记过程：中间步黑盒。③ 不记成本：月底账单 surprises。④ span 无关联：看不出跨步链路。⑤ 观测与业务脱节：指标看不懂。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "把 trace 作为一等公民；每步 LLM/工具调用都是 span 并关联 parent；接 OpenTelemetry 后端；记录 token/成本/耗时；指标设告警；把典型 trace 留作回归样例。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：可观测性三支柱对应 Agent 三类问题",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "日志回答「发生了什么」（单次细节）、追踪回答「链路怎么走的」（跨步因果）、指标回答「整体趋势如何」（聚合健康度）。三类问题对应三类故障：偶发错误看日志、连环失败看追踪、缓慢退化看指标。Agent 因多步特性，尤其依赖「追踪」把一步的输出如何变成下一步的输入串起来。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程上建议：开发期靠追踪回放定位，上线后靠指标监控退化，事后靠日志复盘单案。三者互补，缺一则有一类故障盲飞。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_8_sy.py",
+            "language": "python",
+            "title": "三支柱：日志/追踪/指标各管一段（离线示意）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              7
+            ],
+            "code": "# 可观测性三支柱：日志/追踪/指标（离线示意）\ndef pillars(need):\n    if need == \"单案细节\":\n        return \"看日志\"\n    if need == \"跨步因果\":\n        return \"看追踪\"\n    return \"看指标\"\n\nif __name__ == \"__main__\":\n    for n in (\"单案细节\", \"跨步因果\", \"整体趋势\"):\n        print(f\"{n} -> {pillars(n)}\")\n",
+            "output": "单案细节 -> 看日志\n跨步因果 -> 看追踪\n整体趋势 -> 看指标",
+            "note": "真实架构三层都要建：结构化日志入仓、trace 用 OTel、指标进时序库+看板。三者数据互通（trace_id 串联）才能从指标下钻到日志。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认三类问题各有归宿。",
+                "给 span 加 trace_id，让三层数据可串联。",
+                "搭建最小观测栈（日志+OTel+指标）。",
+                "定义 3 个核心指标（成本/延迟/成功率）看板。",
+                "用一次真实故障演练「指标→追踪→日志」下钻。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 只建一层：比如只有日志，连环失败查不动。② 三层数据不串联：trace_id 缺失，下钻断链。③ 指标无告警：退化无人知。④ 日志无结构：检索困难。⑤ 观测成本忽略：全量 trace 太贵，需采样。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "三层齐建且以 trace_id 串联；核心指标做看板+告警；trace 抽样控成本；日志结构化便于检索；把「指标→追踪→日志」下钻作为标准排障流程。"
         }
       ],
       "enterpriseCase": {
@@ -5583,6 +6552,131 @@
           "variant": "danger",
           "title": "易错点：超时不等于安全",
           "text": "超时只防「卡死」，不防「删库」。subprocess 方式仍能读到你的 API Key 与环境变量。真要跑不可信代码，必须上容器或专用沙箱服务，并最小化挂载与权限。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：代码沙箱让 Agent「安全地执行代码」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent（尤其 Code Agent、数据分析 Agent）常需运行生成的代码。直接 exec 用户/Agent 产出的代码等于给系统开特权——删库、外泄、挖矿都可能。代码沙箱把执行限制在受限环境：无危险内置、无网络/文件系统越权、有资源与超时上限。它是 Agent 能力的「安全围栏」。"
+            },
+            {
+              "type": "paragraph",
+              "text": "沙箱的关键控制：禁危险内置（os/sys/subprocess）、限资源（CPU/内存/时间）、隔文件系统（仅临时目录）、控网络。下面的代码用一个 AST 白名单演示「静态拒绝危险代码」。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_9_rz.py",
+            "language": "python",
+            "title": "代码沙箱：受限执行（离线模拟白名单）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              11,
+              12
+            ],
+            "code": "# 代码沙箱：受限执行（离线模拟白名单）\nALLOWED = {\"len\", \"str\", \"int\"}\ndef sandbox(code):\n    import ast\n    tree = ast.parse(code)\n    for node in ast.walk(tree):\n        if isinstance(node, (ast.Import, ast.ImportFrom)):\n            return \"拒绝: 禁用 import\"\n        if isinstance(node, ast.Name) and isinstance(node.ctx, ast.Load):\n            if node.id not in ALLOWED:\n                return f\"拒绝: 禁用名 {node.id}\"\n    return \"允许执行\"\n\nif __name__ == \"__main__\":\n    print(sandbox(\"len('abc')\"))\n    print(sandbox(\"import os\"))\n",
+            "output": "允许执行\n拒绝: 禁用 import",
+            "note": "真实沙箱还要限资源/网络/文件系统、设超时，并常用容器/WASM 隔离而非仅 AST 检查。本例演示「静态白名单」这一层防线；生产应多层叠加。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认 import 被拒、安全调用放行。",
+                "扩展 ALLOWED，支持更多内置（如 sum、list）。",
+                "加资源限制（超时/内存上限）模拟。",
+                "把沙箱放进容器，隔离文件系统与网络。",
+                "记录每次执行的「拒绝原因」做安全审计。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 直接 exec Agent 代码：等于交出系统权限。② 只 AST 不隔离：绕过白名单（如 __import__）仍能作恶。③ 无限时：死循环卡死宿主。④ 共享文件系统：沙箱内外互相污染。⑤ 无审计：谁执行了什么说不清。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "多层沙箱：静态白名单 + 容器/WASM 隔离 + 资源上限 + 超时 + 网络限制；仅临时目录可读写；执行留审计日志；高危场景人工审批后再执行；把沙箱作为 Code Agent 的强制网关。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：沙箱是「能力开放」与「风险控制」的平衡点",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 的价值部分来自「能执行代码」，但执行即风险。沙箱不是「禁掉执行」，而是「在可控边界内开放执行」：给它够用的能力（算、读临时文件），拿走致命的能力（删系统、出网、提权）。这个边界画在哪，决定了 Agent 既好用又安全。"
+            },
+            {
+              "type": "paragraph",
+              "text": "类比：沙箱像「给学徒一把安全刀」——能切菜（有用）却切不到手（安全）。边界设计要随场景调：数据分析 Agent 需读数据文件但禁出网；Code Agent 需装包但禁访问密钥。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s3_9_sy.py",
+            "language": "python",
+            "title": "沙箱边界：开放有用能力、收回致命能力（离线示意）",
+            "highlightLines": [
+              4,
+              5,
+              7,
+              8
+            ],
+            "code": "# 沙箱边界：开放有用能力、收回致命能力（离线示意）\ndef boundary(task):\n    if task in (\"删系统\", \"出网\", \"提权\"):\n        return \"收回(禁)\"\n    return \"开放(限资源)\"\n\nif __name__ == \"__main__\":\n    for t in (\"算数据\", \"删系统\", \"读临时文件\"):\n        print(f\"{t} -> {boundary(t)}\")\n",
+            "output": "算数据 -> 开放(限资源)\n删系统 -> 收回(禁)\n读临时文件 -> 开放(限资源)",
+            "note": "真实边界按场景定制：数据分析开放文件读但禁出网；Code Agent 开放装包但禁访问密钥环境变量。边界要写进策略并随风险评估调整。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认致命能力被收回。",
+                "列出你 Agent 需要的真实能力清单。",
+                "把清单分成「开放/限资源/收回」三档。",
+                "把策略写成配置，沙箱启动时加载。",
+                "定期复审边界，随新风险收紧。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 边界一刀切：要么全禁（Agent 废）要么全开（危险）。② 静态写死：新风险出现边界未更新。③ 忽略场景差异：统一边界不适合所有 Agent。④ 密钥进沙箱：环境变量未隔离致泄露。⑤ 无复审：边界随业务漂移失效。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "按场景定制沙箱边界三档（开放/限资源/收回）；策略配置化可热更新；密钥/凭证绝不进沙箱环境；边界随威胁情报复审收紧；把沙箱作为 Code Agent 强制网关并记录决策。"
         }
       ],
       "enterpriseCase": {
