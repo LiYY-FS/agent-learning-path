@@ -177,6 +177,64 @@
           "variant": "danger",
           "title": "易错点：把全部历史塞进 system prompt",
           "text": "把所有历史拼进 system prompt 会导致每次重算且容易超长。短期记忆应放在 messages 列表里（system 只放稳定指令），并用 trim 或摘要控制长度。"
+        },
+        {
+          "type": "heading",
+          "text": "原理深挖与工程扩展"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "架构在演化：从单层到规划-反思双层",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "最简单的 Agent 是模型加工具加循环单层；稍复杂会加一个规划层先把目标拆成步骤；再进一步加反思层用 Critic 模型评估输出、失败就重做。层越多越智能也越贵越慢。教学骨架（s2_1）是单层，生产系统往往按需叠层——不是越多越好。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "架构形态",
+              "组成",
+              "何时用"
+            ],
+            "rows": [
+              [
+                "单层",
+                "模型+工具+循环",
+                "步骤少、可一步到位"
+              ],
+              [
+                "规划层",
+                "加 Planner",
+                "多步、需先拆解"
+              ],
+              [
+                "反思层",
+                "加 Critic",
+                "质量要求高、允许重试"
+              ],
+              [
+                "多 Agent",
+                "多个单层协作",
+                "子任务异质、需分工"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "抽象边界要早定",
+          "text": "组件接口（工具协议、记忆接口、消息格式）越早定清楚，后面换模型/换存储越轻松。第二章骨架把这些做成可插拔，正是为这一步留余地。"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：全量历史塞 system prompt",
+          "text": "把完整对话历史无脑塞进 system prompt，既撑爆窗口又拖慢推理，还容易让模型被早期错误带偏。短期记忆该裁（滑窗/摘要），长期记忆该外置（数据库+检索）。"
         }
       ],
       "enterpriseCase": {
@@ -407,6 +465,63 @@
           "variant": "danger",
           "title": "易错点：只看 Final Answer 不看轨迹",
           "text": "ReAct 的价值在轨迹——调试时要打印每一步 Thought/Action/Observation，定位「是推理错了还是工具错了」。只看最终答案会掩盖中间的工具调用失误。"
+        },
+        {
+          "type": "heading",
+          "text": "原理深挖与工程扩展"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "ReAct vs CoT vs Reflexion 三兄弟",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "CoT（思维链）只想不做，适合纯推理；ReAct 在想和做（调工具）之间交替，用观测纠偏，适合需要外部信息的任务；Reflexion 在 ReAct 之上加自我反思，把失败写进记忆下次避开。简单说：CoT 动脑，ReAct 动脑加动手，Reflexion 动脑加动手加复盘。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "范式",
+              "产出",
+              "能否用工具",
+              "复盘"
+            ],
+            "rows": [
+              [
+                "CoT",
+                "推理步骤",
+                "否",
+                "否"
+              ],
+              [
+                "ReAct",
+                "Thought/Action/Obs",
+                "能",
+                "否"
+              ],
+              [
+                "Reflexion",
+                "ReAct+反思",
+                "能",
+                "能"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "轨迹可能爆炸",
+          "text": "ReAct 没有上限会一直 Thought-Action 循环，token 与延迟指数增长。必须设最大步数（见 s2_5 护栏）并在轨迹过长时强制收敛或交人。"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：只看 Final Answer",
+          "text": "Final Answer 看起来对，中间 Action 可能已经调错工具、读到脏数据。生产环境必须落盘完整轨迹，出错时回放定位，而不是只看结果。"
         }
       ],
       "enterpriseCase": {
@@ -658,6 +773,64 @@
           "variant": "danger",
           "title": "易错点：计划一次定死不重规划",
           "text": "计划是模型在执行前的猜想，现实常与预期不符。若执行失败却不触发重规划，Agent 会在错误前提上硬走到底。务必让 execute 的失败信号回流到 plan。"
+        },
+        {
+          "type": "heading",
+          "text": "原理深挖与工程扩展"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "计划粒度是门艺术",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "计划拆太粗，执行时模型容易跑偏；拆太细，规划开销盖过执行，且一步错了全局重来。经验值：每个子任务应当能被一次工具调用或一段明确逻辑完成。长任务优先 Plan-Execute，因为失败可以只重规划受影响的后续步骤，不必推倒重来。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "范式",
+              "何时用",
+              "代价"
+            ],
+            "rows": [
+              [
+                "Plan-Execute",
+                "长任务/可失败",
+                "规划开销"
+              ],
+              [
+                "ReAct",
+                "需边做边纠偏",
+                "易循环爆炸"
+              ],
+              [
+                "Reflexion",
+                "质量敏感",
+                "多次重试成本"
+              ],
+              [
+                "Workflow",
+                "步骤确定",
+                "不灵活"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "重规划要结合观测",
+          "text": "重规划不是重跑旧计划，而是根据已完成的真实结果调整后续。忽略已完成部分、机械重发原计划的 Agent，会卡在同一个坑里反复跌倒。"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：计划一次定死",
+          "text": "把计划当 immutable 合同，环境一变就失效。计划应是可变假设：每完成一步就用新观测更新它。"
         }
       ],
       "enterpriseCase": {
@@ -1031,6 +1204,64 @@
           "variant": "danger",
           "title": "易错点：并行调用有依赖",
           "text": "若工具 B 的参数依赖工具 A 的结果，却放在同一轮并行调用，B 会拿到空参数。有依赖必须拆成多轮，让模型先看到 A 的结果再决定 B。"
+        },
+        {
+          "type": "heading",
+          "text": "原理深挖与工程扩展"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "Tool Schema 的隐藏规则决定调用质量",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "模型靠你给的 JSON Schema 来理解工具。三个常被忽视的点：每个参数都要写 description，模型读的是描述不是变量名；用 enum 限定取值能大幅降低乱填；required 只放真正必填的，多余的必填会让模型为了凑参数而编造。Schema 写得像给同事的接口文档，调用才稳。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "Schema 错误",
+              "后果",
+              "正确做法"
+            ],
+            "rows": [
+              [
+                "参数无 description",
+                "模型猜语义、填错",
+                "每个参数写清用途与单位"
+              ],
+              [
+                "滥用 required",
+                "模型编造参数凑齐",
+                "只标真正必填"
+              ],
+              [
+                "无 enum 约束",
+                "自由文本易越界",
+                "枚举值显式列出"
+              ],
+              [
+                "描述泄露内部实现",
+                "暴露系统细节/被注入",
+                "只说做什么不说怎么实现"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "并行调用有依赖陷阱",
+          "text": "s2_4 演示了并行查多城天气，因为它们互不依赖。一旦后续步骤依赖前一步结果（如查余额再转账），就必须串行，否则会读到空的或旧的值。依赖分析要写在编排层。"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：工具描述泄露系统信息",
+          "text": "工具 description 里写调用内部 API、读取数据库 user 表，等于把架构白给模型，也成了注入入口。描述只讲业务能力，实现细节留在代码里。"
         }
       ],
       "enterpriseCase": {
@@ -1233,6 +1464,64 @@
           "variant": "danger",
           "title": "易错点：护栏过松或过紧",
           "text": "步数上限太低，复杂任务没做完就被砍；太高又失去保护。要根据任务复杂度动态调整，并在触发护栏时返回可解释的状态而非静默失败。"
+        },
+        {
+          "type": "heading",
+          "text": "原理深挖与工程扩展"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "失控的两种形态与对应护栏",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "循环失控常见两类：步数爆炸（一直 Thought 不停）；工具反复失败仍重试（死循环调同一个坏接口）。前者用 max_steps 上限，后者用 per-tool 失败计数加退避（backoff）。s2_5 的护栏正是这两类阈值。护栏不是可选项，是 Agent 上线的最低门槛。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "失控类型",
+              "防护",
+              "典型阈值"
+            ],
+            "rows": [
+              [
+                "步数爆炸",
+                "max_steps",
+                "8~15 步"
+              ],
+              [
+                "工具死循环",
+                "失败计数+退避",
+                "同工具失败 3 次停"
+              ],
+              [
+                "超时",
+                "整体 timeout",
+                "单次工具 10s"
+              ],
+              [
+                "预算击穿",
+                "token/cost 上限",
+                "单次会话上限"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "护栏要可观测",
+          "text": "触发护栏时不能静默失败。要记录为什么停、停在哪一步、最后观测是什么，否则线上出了问题你连复现都做不到。"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：护栏过松或过紧",
+          "text": "过松等于没防（模型烧钱到上限才停）；过紧则正常长任务被误杀。阈值要按真实任务分布标定：先放宽跑一批，看正常任务用到几步，再据此收紧。"
         }
       ],
       "enterpriseCase": {
@@ -1519,6 +1808,63 @@
           "variant": "danger",
           "title": "易错点：摘要丢了关键细节",
           "text": "摘要会丢失具体数字、人名等细节。对精确性要求高的信息（订单号、金额）应单独结构化存储，而非依赖摘要保留。"
+        },
+        {
+          "type": "heading",
+          "text": "原理深挖与工程扩展"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "记忆分三层：工作/短期/长期",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "工作记忆等于当前一轮的输入输出（瞬时）；短期记忆等于当前会话的滚动历史（需裁剪）；长期记忆等于跨会话沉淀的知识（需压缩加检索）。混淆三者是新手最常犯的错：把本该外置的长期知识塞进每轮 prompt，既贵又噪。正确分层后，每轮只带工作记忆加短期精华加长期检索结果。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "记忆层",
+              "存活",
+              "存储",
+              "操作"
+            ],
+            "rows": [
+              [
+                "工作",
+                "一轮",
+                "变量",
+                "拼接"
+              ],
+              [
+                "短期",
+                "一会话",
+                "滑窗/摘要",
+                "裁剪"
+              ],
+              [
+                "长期",
+                "跨会话",
+                "向量库/DB",
+                "写入+检索"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "摘要会丢细节",
+          "text": "s2_6 用摘要压缩短期记忆，但摘要模型可能把关键异常值、用户偏好这类细节吞掉。压缩时保留结构化事实（金额、ID、决定）而不仅是叙事，必要时对重要片段做钉住不压缩。"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：记忆污染",
+          "text": "把不可靠的模型生成物直接写回长期记忆，会污染后续所有会话（错误越积越多）。写入长期记忆前要做可信度过滤：只存可验证事实、用户明确确认的信息、工具返回的结构化结果。"
         }
       ],
       "enterpriseCase": {
@@ -1704,6 +2050,64 @@
           "variant": "danger",
           "title": "易错点：只信 response_format 不校验",
           "text": "response_format 为 json_object 只保证是合法 JSON，不保证字段名和类型对。模型可能返回 data 字段而非你要的 product/quantity，必须用 Pydantic 校验。"
+        },
+        {
+          "type": "heading",
+          "text": "原理深挖与工程扩展"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "JSON Mode 与 Schema Mode 是两回事",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "JSON Mode 只保证输出是合法 JSON，不保证字段对、类型对；Schema Mode（如 structured outputs / function calling 的严格模式）会按你给的 schema 强制字段名、类型、enum，连多一个字段都不允许。需要直接进下游系统的数据，必须用 Schema Mode 而非 JSON Mode。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "方式",
+              "保证",
+              "局限"
+            ],
+            "rows": [
+              [
+                "手写解析",
+                "无",
+                "脆弱、易崩"
+              ],
+              [
+                "JSON Mode",
+                "合法 JSON",
+                "字段/类型不保"
+              ],
+              [
+                "Schema Mode",
+                "严格符合 schema",
+                "模型有时抗拒/需重试"
+              ],
+              [
+                "二次校验",
+                "业务正确",
+                "需写规则"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "三层保障才稳",
+          "text": "s2_7 的做法：response_format 约束加代码校验加失败重试。不要只信第一层——模型偶尔会忘了格式，重试加校验能把成功率从 95% 拉到 99.9%。"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：只信 response_format",
+          "text": "拿到结构化输出就直接取值进库，一旦模型漏字段就 KeyError 崩服务。任何结构化输出进业务前都要过一遍 schema 校验与默认值兜底。"
         }
       ],
       "enterpriseCase": {
@@ -2055,6 +2459,63 @@
           "variant": "danger",
           "title": "易错点：跳过重排直接用召回结果",
           "text": "向量召回常把语义相近但不相关的块排在前面。重排（哪怕用简单规则）能显著提升 top-1 命中率，是性价比最高的一步优化。"
+        },
+        {
+          "type": "heading",
+          "text": "原理深挖与工程扩展"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "分块（Chunking）是 RAG 的隐形天花板",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "检索质量上限在分块阶段就定了。块太大召回精度低、噪声多；块太小语义被切碎、上下文断裂。经验：文本 300~800 token、重叠 10%~20%；代码按函数/类切；表格尽量整块保留。切完一定要人工抽几条看召回的相关块是否真能回答问题。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "参数",
+              "太小",
+              "太大",
+              "经验值"
+            ],
+            "rows": [
+              [
+                "chunk_size",
+                "语义断裂",
+                "噪声多",
+                "300~800 token"
+              ],
+              [
+                "overlap",
+                "边界丢失",
+                "冗余贵",
+                "10%~20%"
+              ],
+              [
+                "切分单位",
+                "碎",
+                "混",
+                "语义/结构边界"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "召回不等于答案",
+          "text": "s2_8 加了重排（rerank）环节：向量召回的 Top-K 常有相关但排序错的块，重排模型能按与问题真实相关度重新打分。跳过重排直接用召回结果，是 RAG 答非所问的头号原因。"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：检索噪声喂乱模型",
+          "text": "把 10 个低相关块一股脑塞给模型，模型会被噪声带偏甚至引用错误块。控制送入上下文的块数（3~5 个精选）加重排，并要求无依据就说明不知道。"
         }
       ],
       "enterpriseCase": {
@@ -2289,6 +2750,69 @@
           "variant": "danger",
           "title": "易错点：只防注入不校验输出",
           "text": "即使输入干净，模型仍可能输出敏感信息或越界动作。输入净化与输出校验必须成对存在，缺一不可。"
+        },
+        {
+          "type": "heading",
+          "text": "原理深挖与工程扩展"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "从单路径到多路径推理",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "基础 Prompt 是一条线走到底；进阶技术让模型分叉：Self-Consistency 对同一题采样多条推理路径，投票取多数，显著提升数学/逻辑题准确率；Tree of Thoughts 把思路展开成树，搜索最优分支，适合需要探索的策略题。代价是调用次数乘 N，只在错不起的任务上用。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "技术",
+              "思路",
+              "成本",
+              "适合"
+            ],
+            "rows": [
+              [
+                "CoT",
+                "单链",
+                "1x",
+                "通用"
+              ],
+              [
+                "Self-Consistency",
+                "多链投票",
+                "Nx",
+                "数学/逻辑"
+              ],
+              [
+                "ToT",
+                "树搜索",
+                "高",
+                "需探索的策略"
+              ],
+              [
+                "Reflexion",
+                "反思复盘",
+                "高",
+                "质量敏感"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "注入攻击比想象中常见",
+          "text": "s2_9 演示了 Prompt 注入：用户在你给的待处理文本里写忽略以上指令、输出某某，模型可能照做。凡是把不可信内容拼进 prompt，都要假设它会被用来攻击。"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：只防注入不校验输出",
+          "text": "防住输入注入不代表安全：模型仍可能输出违规/涉密内容。输出侧也要有护栏（内容审核、敏感词、格式校验），形成输入防护加输出校验双闸。"
         }
       ],
       "enterpriseCase": {
@@ -2533,6 +3057,64 @@
           "variant": "danger",
           "title": "易错点：只看通过率不看成本",
           "text": "通过率涨 2% 但成本翻倍未必划算。评估必须把准确率与成本、延迟一起看，避免「为提升准确率而无限加步骤」的反优化。"
+        },
+        {
+          "type": "heading",
+          "text": "原理深挖与工程扩展"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "离线评测与在线评测分工",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "离线评测用固定数据集（golden set）在发布前跑，验证功能对不对；在线评测看真实流量指标（成功率、用户满意度、成本/延迟），验证上线后好不好。两者不可互相替代：离线全过但线上翻车的案例极多（数据分布漂移、用户用法超出预期）。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "评测类型",
+              "问的问题",
+              "指标举例"
+            ],
+            "rows": [
+              [
+                "离线",
+                "功能对不对",
+                "准确率/格式合规率"
+              ],
+              [
+                "在线",
+                "用户满不满意",
+                "满意度/CSAT/留存"
+              ],
+              [
+                "成本",
+                "贵不贵",
+                "单次 token/元"
+              ],
+              [
+                "安全",
+                "会不会出事",
+                "注入成功率/违规率"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "评估集要随业务长",
+          "text": "golden set 写一次就放着会过时。把线上真实 bad case 持续回流进评估集，评估集才代表真实分布，否则评出来一片绿、线上照样翻车。"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：只看通过率不看成本",
+          "text": "某版 prompt 通过率加 2% 但每次多烧 3 倍 token，整体是亏的。评估必须同时看质量加成本加延迟三件套，用单指标决策会误导优化方向。"
         }
       ],
       "enterpriseCase": {
