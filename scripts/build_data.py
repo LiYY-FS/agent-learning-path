@@ -3,6 +3,7 @@
 build_data.py - 从 assets/data/*.json 重新生成 assets/js/data.js
 将所有 JSON 数据内联为 JS 变量，避免 GitHub Pages HTTP/2 大文件协议错误
 """
+import hashlib
 import json
 import os
 import re
@@ -69,6 +70,38 @@ def build():
 
     out_size = os.path.getsize(OUTPUT_FILE) / 1024
     print(f"✅ data.js 已重新生成 ({out_size:.1f}KB)，包含 {len([f for f in MAPPING if os.path.exists(os.path.join(DATA_DIR, f))])} 个数据文件")
+
+    # 缓存破坏：按 data.js 内容算短哈希，写进 index.html 的 data.js 引用，
+    # 使每次发版都是「新 URL」，绕过浏览器/CDN/运营商代理的旧缓存。
+    _apply_cache_bust(OUTPUT_FILE)
+
+
+def _content_hash(path):
+    h = hashlib.sha256()
+    with open(path, "rb") as f:
+        h.update(f.read())
+    return h.hexdigest()[:8]
+
+
+def _apply_cache_bust(data_js_path):
+    ver = _content_hash(data_js_path)
+    idx = os.path.join(REPO_ROOT, "index.html")
+    if not os.path.exists(idx):
+        print("⚠️  未找到 index.html，跳过缓存破坏")
+        return
+    with open(idx, "r", encoding="utf-8") as f:
+        html = f.read()
+    new_html, n = re.subn(
+        r'assets/js/data\.js(?:\?v=[A-Za-z0-9]+)?',
+        f'assets/js/data.js?v={ver}',
+        html,
+    )
+    if n == 0:
+        print("⚠️  未在 index.html 找到 data.js 引用，跳过缓存破坏")
+        return
+    with open(idx, "w", encoding="utf-8") as f:
+        f.write(new_html)
+    print(f"✅ index.html 的 data.js 引用已加版本号 ?v={ver}（替换 {n} 处）")
 
 
 if __name__ == "__main__":
