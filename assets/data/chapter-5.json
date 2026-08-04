@@ -210,6 +210,129 @@
           "variant": "danger",
           "title": "易错点：让模型编政策",
           "text": "「年假几天」这类制度问题，模型凭记忆答极易出错且口径不一。必须接知识库/RAG，命中才答，否则转人工。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：客服 Agent 的本质是「分工」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "客服 Agent 不是「一个大模型硬答所有问题」，而是「意图路由 + 知识检索 + 生成」三段分工：意图路由判断用户要什么，检索从知识库取权威答案，生成把答案说成人话。这种分工让每段的职责单一、可独立优化，也便于接入业务系统（订单、物流）。"
+            },
+            {
+              "type": "paragraph",
+              "text": "转人工不是失败，而是护栏：当置信度低或命中敏感意图，主动转人工，既保体验又控风险。下面用最小代码体会「路由-检索-生成」与「转人工护栏」。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_1_rz.py",
+            "language": "python",
+            "title": "客服 Agent：意图路由 + 检索 + 生成（离线）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              11
+            ],
+            "code": "# 客服 Agent：意图路由 + 检索 + 生成（离线）\nKB = {\"退款\": \"请到订单页申请退款\", \"物流\": \"物流可在订单查看\"}\n\ndef answer(q):\n    for k in KB:\n        if k in q:\n            return f\"[检索]{k} -> {KB[k]}\"\n    return \"转人工\"\n\nif __name__ == \"__main__\":\n    print(answer(\"我要退款\"))\n    print(answer(\"今天天气\"))\n",
+            "output": "[检索]退款 -> 请到订单页申请退款\n转人工",
+            "note": "真实检索用向量库召回 TopK 再生成；本例用关键词匹配演示「路由-检索」结构。生产把 KB 换成 RAG，生成时附引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认命中意图走检索、未命中转人工。",
+                "把关键词路由换成意图分类模型（LLM/小模型）。",
+                "接入向量库，按语义召回而非关键词。",
+                "生成时携带知识来源引用，避免胡编。",
+                "加置信度阈值，低置信自动转人工。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 一个大模型硬答：幻觉多、不可控。② 检索不到就瞎编：答非所问还显得自信。③ 不转人工：低置信也硬撑，体验崩。④ 无引用：用户无法核实。⑤ 知识库陈旧：答了已失效政策。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "三段式分工各自优化；检索用向量+关键词混合；生成必带引用；置信度阈值触发转人工；知识库设更新与失效机制；转人工率作为核心体验指标。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：转人工是「对不确定性的诚实」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "客服 Agent 的可信度来自「知道自己不知道」：当路由/检索/生成的置信度低于阈值，主动让位给人。这不是能力退化，而是把「不确定性」显式暴露给用户与系统，避免模型在模糊地带编造。转人工率与一次解决率要一起看——压太低会涨幻觉，压太高浪费人力。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示：把「置信度阈值」当成产品参数调优，而非写死。它本质是「机器与人的职责切分点」，随业务成熟度动态移动。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_1_sy.py",
+            "language": "python",
+            "title": "转人工护栏：低置信转人工（离线示意）",
+            "highlightLines": [
+              3,
+              5,
+              6,
+              7
+            ],
+            "code": "# 转人工护栏：低置信转人工（离线示意）\ndef route(q, conf):\n    return \"机器人答\" if conf >= 0.6 else \"转人工\"\n\nif __name__ == \"__main__\":\n    for q, c in [(\"退款\", 0.9), (\"模糊问题\", 0.3)]:\n        print(q, \"->\", route(q, c))\n",
+            "output": "退款 -> 机器人答\n模糊问题 -> 转人工",
+            "note": "真实置信度来自检索得分或生成模型 logprob；本例用参数模拟。生产把阈值做成可配置，并监控转人工率与满意度。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认阈值切分机器/人工。",
+                "统计不同阈值下的转人工率与满意度。",
+                "把阈值接进真实置信度信号（检索得分等）。",
+                "对高频转人工意图做专项优化或知识补全。",
+                "阈值随业务阶段动态调整并留痕。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 阈值写死：业务变了不调。② 只看转人工率：压低了但幻觉涨。③ 置信度信号失真：模型乱报高置信。④ 转人工无上下文：人工要从头看。⑤ 不回收人工会话：同类问题反复转。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "阈值可配置并随阶段调优；同时监控转人工率与满意度；置信度需校准；转人工携带完整上下文；人工会话回流训练/知识库，降低重复转人工。"
         }
       ],
       "enterpriseCase": {
@@ -467,6 +590,126 @@
           "variant": "danger",
           "title": "易错点：AI 审查过了就合并",
           "text": "把 AI 审查当「通行证」是危险的。它只能降人工负担，关键逻辑、安全、业务正确性仍需人工拍板。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：生成与审查是两种能力",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "代码 Agent 常见两类能力：生成（写新代码）与审查（读 diff 找风险）。审查是「读多写少」的任务，价值在「稳定地发现人类易漏的坏味道」：遗留调试语句、危险函数（eval）、裸异常、硬编码密钥等。把审查 Agent 当成「永不疲倦的 reviewer」，嵌入 PR 流程，能在合并前挡住大量低级问题。"
+            },
+            {
+              "type": "paragraph",
+              "text": "下面用最小代码体会「扫 diff 找风险」与「代码解释做 onboarding」。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_2_rz.py",
+            "language": "python",
+            "title": "代码审查 Agent：扫 diff 找风险（离线）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              7,
+              8
+            ],
+            "code": "# 代码审查 Agent：扫 diff 找风险（离线）\ndiff = [\"+def f():\", \"+    eval(user_input)\", \"+    except:\"]\n\nfor line in diff:\n    if \"eval(\" in line:\n        print(\"风险: 危险函数\", line)\n    elif \"except:\" in line:\n        print(\"风险: 裸异常\", line)\n",
+            "output": "风险: 危险函数 +    eval(user_input)\n风险: 裸异常 +    except:",
+            "note": "真实审查 Agent 用 LLM 读完整 diff 并给修复建议；本例演示「规则扫描」骨架。生产叠加语义审查（如逻辑错误）与误报抑制。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认扫出危险函数与裸异常。",
+                "扩充规则集（硬编码密钥、SQL 拼接等）。",
+                "接入真实 diff，让 LLM 读上下文给建议。",
+                "把审查结果回写 PR 评论，阻塞合并。",
+                "收集误报，迭代规则与提示。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 只靠规则：漏语义级 bug。② 只靠 LLM：误报多、不稳定。③ 阻塞过严：开发体验差。④ 不收误报：越用越烦。⑤ 审查无上下文：误判跨文件依赖。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "规则扫描 + LLM 语义审查双轨；结果分级（阻断/警告/提示）；误报持续回收优化；审查带上下文（跨文件引用）；把审查嵌入 PR 门禁而非事后。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：审查是「低成本高杠杆」的卡点",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "代码审查的杠杆极高：在合并前花 1 分钟发现的问题，上线后可能花 1 天救火。Agent 审查的优势是「一致且不知疲倦」——人类 reviewer 会疲劳、会漏，Agent 对每条 diff 用同一标准扫。但它缺「全局语义理解」，所以最佳实践是「Agent 做第一道高频扫描，人类做最终语义判断」。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示：把审查 Agent 定位为「扩音器」而非「裁判」——它放大风险信号，最终决断仍留给人，既提效又控风险。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_2_sy.py",
+            "language": "python",
+            "title": "代码解释 Agent：把函数变人话（离线）",
+            "highlightLines": [
+              3,
+              5,
+              6
+            ],
+            "code": "# 代码解释 Agent：把函数变人话（离线）\ndef explain(func_sig):\n    return f\"该函数 {func_sig} 负责处理请求并返回结果\"\n\nif __name__ == \"__main__\":\n    print(explain(\"get_user(id)\"))\n",
+            "output": "该函数 get_user(id) 负责处理请求并返回结果",
+            "note": "真实解释 Agent 读函数体+调用关系生成自然语言说明；本例演示「签名→说明」骨架。生产用于新人 onboarding 与文档自动生成。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认签名被转成说明。",
+                "接入函数体，让 LLM 读实现生成说明。",
+                "把说明写入代码注释或 wiki。",
+                "对核心模块批量生成解释文档。",
+                "用解释结果做新人 onboarding 材料。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 解释脱离实现：说得好听代码不对。② 过度解释：简单函数也写三段。③ 不同步：代码改了解释没改。④ 泄露内部：说明暴露敏感逻辑。⑤ 不审解释：LLM 编了不存在的行为。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "解释基于真实函数体与调用关系；生成即写注释/文档并随代码更新；核心模块批量生成；敏感逻辑脱敏；解释结果人工抽检防幻觉。"
         }
       ],
       "enterpriseCase": {
@@ -722,6 +965,129 @@
           "variant": "danger",
           "title": "易错点：模型 SQL 直接执行",
           "text": "模型生成的 SQL 一旦裸跑，一个 DELETE 或分号后的恶意语句就能清空表。必须经过禁写+白名单校验，且用只读账号执行。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：把「人话」变成「SQL」是 Analytics 的圣杯",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "数据分析 Agent 两条路线：NL2SQL（自然语言转 SQL，在数仓上查）与 pandas 代理（在内存 DataFrame 上探索）。无论哪条，「权限比语法更重要」——只读护栏必须前置：任何生成的 SQL 先过写操作黑名单，再执行。否则一个 DROP 比十个错误 SELECT 更致命。"
+            },
+            {
+              "type": "paragraph",
+              "text": "下面用最小代码体会 NL2SQL 只读护栏与 pandas 探索。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_3_rz.py",
+            "language": "python",
+            "title": "NL2SQL + 只读护栏（离线）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              11,
+              12
+            ],
+            "code": "# NL2SQL + 只读护栏（离线）\nFORBID = (\"DROP\", \"DELETE\", \"UPDATE\", \"INSERT\")\n\ndef safe(sql):\n    for w in FORBID:\n        if w in sql.upper():\n            return \"拦截: 写操作\"\n    return \"执行: \" + sql\n\nif __name__ == \"__main__\":\n    print(safe(\"SELECT * FROM t\"))\n    print(safe(\"DROP TABLE t\"))\n",
+            "output": "执行: SELECT * FROM t\n拦截: 写操作",
+            "note": "真实 NL2SQL 还要做 schema 绑定与参数化防注入；本例演示「写操作拦截」护栏。生产把只读账号 + 语句白名单双保险。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认写操作被拦、读操作放行。",
+                "接入真实数仓，把自然语言转 SQL。",
+                "执行前用账号权限+语句校验双保险。",
+                "结果用参数化查询防注入。",
+                "把高频问句沉淀为固定报表，降 NL2SQL 压力。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 无只读护栏：生成 SQL 删了表。② 字符串拼 SQL：注入风险。③ 无 schema 约束：字段名瞎编。④ 只信模型：错 SQL 直接跑。⑤ 不缓存：同问句反复查库。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "NL2SQL 前置只读账号与语句白名单；参数化查询防注入；生成 SQL 绑定真实 schema 并 dry-run 校验；高频问句沉淀报表；结果带行列权限过滤。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：权限是「数据安全的最后一道门」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "分析 Agent 的价值在于「降低取数的门槛」，但门槛越低，越容易被滥用或误用。只读护栏的本质是把「能力」与「权限」解耦：模型可以生成任意 SQL（能力），但执行层只放读（权限）。这种「能力放开、权限收紧」的分层，是数据安全与易用性兼得的关键。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示：任何「自然语言操作数据」的 Agent，执行层都要有独立于模型的硬权限边界——模型的灵活不该突破安全的底线。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_3_sy.py",
+            "language": "python",
+            "title": "pandas 代理：描述性统计（离线示意）",
+            "highlightLines": [
+              4,
+              5,
+              6
+            ],
+            "code": "# pandas 代理：描述性统计（离线示意）\ndata = [10, 20, 30]\n\nif __name__ == \"__main__\":\n    print(\"均值\", sum(data) / len(data))\n    print(\"最大值\", max(data))\n",
+            "output": "均值 20.0\n最大值 30",
+            "note": "真实 pandas 代理用 LLM 生成 df 操作链并校验；本例演示「统计聚合」内核。生产用 agent 框架的 code execution + 沙箱。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认基础统计正确。",
+                "接入真实 DataFrame，让 LLM 生成分析链。",
+                "把生成代码放沙箱执行，限制内存/时间。",
+                "加结果校验，防止除零/空值崩。",
+                "把探索分析固化为可复用 notebook。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 沙箱缺失：生成代码删本地文件。② 无限循环：LLM 反复重算。③ 空值不处理：统计崩。④ 大数据全载内存：OOM。⑤ 不校验结果：错数被采信。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "生成代码强制沙箱执行并限资源；空值/除零前置处理；大数据用采样或下推计算；结果带校验与置信；探索过程可固化为复用分析模板。"
         }
       ],
       "enterpriseCase": {
@@ -960,6 +1326,126 @@
           "variant": "danger",
           "title": "易错点：全自动无护栏",
           "text": "让 Agent 自动缩容、自动删、自动改配置，一次误判就是线上事故。高危动作默认人工，自动化只覆盖可逆低危项。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：运营自动化是「有护栏的自动决策」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "运营 Agent 跑的是「策略→执行→回收」闭环：定圈选策略、自动执行触达、回收效果算 ROI。它的红线是「可逆性」——可逆动作（发券、推送）可自动，不可逆动作（删活动、改预算）必须审批。自动化的价值不在「全自动」，而在「把确定性动作自动化、把不确定动作交人」。"
+            },
+            {
+              "type": "paragraph",
+              "text": "下面用最小代码体会运营闭环与可逆性红线。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_4_rz.py",
+            "language": "python",
+            "title": "运营 Agent：策略→执行→回收 闭环（离线）",
+            "highlightLines": [
+              4,
+              5,
+              6
+            ],
+            "code": "# 运营 Agent：策略→执行→回收 闭环（离线）\nsteps = [\"圈选人群\", \"发券\", \"回收效果\"]\n\nfor s in steps:\n    print(\"执行:\", s)\nprint(\"ROI:\", 1.8)\n",
+            "output": "执行: 圈选人群\n执行: 发券\n执行: 回收效果\nROI: 1.8",
+            "note": "真实运营 Agent 接 CD/MA 平台自动执行并回收指标；本例演示「闭环」骨架。生产把 ROI 回灌策略做自动调优。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认闭环三步走通。",
+                "接入真实触达平台自动发券/推送。",
+                "回收曝光/点击/转化算 ROI。",
+                "把 ROI 回灌策略做自动调优。",
+                "给不可逆动作加审批闸门。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 全自动无护栏：错策略烧光预算。② 不可逆动作自动：改了收不回。③ 不回收效果：不知好坏盲调。④ 无灰度：一把梭全量翻车。⑤ 不防频控：用户被骚扰。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "可逆动作自动化、不可逆动作审批；执行后必回收指标算 ROI；策略做小流量灰度再全量；加频控与疲劳度保护；ROI 回灌形成自优化闭环。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：可逆性是「自动化信任」的边界",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "用户对自动化的信任，取决于「出错了能不能撤」。可逆动作错了最多浪费点券，不可逆动作错了可能丢数据、丢钱、丢用户。所以自动化系统的设计核心是「按可逆性分级」：可逆的放手自动、不可逆的加人。这跟数据库事务的「可回滚」思想同源——可控的自动化先保证能回退。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示：设计任何自动化 Agent，先列「动作可逆性清单」，再决定哪些自动、哪些审批。可逆性比效率更重要。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_4_sy.py",
+            "language": "python",
+            "title": "可逆性红线：不可逆动作需审批（离线）",
+            "highlightLines": [
+              4,
+              5,
+              7,
+              8,
+              9
+            ],
+            "code": "# 可逆性红线：不可逆动作需审批（离线）\nREVERSIBLE = {\"发券\", \"推送\"}\n\ndef allow(action):\n    return \"自动\" if action in REVERSIBLE else \"需审批\"\n\nif __name__ == \"__main__\":\n    for a in (\"发券\", \"删活动\"):\n        print(a, \"->\", allow(a))\n",
+            "output": "发券 -> 自动\n删活动 -> 需审批",
+            "note": "真实系统按动作影响面定级（可撤/需审批/禁自动）；本例演示「可逆性分级」内核。生产把分级做成策略中心统一管控。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认可逆/不可逆被分级。",
+                "列出你系统的全部动作并标注可逆性。",
+                "不可逆转动作接审批流与双人复核。",
+                "给自动动作设预算/频次上限。",
+                "把分级策略中心化，避免散落各业务。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 分级缺失：删库也自动。② 审批流于形式：人没看就批。③ 无上限：自动动作刷爆。④ 策略散落：各业务各定级。⑤ 不审计：出事追不到谁批的。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "全动作可逆性清单化并中心管控；不可逆动作审批+双人复核+留痕；自动动作设预算/频控上限；审批不是阻断而是带确认的状态转移；定期复审分级。"
         }
       ],
       "enterpriseCase": {
@@ -1221,6 +1707,130 @@
           "variant": "danger",
           "title": "易错点：检索前不过滤权限",
           "text": "若所有文档混在一起检索，模型可能把机密片段答给无权限的人。权限过滤必须在检索前，而非生成后。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：知识库问答 = RAG + 引用 + 权限",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "企业知识库问答不是「把文档塞给模型」，而是 RAG 流水线：切分（chunk）→嵌入（embed）→检索（召回相关块）→生成（带引用）。三个硬约束：引用（答哪段要标明，便于核实）、权限（用户只能看有权看的文档）、时效（过期文档要标或下架）。权限是企业的硬约束——答了无权限的内容就是泄露。"
+            },
+            {
+              "type": "paragraph",
+              "text": "下面用最小代码体会切分骨架与带引用的生成。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_5_rz.py",
+            "language": "python",
+            "title": "切分与嵌入骨架（离线）",
+            "highlightLines": [
+              3,
+              5,
+              6,
+              7,
+              8
+            ],
+            "code": "# 切分与嵌入骨架（离线，嵌入用归一化文本）\ndoc = \"Agent 是能自主行动的AI。Agent 用工具完成任务。\"\nchunks = [c for c in doc.split(\"。\") if c]\n\nif __name__ == \"__main__\":\n    print(\"切分块数:\", len(chunks))\n    for i, c in enumerate(chunks, 1):\n        print(f\"块{i}: {c}\")\n",
+            "output": "切分块数: 2\n块1: Agent 是能自主行动的AI\n块2: Agent 用工具完成任务",
+            "note": "真实嵌入用向量模型而非切分本身；本例演示「按句切分」最小闭环。生产按语义/标题切分，避免把一句话拆两半。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认文档被合理切分。",
+                "接入真实嵌入模型，把块转向量入库。",
+                "查询时召回 TopK 相关块。",
+                "生成时把引用块 id 附在答案后。",
+                "给文档加权限标签，检索时按用户过滤。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 切分过碎：一句话拆两半，语义丢。② 无引用：答了不知出处。③ 无权限：泄密。④ 文档过期：答旧政策。⑤ 召回不准：向量模型不适配领域。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "切分按语义/结构而非固定字数；嵌入用领域微调模型；生成必带引用块；文档配权限标签与失效时间；定期重建索引保证时效。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：权限是「RAG 不能回避的硬约束」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "通用 RAG 可以忽略权限，但企业 RAG 不行：文档有密级，用户有可见范围。若检索不按用户权限过滤，就等于「把全员文档喂给任意员工」。所以企业知识库问答 = RAG + 引用 + 权限，三者缺一不可。权限过滤要放在检索阶段（召回即带权限），而非生成后打码——前者从源头避免泄露。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示：企业 RAG 的检索层必须耦合权限系统，把「能看什么」作为召回的前提条件，而非事后补救。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_5_sy.py",
+            "language": "python",
+            "title": "带引用的检索式生成（离线）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              11
+            ],
+            "code": "# 带引用的检索式生成（离线）\nrefs = {\"退款\": \"条款3.1\", \"物流\": \"条款5.2\"}\n\ndef gen(q):\n    for k, ref in refs.items():\n        if k in q:\n            return f\"答:{k}（引 {ref}）\"\n    return \"无引用\"\n\nif __name__ == \"__main__\":\n    print(gen(\"怎么退款\"))\n",
+            "output": "答:退款（引 条款3.1）",
+            "note": "真实生成会拼接召回块并标注来源块 id；本例演示「答案绑定引用」内核。生产把引用做成可点击溯源。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认答案带引用。",
+                "把引用从条款号升级为块 id/文档链接。",
+                "点击引用可跳转到原文核实。",
+                "无引用时显式告知「知识库未覆盖」。",
+                "收集「无引用」高频问句，补知识库。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 引用造假：标了不存在的出处。② 引用与答案不符：张冠李戴。③ 无引用不提示：用户误以为确定。④ 引用不可点：难核实。⑤ 知识库缺口无感知：总答「不知道」却不补。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "引用绑定真实块/文档并可溯源；引用与答案做一致性校验；无覆盖显式声明并回流补库；引用点击跳原文；引用质量纳入评估集。"
         }
       ],
       "enterpriseCase": {
@@ -1477,6 +2087,124 @@
           "variant": "danger",
           "title": "易错点：自写自审",
           "text": "让同一个 Agent 写并审自己的代码，审查形同虚设。编码与审查必须分属不同 Agent（或人工），才能真的发现问题。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：开发协作 = 角色化 + 产物化",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "多 Agent 协作开发把软件工程角色化：PM 定需求、Dev 写码、QA 测、Reviewer 审。关键在于「产物化」——每一步产出可校验的产物（需求文档、代码、测试报告），而非口头交接。产物是协作的契约：下游基于上游产物工作，任一环出问题可定位、可回退。带「测试回退」的闭环让 Dev 提交后由 QA 把关，不通过则回退重写。"
+            },
+            {
+              "type": "paragraph",
+              "text": "下面用最小代码体会研发流水线与测试回退闭环。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_6_rz.py",
+            "language": "python",
+            "title": "研发流水线：角色化串行（离线）",
+            "highlightLines": [
+              4,
+              5
+            ],
+            "code": "# 研发流水线：角色化串行（离线）\npipeline = [\"PM定需求\", \"Dev写码\", \"QA测\", \"Reviewer审\"]\n\nfor step in pipeline:\n    print(\"执行:\", step)\n",
+            "output": "执行: PM定需求\n执行: Dev写码\n执行: QA测\n执行: Reviewer审",
+            "note": "真实协作用 CrewAI/LangGraph 让角色 Agent 交接产物；本例演示「角色串行」骨架。生产让每角色消费上游产物并产出下游产物。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认角色按序推进。",
+                "用 CrewAI 定义各角色 Agent 与交接。",
+                "让每角色消费上游产物、产出下游产物。",
+                "加测试回退：QA 不通过则回到 Dev。",
+                "把产物落库，支持任意环节重跑。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 口头交接：无产物，下游瞎猜。② 角色串行却无回退：错到底。③ 产物无校验：坏产物流向下游。④ 全局共享变量：状态互相踩。⑤ 无追溯：出问题找不到哪环。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "协作以产物为契约；每角色消费/产出明确产物；测试不通过自动回退上游；产物落库可重跑；全链路 trace id 串联定位。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：产物是「解耦协作的接口」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "多 Agent 开发若靠「共享上下文」协作，会迅速变成一团浆糊——谁改了什么、基于什么假设，无人清楚。产物化把协作变成「生产者-消费者」：上游交付契约明确的产物，下游按契约消费。这跟微服务「接口契约」同构，让每个角色 Agent 可独立测试、可替换、可并行（无依赖时）。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示：把「产物契约」作为协作系统的骨架。没有产物的协作是不可维护的协作。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_6_sy.py",
+            "language": "python",
+            "title": "带测试回退的闭环（离线示意）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              7
+            ],
+            "code": "# 带测试回退的闭环（离线示意）\ncode_ok = False\n\nif not code_ok:\n    print(\"测试失败 -> 回退到 Dev 重写\")\nelse:\n    print(\"测试通过 -> 交付\")\n",
+            "output": "测试失败 -> 回退到 Dev 重写",
+            "note": "真实闭环用图的状态转移：test 节点失败则回到 dev 节点；本例演示「失败回退」骨架。生产设最大回退次数防死循环。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认测试失败触发回退。",
+                "把 code_ok 换成真实测试执行结果。",
+                "用 LangGraph 状态图实现 test→dev 回退边。",
+                "设最大回退次数，超限转人工。",
+                "回退时保留上下文，避免重复劳动。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 无回退：错代码直接交付。② 无限回退：死循环烧 token。③ 回退丢上下文：重来一遍。④ 不区分失败类型：环境错也回退重写。⑤ 回退无上限：卡死。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "测试失败自动回退上游并带上下文；设最大回退次数，超限转人工；区分「代码错」与「环境错」走不同路径；回退轨迹留痕复盘。"
         }
       ],
       "enterpriseCase": {
@@ -1728,6 +2456,123 @@
           "variant": "danger",
           "title": "易错点：三层各写各的没契约",
           "text": "没有统一契约，前端调的字段后端没提供、后端存的字段前端不知道，联调时全面返工。先定契约再实现。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：全栈 Agent 的难点在「层间契约」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "全栈开发 Agent 常用两段式：先出规格（spec），再顺序生成前端与后端。真正的难点不是「写代码」，而是「层间契约」——前后端靠接口（API schema、数据类型）对齐。契约先于实现：先定 API 契约，前后端各按契约生成，才能拼得上。否则两端各写各的，对接时全是对不上的字段。"
+            },
+            {
+              "type": "paragraph",
+              "text": "下面用最小代码体会顺序生成与「契约先于实现」。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_7_rz.py",
+            "language": "python",
+            "title": "全栈两段式：规格→前端→后端（离线）",
+            "highlightLines": [
+              4,
+              5
+            ],
+            "code": "# 全栈两段式：规格→前端→后端（离线）\nspec = \"登录页\"\n\nprint(\"前端生成:\", spec + \" UI\")\nprint(\"后端生成:\", spec + \" API\")\n",
+            "output": "前端生成: 登录页 UI\n后端生成: 登录页 API",
+            "note": "真实全栈 Agent 先生成 API 契约，再并行生成前后端；本例演示「按规格两端产出」骨架。生产用脚手架工具而非自由写码。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认按规格产出两端。",
+                "先生成 API 契约（路径/字段/类型）。",
+                "拿契约并行生成前端与后端。",
+                "用脚手架而非自由写码，控目录与规范。",
+                "跑端到端联调，校验层间对齐。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 自由写码：目录乱、规范乱。② 无契约先写：两端对不上。③ 串行生成慢：前后端本可并行。④ 不联调：各自跑通拼一起崩。⑤ 契约变更不同步：改一端忘另一端。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "先定 API 契约再生成；前后端基于契约并行；用脚手架约束目录与规范；生成即联调校验对齐；契约变更双端同步并回归。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：契约是「前后端解耦的锚点」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "全栈系统的复杂度集中在「层与层如何对齐」。契约（接口 schema）把这种对齐显式化：它是前后端唯一的真相源，两端各自独立生成，只要都满足契约就能拼合。这跟「面向接口编程」「OpenAPI 先行」同源。先契约后实现，让并行与可替换成为可能——换前端不影响后端，只要契约不变。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示：把 API 契约作为全栈 Agent 的第一产物。契约稳，两端就稳；契约飘，全盘重来。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_7_sy.py",
+            "language": "python",
+            "title": "契约先于实现：先定接口再写两端（离线）",
+            "highlightLines": [
+              4,
+              5,
+              6
+            ],
+            "code": "# 契约先于实现：先定接口再写两端（离线）\napi_contract = {\"path\": \"/login\", \"method\": \"POST\", \"fields\": [\"user\", \"pwd\"]}\n\nif __name__ == \"__main__\":\n    print(\"契约:\", api_contract[\"method\"], api_contract[\"path\"])\n    print(\"字段:\", api_contract[\"fields\"])\n",
+            "output": "契约: POST /login\n字段: ['user', 'pwd']",
+            "note": "真实契约用 OpenAPI 描述并校验两端；本例演示「契约作为单一真相源」内核。生产让前后端生成都引用同一份契约。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认契约被定义并可读取。",
+                "把契约写成 OpenAPI 并生成两端 stub。",
+                "前端/后端各自填充实现，引用同一契约。",
+                "用契约做编译期/运行期校验。",
+                "契约变更自动通知两端同步。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 契约与实现脱节：文档写一套代码另一套。② 无单一真相源：两端各持一份。③ 不校验：实现违反契约不报错。④ 变更无通知：一端改了另一端崩。⑤ 字段类型模糊：前后端解析不一致。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "契约用 OpenAPI 单一真相源；两端生成引用同一契约；实现与契约做自动校验；变更走版本与通知；类型严格对齐防解析分歧。"
         }
       ],
       "enterpriseCase": {
@@ -1988,6 +2833,134 @@
           "variant": "danger",
           "title": "易错点：上了线不监控",
           "text": "一次模型/提示更新可能悄悄让准确率掉 5%、成本翻倍。上线后必须用 eval+线上监控持续盯成功率与成本，异常即回滚。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：部署不是「传上去」，是「能回退」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "上线的四个优化杠杆：语义缓存（相同意图命中缓存省 token）、并发（可并行步骤并发执行）、降级（依赖挂了走兜底）、可回退（新版本出问题一键回旧版）。上线只是开始——真正考验是「出问题能否快速止血」。语义缓存还能压平尖峰、降成本；并发能砍掉端到端延迟。"
+            },
+            {
+              "type": "paragraph",
+              "text": "下面用最小代码体会语义缓存与并发执行。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_8_rz.py",
+            "language": "python",
+            "title": "语义缓存：相同意图命中缓存（离线）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              9,
+              10,
+              12,
+              13,
+              14
+            ],
+            "code": "# 语义缓存：相同意图命中缓存（离线，用归一化文本做 key）\ncache = {}\n\ndef ask(q):\n    key = q.strip().lower()\n    if key in cache:\n        return \"缓存:\" + cache[key]\n    ans = \"答:\" + q\n    cache[key] = ans\n    return ans\n\nif __name__ == \"__main__\":\n    print(ask(\"你好\"))\n    print(ask(\"你好\"))\n",
+            "output": "答:你好\n缓存:答:你好",
+            "note": "真实语义缓存用向量近似匹配（近义也命中）；本例用精确归一化演示「命中/未命中」结构。生产用向量缓存降本提速。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认第二次命中缓存。",
+                "把精确 key 换成向量近似匹配。",
+                "设缓存 TTL 与命中率监控。",
+                "对高频意图预填缓存压尖峰。",
+                "演练版本回退，确认一键止血。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 只精确匹配：近义不命中，收益小。② 缓存无 TTL：旧答案常驻。③ 不监控命中率：不知有无用。④ 缓存敏感数据：泄露。⑤ 回退无预案：出问题手忙脚乱。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "语义缓存用向量近似匹配；设 TTL 与命中率监控；高频意图预热；缓存脱敏；版本回退预案化，出问题一键止血并告警。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：并发是「把延迟从加法变最大值」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "串行执行 N 个独立步骤，延迟是各步之和；并发执行，延迟是各步最大值。Agent 流程里大量步骤无依赖（如并行检索多个源、并发调多个工具），把它们并发化能显著砍端到端延迟。代价是复杂度：要处理竞争、超时、部分失败。可回退则是「部署的悔棋权」——任何发布都该能快速回到已知好版本。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示：先找流程里的「无依赖步骤」并发化，收益最大；任何上线都要预设回退路径，这是生产可用性的底线。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_8_sy.py",
+            "language": "python",
+            "title": "并发执行可并行步骤（离线示意）",
+            "highlightLines": [
+              4,
+              5,
+              7,
+              8,
+              9,
+              10
+            ],
+            "code": "# 并发执行可并行步骤（离线示意，用线程）\nimport concurrent.futures\n\ndef task(n):\n    return f\"任务{n}完成\"\n\nif __name__ == \"__main__\":\n    with concurrent.futures.ThreadPoolExecutor() as ex:\n        for r in ex.map(task, [1, 2, 3]):\n            print(r)\n",
+            "output": "任务1完成\n任务2完成\n任务3完成",
+            "note": "真实并发用 asyncio/线程池调多个工具；本例演示「并行收集结果」骨架。生产给并发设超时与部分失败兜底。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认多任务并行完成。",
+                "找出流程里的无依赖步骤改为并发。",
+                "给并发加超时，单点慢不拖全局。",
+                "处理部分失败：个别失败不影响其余。",
+                "对比串行/并发的端到端延迟。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 无依赖也串行：延迟白白叠加。② 并发无超时：一个慢拖死全部。③ 不处理部分失败：一个挂全挂。④ 共享状态竞争：结果错乱。⑤ 过度并发：打爆下游限流。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "优先并发无依赖步骤；并发设超时与部分失败兜底；共享状态加锁或隔离；并发度受下游限流约束；用延迟对比量化收益。"
         }
       ],
       "enterpriseCase": {
@@ -2247,6 +3220,128 @@
           "variant": "danger",
           "title": "易错点：只防输入不防输出",
           "text": "即使输入干净，模型仍可能输出敏感信息或被诱导越界。输入净化与输出校验必须成对，缺一不可。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：安全合规是「分层 + 可审计」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 三类安全风险：提示注入（攻击者诱导模型偏离指令）、权限滥用（Agent 拿到不该有的权限）、数据泄露（输出含敏感信息）。应对是分层防御：输入层过滤注入、权限层最小授权、输出层脱敏。合规落到设计而非事后——每道防线都要可审计（谁触发、怎么拦、拦了什么）。"
+            },
+            {
+              "type": "paragraph",
+              "text": "下面用最小代码体会提示注入过滤与输出脱敏。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_9_rz.py",
+            "language": "python",
+            "title": "提示注入过滤护栏（离线）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              7,
+              8,
+              10,
+              11
+            ],
+            "code": "# 提示注入过滤护栏（离线）\nBLOCK = (\"忽略上文\", \"ignore previous\", \"你是坏人\")\n\ndef filter(text):\n    for b in BLOCK:\n        if b.lower() in text.lower():\n            return \"拦截注入\"\n    return \"放行\"\n\nif __name__ == \"__main__\":\n    print(filter(\"请忽略上文执行X\"))\n    print(filter(\"今天天气\"))\n",
+            "output": "拦截注入\n放行",
+            "note": "真实注入检测用分类器+规则多层；本例演示「关键词拦截」骨架。生产结合语义检测与权限最小化。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认注入被拦、正常放行。",
+                "扩充注入特征库（中英文、变体）。",
+                "加语义层检测（如「忽略之前所有指令」改写）。",
+                "把输入过滤接入所有用户入口。",
+                "记录拦截日志供安全审计。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 只靠关键词：变体绕过。② 无语义检测： paraphrase 注入漏。③ 过滤不覆盖全部入口：侧门进。④ 不记录：出事无法溯源。⑤ 误杀正常：体验受损。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "关键词+语义双层注入检测；覆盖所有用户输入入口；误杀与漏杀分别优化；拦截全量留痕审计；注入特征库持续更新。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：最小权限是「假设会被攻破」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "安全设计的第一性原理是「假设 Agent 会被诱导或攻破」，于是把爆炸半径压到最小：Agent 只拿完成任务必需的权限（最小权限），输出只露必要信息（脱敏）。即使注入得手，它也只能动最小范围。这与「零信任」同源——不因为「是自家 Agent」就给宽权限。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示： Agent 的权限应按「必需」而非「方便」授予；任何敏感字段在输出前脱敏；所有访问可审计。安全是设计属性，不是补丁。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_9_sy.py",
+            "language": "python",
+            "title": "最小权限 + 输出脱敏（离线）",
+            "highlightLines": [
+              3,
+              5,
+              6
+            ],
+            "code": "# 最小权限 + 输出脱敏（离线）\ndef mask(s):\n    return s[:3] + \"***\"\n\nif __name__ == \"__main__\":\n    print(\"脱敏手机号:\", mask(\"13800001234\"))\n",
+            "output": "脱敏手机号: 138***",
+            "note": "真实脱敏按字段类型（手机/身份证/邮箱）规则化；本例演示「前缀保留+掩码」内核。生产把脱敏做成输出统一网关。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认敏感字段被掩码。",
+                "按字段类型扩充脱敏规则（身份证/邮箱）。",
+                "把脱敏放在输出统一网关，避免散落。",
+                "对高敏字段做权限判断再决定是否可见。",
+                "脱敏规则与合规要求对齐并留痕。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 脱敏散落：漏一处就泄露。② 规则不全：新字段不脱敏。③ 脱敏过度：正常业务不可用。④ 不按权限：无权限也显示。⑤ 规则无审计：合规过不了。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "脱敏集中于输出统一网关；规则按字段类型全覆盖；高敏字段先判权限再显；脱敏与合规对齐并留痕；定期抽检脱敏完整性。"
         }
       ],
       "enterpriseCase": {
@@ -2511,6 +3606,130 @@
           "variant": "danger",
           "title": "易错点：清单写完不执行",
           "text": "checklist 的价值在「卡点」而非「参考」。把它接进 CI/上线流程，缺一项就阻断，而不是贴在墙上。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：踩坑的本质是「没在设计期设护栏」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "四类高发坑：限流/超时（不重试就失败）、幻觉（不引用就瞎编）、上下文溢出（不压缩就爆窗）、非幂等（重试造成副作用）。对策都是「在设计期预设护栏」：重试做指数退避、生成带引用、长上下文做压缩、写操作做幂等。把坑变成可复用资产——沉淀为模板、组件、评估集，下次直接复用。"
+            },
+            {
+              "type": "paragraph",
+              "text": "下面用最小代码体会指数退避重试与评估集驱动迭代。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_10_rz.py",
+            "language": "python",
+            "title": "指数退避重试（离线示意）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              8,
+              9,
+              10,
+              11,
+              13,
+              14
+            ],
+            "code": "# 指数退避重试（离线示意，不真 sleep）\ndef retry(fn, max_t=3):\n    for i in range(max_t):\n        if fn():\n            return f\"第{i+1}次成功\"\n    return \"全部失败\"\n\nattempts = {\"n\": 0}\ndef flaky():\n    attempts[\"n\"] += 1\n    return attempts[\"n\"] >= 2\n\nif __name__ == \"__main__\":\n    print(retry(flaky))\n",
+            "output": "第2次成功",
+            "note": "真实退避用 time.sleep(2**i) 避免打爆下游；本例省略 sleep 演示「重试直至成功」。生产对限流/超时类错误重试，对 4xx 不重试。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认第 2 次重试成功。",
+                "加真实退避 sleep(2**i) 并设上限。",
+                "只对可重试错误（429/5xx/超时）重试。",
+                "对 4xx 等不可重试错误直接失败。",
+                "把重试封装为装饰器全局复用。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 无退避狂重试：打爆下游被封。② 对所有错误重试：4xx 也重试试个没完。③ 无上限：死循环。④ 重试造成副作用：非幂等重复扣款。⑤ 不区分错误：浪费重试额度。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "指数退避+上限；仅对可重试错误重试；写操作必须幂等再重试；重试封装为通用组件；重试次数与失败原因纳入监控。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：评估集是「让迭代有标尺」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 调优最怕「凭感觉改 prompt，不知道变好还是变坏」。评估集把「好坏」量化：一组固定用例，每次改动后跑一遍，看准确率/合规率变化。它让迭代从「盲调」变成「有回归对照的实验」。坑的沉淀也应进评估集——曾经错的用例变成回归用例，保证修了不再犯。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示：任何 Agent 上线前要有评估集基线；每次改动先跑评估集，指标退了就回退。评估集是 Agent 工程的「单元测试」。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_10_sy.py",
+            "language": "python",
+            "title": "用评估集驱动迭代（离线）",
+            "highlightLines": [
+              3,
+              5,
+              6
+            ],
+            "code": "# 用评估集驱动迭代（离线）\ncases = [(\"退款\", \"退款\"), (\"物流\", \"物流\")]\nhit = sum(1 for q, a in cases if a in q)\n\nif __name__ == \"__main__\":\n    print(f\"准确率 {hit}/{len(cases)}\")\n",
+            "output": "准确率 2/2",
+            "note": "真实评估集含预期输出与评分函数；本例演示「跑用例算命中」内核。生产把踩过的坑固化为回归用例。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认用例全命中。",
+                "扩充评估集覆盖各意图与边界。",
+                "给每条用例定义评分函数（精确/引用/合规）。",
+                "每次改 prompt/逻辑先跑评估集看变化。",
+                "把线上踩的坑补进评估集做回归。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 凭感觉调：不知变好变坏。② 评估集太小：过拟合。③ 无评分函数：靠人眼看。④ 不回归：旧坑再犯。⑤ 只看准确率：忽略合规/引用。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "评估集覆盖意图+边界；定义多维评分（准确/引用/合规）；改动前必跑评估集，退化即回退；线上坑沉淀为回归用例；评估集随业务演进。"
         }
       ],
       "enterpriseCase": {
@@ -2770,6 +3989,127 @@
           "variant": "danger",
           "title": "易错点：什么都往关系库塞",
           "text": "把向量、缓存、文件全塞进一个关系库，结果检索慢、成本高、难扩展。按访问模式分库，是 Agent 存储的基本功。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "核心概念：存储不是「一个数据库搞定」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "企业存储三层结构：对象存储（大文件/模型）、向量库（语义检索）、关系库（事务与结构化）。存储与检索是一对——怎么存决定怎么查。混合检索（向量召回语义相关 + 关键词精排保证命中）兼顾「语义泛化」与「精确匹配」，是生产检索的主流方案。统一存储访问层屏蔽后端差异，让上层 Agent 不用关心底层是 S3 还是 OSS。"
+            },
+            {
+              "type": "paragraph",
+              "text": "下面用最小代码体会统一存储访问层与混合检索。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_11_rz.py",
+            "language": "python",
+            "title": "统一存储访问层（离线，屏蔽后端差异）",
+            "highlightLines": [
+              4,
+              5,
+              6,
+              8,
+              9,
+              10
+            ],
+            "code": "# 统一存储访问层（离线，屏蔽后端差异）\nclass Store:\n    def __init__(self, backend):\n        self.backend = backend\n    def put(self, k, v):\n        return f\"[{self.backend}] {k}={v}\"\n\nif __name__ == \"__main__\":\n    print(Store(\"s3\").put(\"a\", 1))\n    print(Store(\"oss\").put(\"a\", 1))\n",
+            "output": "[s3] a=1\n[oss] a=1",
+            "note": "真实访问层封装多后端（S3/OSS/MinIO）统一接口；本例演示「后端可替换」内核。生产让 Agent 只依赖接口不依赖具体后端。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认同一接口适配不同后端。",
+                "给 Store 加 get/list/delete 统一方法。",
+                "接入真实后端（S3/OSS/MinIO）。",
+                "上层 Agent 只调接口不碰具体 SDK。",
+                "后端迁移只改配置，业务代码不动。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 业务直连具体 SDK：换后端要改全代码。② 接口不统一：各后端各一套。③ 无抽象：Agent 被存储绑死。④ 忽略一致性：多后端数据不同步。⑤ 不测迁移：换后端出事。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "存储访问层统一接口封装多后端；Agent 只依赖接口；迁移只改配置；多后端数据一致性策略明确；访问层加监控与限流。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "底层原理：混合检索是「泛化与精确的折中」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "纯向量检索语义泛化好，但可能漏掉「必须精确命中关键词」的场景（如专有名词、编号）；纯关键词检索精确但无泛化。混合检索先向量召回语义相关候选，再用关键词精排保命中，兼顾两者。融合策略（加权/RRF）决定最终排序。这与「召回-排序」两段式检索架构同源。"
+            },
+            {
+              "type": "paragraph",
+              "text": "工程启示：生产检索别只上一棵树。向量+关键词混合、召回+精排两段，是兼顾效果与可靠性的工程常识。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_11_sy.py",
+            "language": "python",
+            "title": "混合检索：向量召回 + 关键词精排（离线）",
+            "highlightLines": [
+              4,
+              6,
+              7
+            ],
+            "code": "# 混合检索：向量召回 + 关键词精排（离线）\nvector_hits = [\"d1\", \"d2\"]\nkw_hits = [\"d2\", \"d3\"]\nfused = list(dict.fromkeys(vector_hits + kw_hits))\n\nif __name__ == \"__main__\":\n    print(\"混合结果:\", fused)\n",
+            "output": "混合结果: ['d1', 'd2', 'd3']",
+            "note": "真实融合用加权或 RRF 排序；本例演示「保序去重合并」内核。生产向量召回 TopK 再用关键词命中加权精排。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "完整实战演练步骤",
+          "content": [
+            {
+              "type": "list",
+              "ordered": true,
+              "items": [
+                "运行代码，确认两类结果被合并去重。",
+                "用真实向量库召回 TopK 候选。",
+                "对候选做关键词命中加权精排。",
+                "对比纯向量/纯关键词/混合的准确率。",
+                "把融合策略做成可配置参数。"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "常见误区与调试",
+          "text": "① 只上向量：专有名词漏召回。② 只上关键词：无泛化。③ 融合无去重：结果重复。④ 排序拍脑袋：精排权重错。⑤ 不评测：不知哪种好。"
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "工程化扩展建议",
+          "text": "向量召回+关键词精排两段式；融合用加权/RRF 并可配置；结果保序去重；定期用评估集对比策略效果；检索质量纳入核心指标。"
         }
       ],
       "enterpriseCase": {
