@@ -13,9 +13,9 @@
       "estimatedMinutes": 25,
       "difficulty": 3,
       "objectives": [
-        "能说清「单 Agent → 多 Agent」的边界：什么场景才值得拆多个 Agent",
-        "掌握层级式 / 扁平式 / 网络式 / 黑板式四种架构的结构、优缺点与适用场景",
-        "能用 LangGraph 或纯 Python 搭出一个可运行的层级式多 Agent 骨架"
+        "能说出 supervisor/worker、peer-to-peer、hierarchical 三种多 Agent 模式各自的适用场景",
+        "能写一个最小 supervisor 路由，把问题分派给不同职责的 worker",
+        "理解「为什么单 Agent 上下文会挤爆」以及多 Agent 如何缓解"
       ],
       "content": [
         {
@@ -164,6 +164,84 @@
               "text": "invoke 时必须把 State 里所有字段都传齐（哪怕空字符串）。漏传会在编译/运行期报 KeyError。这也是为什么把 State 设计成 TypedDict 能在编辑期就发现问题。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "单 Agent 的天花板：上下文与职责",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "一个 Agent 把所有工具的提示、历史对话、中间结果都塞进同一段上下文，任务一复杂就「脑容量」不够：前面看的被后面挤出窗口，不同职责互相干扰，出错也难定位。多 Agent 的核心动机就是「分而治之」——每个 Agent 只管一件事、只看自己需要的上下文，由一个协调者（supervisor）负责派活和汇总。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s4_1_supervisor.py",
+            "language": "python",
+            "title": "最小 supervisor：按关键词把问题派给不同 worker",
+            "highlightLines": [
+              5,
+              8
+            ],
+            "code": "WORKERS = {\n    \"退款\": \"售后 Agent\",\n    \"物流\": \"物流 Agent\",\n    \"功能\": \"技术支持 Agent\",\n}\n\ndef supervisor(question: str) -> str:\n    for keyword, agent in WORKERS.items():\n        if keyword in question:\n            return \"转接 -> \" + agent\n    return \"转接 -> 人工客服\"\n\nif __name__ == \"__main__\":\n    print(supervisor(\"我的订单怎么退款\"))\n    print(supervisor(\"这个按钮是干嘛的\"))",
+            "output": "转接 -> 售后 Agent\n转接 -> 人工客服",
+            "note": "supervisor 只做「分类 + 派发」，不自己答；真实场景用 LLM 做意图分类而非关键词，但兜底人工分支必须保留。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "三种主流模式怎么选",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Supervisor/Worker：一个协调者管多个专职下属，适合「一个入口、内部多专家」；Peer-to-Peer：Agent 之间平等对话、自己协商，适合探索性协作但难控；Hierarchical：多层 supervisor（大主管管小主管），适合超大规模任务。小团队从 supervisor 起步最稳。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "模式",
+              "结构",
+              "适合"
+            ],
+            "rows": [
+              [
+                "Supervisor/Worker",
+                "1 协调者 + N 专职",
+                "有统一入口的业务"
+              ],
+              [
+                "Peer-to-Peer",
+                "Agent 平级协商",
+                "探索/头脑风暴"
+              ],
+              [
+                "Hierarchical",
+                "多层 supervisor",
+                "超大规模任务"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**客服**：supervisor 按意图转售后/物流/技术；**研发**：规划者派给编码/测试；**研究**：多 Agent 各读一块文献再汇总"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：所有 Agent 共享同一上下文",
+          "text": "多 Agent 的意义在于「隔离上下文」。若把全部历史塞给每个 worker，等于回到单 Agent 的老问题。每个 worker 只接收跟它相关的子任务与上下文。"
         }
       ],
       "enterpriseCase": {
@@ -232,9 +310,9 @@
       "estimatedMinutes": 20,
       "difficulty": 3,
       "objectives": [
-        "掌握常见 Agent 角色（Planner / Executor / Reviewer / Aggregator）及其职责边界",
-        "能用 CrewAI 与 OpenAI Agents SDK 两种范式定义角色",
-        "理解「角色重叠」会导致的输出漂移与重复劳动"
+        "理解「角色」= system prompt + 职责边界 + 工具权限",
+        "能定义一个 Role 并组装一支多角色团队",
+        "知道角色设计的反模式（职责重叠、权限过大）"
       ],
       "content": [
         {
@@ -392,6 +470,89 @@
               "text": "A→B、B→A 的双向 handoff 可能在两 Agent 间无限互转。给每个 Agent 的 instructions 写明「只在该角色真正擅长时才接手」，并在外层加最大轮数上限。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "角色不是人设，是「职责边界」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "给 Agent 一个角色，本质是给它三样东西：①一段 system prompt 规定它「是谁、负责什么、不做什么」；②明确的输入输出契约；③受限的工具权限。角色设计的核心原则是「单一职责」——一个 Agent 只干一类事，这样它的提示短、上下文干净、行为可预测、也容易被另一个实现替换。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s4_2_role.py",
+            "language": "python",
+            "title": "用 Role 组装一支多角色团队",
+            "highlightLines": [
+              4,
+              10
+            ],
+            "code": "class Role:\n    def __init__(self, name, duty, persona):\n        self.name = name\n        self.duty = duty\n        self.persona = persona\n\ndef build_team():\n    planner = Role(\"规划者\", \"拆解目标\", \"资深架构师\")\n    coder = Role(\"执行者\", \"写代码\", \"10年工程师\")\n    reviewer = Role(\"审查者\", \"查错\", \"严谨测试专家\")\n    return [planner, coder, reviewer]\n\nif __name__ == \"__main__\":\n    for r in build_team():\n        print(r.name + \"：\" + r.duty)",
+            "output": "规划者：拆解目标\n执行者：写代码\n审查者：查错",
+            "note": "Role 把职责聚合成对象；persona 虽未在此打印，但是提示词的一部分。真实团队里每个 Role 配独立 system 与工具集。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "职责重叠是团队最大的内耗",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "如果两个 Agent 的职责边界模糊（都觉得「这该我管」或「这不归我」），结果要么重复劳动要么互相推诿。设计时用一句话能说清「谁负责什么」才算边界清晰；权限上遵循最小授权， reviewer 不该有写库的权限。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "角色属性",
+              "作用",
+              "写错会怎样"
+            ],
+            "rows": [
+              [
+                "name",
+                "标识与路由",
+                "分派混乱"
+              ],
+              [
+                "duty",
+                "职责边界",
+                "重叠/遗漏"
+              ],
+              [
+                "persona",
+                "语气与关注点",
+                "答非所问"
+              ],
+              [
+                "tools",
+                "能力边界",
+                "越权风险"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**内容生产**：规划/写作/校对三角色；**研发**：产品/开发/测试三角色；**分析**：取数/建模/解读三角色"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：给单个 Agent 太多工具",
+          "text": "工具越多，模型越容易调错或陷入选择困难。按角色裁剪工具集，让「规划者」看不到「执行者」的执行工具，能显著降低误调用。"
         }
       ],
       "enterpriseCase": {
@@ -459,9 +620,9 @@
       "estimatedMinutes": 25,
       "difficulty": 3,
       "objectives": [
-        "理解 Agent 间通信的三种形态：消息传递 / 共享状态 / 显式协议",
-        "能实现一个带「收件箱」的消息总线，让 Agent 解耦通信",
-        "会用 OpenAI Agents SDK 的 handoff 与 A2A 风格 JSON 协议做跨 Agent 调用"
+        "理解 Agent 间通信的三种方式（消息总线 / 共享黑板 / 直接调用）",
+        "能写一个最小消息总线，支持订阅与发布",
+        "知道消息契约（结构化、可追溯、可重放）的重要性"
       ],
       "content": [
         {
@@ -597,6 +758,84 @@
               }
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "通信方式决定协作的可控性",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 之间怎么「说话」有几种范式：直接调用最简单但耦合紧；共享黑板（blackboard）让所有 Agent 读写同一块状态，适合松散协作；消息总线（pub/sub）最解耦，发送方不知道谁在听。生产里消息总线最常用，因为它能异步、可重放、易加监控。无论哪种，消息都应该是结构化的（带类型/来源/时间戳），而不是自由文本。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s4_3_message.py",
+            "language": "python",
+            "title": "最小消息总线：订阅主题 + 发布消息",
+            "highlightLines": [
+              3,
+              9
+            ],
+            "code": "class MessageBus:\n    def __init__(self):\n        self._subs = {}\n\n    def subscribe(self, topic, fn):\n        self._subs.setdefault(topic, []).append(fn)\n\n    def publish(self, topic, msg):\n        for fn in self._subs.get(topic, []):\n            fn(msg)\n\ndef log_agent(m):\n    print(\"Agent 收到：\" + m)\n\nif __name__ == \"__main__\":\n    bus = MessageBus()\n    bus.subscribe(\"task\", log_agent)\n    bus.publish(\"task\", \"分析这份财报\")",
+            "output": "Agent 收到：分析这份财报",
+            "note": "_subs 存订阅；subscribe 注册、publish 广播。真实总线还要带消息 id/时间戳/来源，便于追溯与重放。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "消息契约要可重放",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 协作的 bug 极难复现，因为涉及模型的随机性。把每次消息（请求+响应）结构化落库，就能「把那次失败会话原样重跑」来定位问题。这也是为什么消息优于直接函数调用——调用无痕迹，消息有记录。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "方式",
+              "耦合",
+              "适合"
+            ],
+            "rows": [
+              [
+                "直接调用",
+                "紧",
+                "固定两 Agent"
+              ],
+              [
+                "共享黑板",
+                "中",
+                "松散协作"
+              ],
+              [
+                "消息总线",
+                "松",
+                "多 Agent 异步"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**流水线**：上游 publish 产物，下游 subscribe 处理；**告警**：事件总线广播给多个值守 Agent；**编排**：主管 publish 任务，worker subscribe"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：消息用自由文本",
+          "text": "自由文本消息无法被程序可靠解析与重放。务必定义结构化 schema（来源/类型/载荷/时间戳），下游才能稳定消费与回溯。"
         }
       ],
       "enterpriseCase": {
@@ -664,9 +903,9 @@
       "estimatedMinutes": 30,
       "difficulty": 4,
       "objectives": [
-        "理解 Plan-Execute 范式：先规划再执行、执行结果回流修正计划",
-        "能用 LangGraph 实现「规划节点 → 执行节点 → 反思重规划」的循环",
-        "掌握任务分解的粒度原则与「分解到什么程度停」的判据"
+        "理解任务分解的三种策略（按领域 / 按阶段 / 按依赖）",
+        "能写一个把目标拆成子任务并分配给 worker 的最小实现",
+        "知道「依赖关系」如何决定执行顺序"
       ],
       "content": [
         {
@@ -778,6 +1017,84 @@
               "text": "add_conditional_edges 的分支必须能到达 END，否则图会无限循环或在编译期报错。每个条件函数都要覆盖「全部走完」的出口。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "分解是「让复杂变得可交付」的关键一步",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "多 Agent 协作的第一步往往是把一个大目标拆成可独立执行的子任务。拆法有三种视角：按领域（财务/技术/法务各管一块）、按阶段（先规划再执行再验收）、按依赖（A 的输出是 B 的输入就串行，否则可并行）。拆得好，每个 worker 拿到的是边界清晰、信息完整的子任务；拆得差，worker 在缺上下文的情况下瞎做。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s4_4_decompose.py",
+            "language": "python",
+            "title": "把目标拆子任务并轮转分配给 worker",
+            "highlightLines": [
+              2,
+              9
+            ],
+            "code": "def decompose(goal):\n    steps = []\n    for i, part in enumerate(goal.split(\"，\")):\n        steps.append({\"id\": i + 1, \"task\": part.strip()})\n    return steps\n\ndef assign(steps, workers):\n    plan = []\n    for step in steps:\n        owner = workers[step[\"id\"] % len(workers)]\n        plan.append((step[\"task\"], owner))\n    return plan\n\nif __name__ == \"__main__\":\n    steps = decompose(\"读需求，写代码，跑测试\")\n    print(assign(steps, [\"规划\", \"开发\", \"测试\"]))",
+            "output": "[('读需求', '规划'), ('写代码', '开发'), ('跑测试', '测试')]",
+            "note": "decompose 按逗号切分做演示；真实分解用 LLM 按依赖图产出，assign 按 worker 数轮转。step/task/owner 都被引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "依赖决定顺序",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "分解后必须标注依赖：B 依赖 A 就要等 A 完成；无依赖的可以并行以提速。编排器（如 4.6 的状态机）按依赖图调度，既保证正确又最大化并发。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "拆法",
+              "视角",
+              "例子"
+            ],
+            "rows": [
+              [
+                "按领域",
+                "谁懂什么",
+                "财务/技术/法务"
+              ],
+              [
+                "按阶段",
+                "时间顺序",
+                "规划/执行/验收"
+              ],
+              [
+                "按依赖",
+                "数据流向",
+                "取数->建模->解读"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**报告生成**：按章节并行写再汇总；**研发**：需求拆 ticket 分给不同开发；**调研**：按子问题分派给不同检索 Agent"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：拆太细导致协调开销爆炸",
+          "text": "子任务不是越细越好。拆太细，supervisor 的协调与消息开销会超过并行收益。以「一个 worker 能独立完成且有明确产出」为粒度下限。"
         }
       ],
       "enterpriseCase": {
@@ -845,9 +1162,9 @@
       "estimatedMinutes": 20,
       "difficulty": 3,
       "objectives": [
-        "掌握多 Agent 产出冲突时的三种聚合策略：多数投票 / LLM 裁判 / 加权融合",
-        "能实现一个带置信度的加权聚合器",
-        "理解「多个 Agent 一致」不等于「正确」的陷阱"
+        "理解结果聚合的三种策略（投票 / 合并 / 加权）",
+        "能写一个多数投票聚合器处理多 Agent 的不一致输出",
+        "知道冲突无法自动解决时应升级人工"
       ],
       "content": [
         {
@@ -977,6 +1294,84 @@
               "text": "不要让裁判看到「这是 Agent A 说的、这是 Agent B 说的」，否则它可能按编号而非内容做偏好。把草稿匿名化后再交给裁判。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "多个 Agent 答得不一样，怎么办",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "多 Agent 并行工作后，常出现「答案不一致」：三个 Agent 两个说北京、一个说上海。聚合策略要提前定：投票（取多数）、合并（抽取各自正确部分）、加权（可信 Agent 权重更高）。聚合不是为了「选一个」，而是「在不确定时给出最稳的结论」；当分歧大到无法判断时，应升级人工而非硬选。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s4_5_aggregate.py",
+            "language": "python",
+            "title": "多数投票聚合多 Agent 答案",
+            "highlightLines": [
+              4,
+              5
+            ],
+            "code": "from collections import Counter\n\ndef aggregate(answers):\n    if not answers:\n        return \"无结果\"\n    counts = Counter(answers)\n    best, n = counts.most_common(1)[0]\n    return best + \"（\" + str(n) + \"/\" + str(len(answers)) + \" 票一致）\"\n\nif __name__ == \"__main__\":\n    print(aggregate([\"北京\", \"北京\", \"上海\"]))",
+            "output": "北京（2/3 票一致）",
+            "note": "Counter 做计票；多数票即结论并带上置信度。真实场景可加权重或让模型做最终裁决。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "聚合不是终点，是质量闸门",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "聚合输出的「N/M 票一致」本身就是质量信号：一致率高说明任务明确、Agent 靠谱；一致率低说明任务模糊或信息不足，这时该触发复核（重跑或人工）而不是盲目采信。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "策略",
+              "做法",
+              "适合"
+            ],
+            "rows": [
+              [
+                "投票",
+                "取多数",
+                "客观有标准答案"
+              ],
+              [
+                "合并",
+                "抽各自正确部分",
+                "互补型子任务"
+              ],
+              [
+                "加权",
+                "可信者权重高",
+                "Agent 能力不均"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**事实问答**：投票取多数；**草稿写作**：合并各版本亮点；**风险评估**：加权（资深 Agent 权高）"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：低一致率仍硬选",
+          "text": "2/3 和 1/3 的票差，结论可信度天差地别。务必把一致率当质量阈值：低于某值就升级复核，而非直接输出赢家。"
         }
       ],
       "enterpriseCase": {
@@ -1044,9 +1439,9 @@
       "estimatedMinutes": 25,
       "difficulty": 4,
       "objectives": [
-        "理解长任务为何必须做状态持久化与断点续跑",
-        "能用 LangGraph 的 checkpointer 实现可恢复的执行",
-        "掌握「任务清单（todo list）」作为长任务进度的轻量状态表示"
+        "理解长任务为什么需要显式状态机而非隐式上下文",
+        "能写一个带步骤记录与完成的 TaskState，并说明如何持久化续跑",
+        "知道失败恢复要把「已完成步骤」与「待重跑步骤」分开"
       ],
       "content": [
         {
@@ -1152,6 +1547,89 @@
               "text": "很多 bug 来自「恢复时把 done 清掉重来」。恢复逻辑必须**只读**持久化的 done 标记，绝不能重置。用 append reducer 或显式保留 done 字段。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "长任务不能只靠「聊天历史」记住进度",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "几分钟能搞定的任务靠上下文窗口就够了；但跨小时/跨天的长任务，上下文会被截断、进程可能重启。必须用显式状态机把「当前做到哪、哪些已完成、哪些待做」落盘。这样进程挂了能从断点恢复，而非从头再来。状态机还能让人工在任意步骤介入审批。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s4_6_state.py",
+            "language": "python",
+            "title": "长任务状态：记录步骤、标记完成、可快照",
+            "highlightLines": [
+              4,
+              9
+            ],
+            "code": "class TaskState:\n    def __init__(self):\n        self.steps = []\n        self.done = False\n\n    def advance(self, action):\n        self.steps.append(action)\n        if action == \"完成\":\n            self.done = True\n\n    def snapshot(self):\n        return {\"steps\": list(self.steps), \"done\": self.done}\n\nif __name__ == \"__main__\":\n    t = TaskState()\n    t.advance(\"检索\")\n    t.advance(\"完成\")\n    print(t.snapshot())",
+            "output": "{'steps': ['检索', '完成'], 'done': True}",
+            "note": "steps 累积轨迹；snapshot 即「可持久化的进度」。真实场景把 snapshot 写库，重启后 load 续跑。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "持久化与续跑的边界",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "落盘的不只是「进度」，还有每一步的产物（检索到的文档、生成的草稿），否则恢复后要重算。失败时只重跑「从断点起的待做步骤」，已完成的步骤复用其产物，既快又省。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "要素",
+              "为什么",
+              "不做的后果"
+            ],
+            "rows": [
+              [
+                "步骤记录",
+                "知道做到哪",
+                "重复劳动"
+              ],
+              [
+                "产物落盘",
+                "断点复用",
+                "恢复后重算"
+              ],
+              [
+                "done 标记",
+                "判断是否结束",
+                "无限循环"
+              ],
+              [
+                "快照",
+                "可迁移/续跑",
+                "进程挂=全丢"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**长文档写作**：每章存草稿，断点续写；**数据管线**：每步存中间表；**审批流**：每节点存状态等人工"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：把状态只放内存",
+          "text": "进程一重启，内存状态全没。长任务的状态必须外置（数据库/文件），否则一次 OOM 或发布就前功尽弃。"
         }
       ],
       "enterpriseCase": {
@@ -1219,9 +1697,9 @@
       "estimatedMinutes": 20,
       "difficulty": 3,
       "objectives": [
-        "理解 Human-in-the-Loop 的价值：在「高风险/不可逆」步骤前把控制权交还人",
-        "能用 LangGraph 的 interrupt / Command 实现挂起与恢复",
-        "掌握「审批门」的两种实现：同步等待与异步回调"
+        "能列出「必须人工」的高风险/不可逆操作清单",
+        "写一个审批门：高风险动作先暂停、等人工确认再继续",
+        "理解 HITL 不是拖慢，是给 Agent 装「熔断」"
       ],
       "content": [
         {
@@ -1332,6 +1810,89 @@
               "text": "如果「确认」和「执行」是两个独立调用，中间可能被并发重复触发。把 approved 标志写进同一份持久化状态，执行前再校验一次，避免重复发。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "哪些动作绝不能让 Agent 自己拍板",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "凡「不可逆 + 有外部后果」的动作，都应默认人工确认：退款/转账、删除/覆盖数据、改密码/权限、对外发消息、执行生产变更。Agent 可能基于错误上下文或被人诱导做出这些动作，一旦执行无法撤回。HITL（人在回路）就是在这些节点上「挂起等确认」，把控制权暂时交回人。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s4_7_hitl.py",
+            "language": "python",
+            "title": "审批门：高风险动作先暂停等人工确认",
+            "highlightLines": [
+              2,
+              7
+            ],
+            "code": "def needs_approval(action, risk):\n    return risk in (\"退款\", \"改密\", \"删除\") or \"金额\" in action\n\ndef execute(action, risk, human_ok=False):\n    if needs_approval(action, risk) and not human_ok:\n        return \"已暂停，等待人工确认：\" + action\n    return \"已执行：\" + action\n\nif __name__ == \"__main__\":\n    print(execute(\"退款 100 元\", \"退款\"))\n    print(execute(\"退款 100 元\", \"退款\", human_ok=True))",
+            "output": "已暂停，等待人工确认：退款 100 元\n已执行：退款 100 元",
+            "note": "needs_approval 用风险标签判定；human_ok 模拟人工通过。真实场景 human_ok 来自人工点击而非代码默认。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "HITL 要设计成「可恢复」而非「可阻断」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "好的审批门在暂停时保存完整上下文，人工确认后能从断点继续，而不是整个流程作废重来。同时给人工「拒绝/修改/批准」三种选择，拒绝时把原因回灌给 Agent 让其调整方案。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "操作",
+              "风险",
+              "处置"
+            ],
+            "rows": [
+              [
+                "退款/转账",
+                "资损、不可逆",
+                "必人工"
+              ],
+              [
+                "删/覆盖数据",
+                "不可逆",
+                "必人工"
+              ],
+              [
+                "改密/权限",
+                "安全",
+                "必人工"
+              ],
+              [
+                "只读查询",
+                "低",
+                "可自动"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**金融**：退款/转账人工复核；**运维**：生产变更审批；**客服**：涉敏操作确认；**内容**：对外发布前审"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：默认放行高风险动作",
+          "text": "最危险的写法是把 human_ok 默认设 True「为了流程顺」。高风险动作默认必须是「暂停」，人工显式确认才算通过。"
         }
       ],
       "enterpriseCase": {
@@ -1399,9 +1960,9 @@
       "estimatedMinutes": 25,
       "difficulty": 4,
       "objectives": [
-        "理解 Computer Use 与浏览器自动化的适用边界与风险",
-        "能用 Playwright 驱动浏览器完成「点击/填表/读结果」的 Agent 闭环",
-        "掌握把「动作」建模为工具、由模型逐步决策的实现方式"
+        "理解 Computer Use 让 Agent 能操作 GUI/浏览器，突破了「只有 API」的限制",
+        "能写一个 Computer Use 的最小封装（规划->执行->读取结果）",
+        "知道它的能力边界与安全风险（误操作、越权、泄露）"
       ],
       "content": [
         {
@@ -1512,6 +2073,89 @@
               "text": "UI 选择器（CSS/XPath）随产品迭代频繁变动，Computer Use 最容易在这里碎掉。优先用稳定的可访问性 id / 语义角色，并对「元素未找到」做重试与降级。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "Computer Use 把「没有 API 的系统」也变成可操作对象",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "很多老系统、内部后台、网页只有界面没有开放 API。Computer Use（让模型「看屏幕 + 操作鼠标键盘」）让 Agent 能像人一样用这些系统：填表、点按钮、读页面。它把 Agent 的触达范围从「有接口的服务」扩到「任何能点的界面」。代价是慢、脆（界面一改就失灵）、且需要沙箱兜底防误操作。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s4_8_computer_use.py",
+            "language": "python",
+            "title": "Computer Use 最小封装：规划->执行->读取",
+            "highlightLines": [
+              2,
+              5
+            ],
+            "code": "def computer_use(instruction, tools):\n    plan = tools[\"plan\"](instruction)\n    for step in plan:\n        tools[\"act\"](step)\n    return tools[\"read\"](plan[-1])\n\ndef dummy_tools():\n    return {\n        \"plan\": lambda s: [s, \"点击提交\"],\n        \"act\": lambda x: None,\n        \"read\": lambda x: \"页面显示：提交成功\",\n    }\n\nif __name__ == \"__main__\":\n    print(computer_use(\"提交报销单\", dummy_tools()))",
+            "output": "页面显示：提交成功",
+            "note": "computer_use 编排「规划-执行-读取」；dummy_tools 是替身，真实场景接截图+操作 API。step/x/s 均被引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "能力边界与防护",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Computer Use 本质是「模拟人操作」，所以人会犯的错它都会犯：点错按钮、填错字段、被诱导授权。必须配：①沙箱（隔离宿主机）；②确认门（提交/支付前人工复核）；③操作日志（每步可回放追责）。不要让它碰「无撤销」的高危界面。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "维度",
+              "Computer Use",
+              "直接 API"
+            ],
+            "rows": [
+              [
+                "覆盖",
+                "任何界面",
+                "仅开放接口"
+              ],
+              [
+                "稳定性",
+                "脆（界面变就崩）",
+                "稳"
+              ],
+              [
+                "速度",
+                "慢",
+                "快"
+              ],
+              [
+                "安全",
+                "需沙箱+确认",
+                "可控"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**老系统对接**：无 API 的后台自动填表；**网页操作**：自动提交/查询；**回归测试**：模拟用户点界面"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：让它碰高危界面",
+          "text": "Computer Use 在「无撤销」界面（删库、转账、发邮件）上误操作代价极高。这类动作要么接确认门，要么干脆走专用 API 而非模拟点击。"
         }
       ],
       "enterpriseCase": {
