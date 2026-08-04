@@ -1,0 +1,169 @@
+/* ============================================
+   AI Agent 学习路线 - CSS 变量系统
+   极客科技风 / 深色主题
+   ============================================ */
+
+:root {
+  /* === 背景层级 === */
+  --bg-primary: #0a0e1a;
+  --bg-secondary: #131826;
+  --bg-tertiary: #1c2333;
+  --bg-code: #0d1117;
+  --bg-terminal: #000000;
+  --bg-overlay: rgba(10, 14, 26, 0.85);
+
+  /* === 文字层级 === */
+  --text-primary: #e6edf3;
+  --text-secondary: #8b949e;
+  --text-muted: #6e7681;
+  --text-on-accent: #ffffff;
+
+  /* === 强调色（霓虹系）=== */
+  --accent-purple: #a371f7;
+  --accent-cyan: #39d0d8;
+  --accent-pink: #f778ba;
+  --accent-green: #3fb950;
+  --accent-yellow: #d29922;
+  --accent-red: #f85149;
+  --accent-blue: #58a6ff;
+  --accent-orange: #ffa657;
+
+  /* === 边框 === */
+  --border-default: #30363d;
+  --border-muted: #21262d;
+  --border-glow: rgba(163, 113, 247, 0.4);
+  --border-cyan-glow: rgba(57, 208, 216, 0.3);
+
+  /* === 渐变 === */
+  --gradient-primary: linear-gradient(135deg, #a371f7 0%, #39d0d8 100%);
+  --gradient-purple: linear-gradient(135deg, #a371f7 0%, #f778ba 100%);
+  --gradient-cyan: linear-gradient(135deg, #39d0d8 0%, #58a6ff 100%);
+  --gradient-glow: radial-gradient(circle, rgba(163, 113, 247, 0.15) 0%, transparent 70%);
+  --gradient-card: linear-gradient(180deg, rgba(28, 35, 51, 0.8) 0%, rgba(19, 24, 38, 0.8) 100%);
+  --gradient-hero: radial-gradient(ellipse at top, rgba(163, 113, 247, 0.15) 0%, transparent 50%),
+                   radial-gradient(ellipse at bottom right, rgba(57, 208, 216, 0.1) 0%, transparent 50%);
+
+  /* === 阴影 === */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-glow: 0 0 20px rgba(163, 113, 247, 0.2);
+  --shadow-cyan-glow: 0 0 20px rgba(57, 208, 216, 0.2);
+
+  /* === 字体 === */
+  --font-body: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-heading: 'Inter', 'Noto Sans SC', sans-serif;
+  --font-code: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+  --font-terminal: 'JetBrains Mono', monospace;
+
+  /* === 字号 === */
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-base: 16px;
+  --fs-lg: 18px;
+  --fs-xl: 20px;
+  --fs-2xl: 24px;
+  --fs-3xl: 30px;
+  --fs-4xl: 36px;
+  --fs-5xl: 48px;
+
+  /* === 字重 === */
+  --fw-light: 300;
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+
+  /* === 行高 === */
+  --lh-tight: 1.25;
+  --lh-normal: 1.6;
+  --lh-relaxed: 1.75;
+  --lh-code: 1.5;
+
+  /* === 布局尺寸 === */
+  --sidebar-width: 300px;
+  --sidebar-collapsed-width: 60px;
+  --content-max-width: 900px;
+  --content-padding: 40px;
+  --topbar-height: 64px;
+
+  /* === 间距（8px基准）=== */
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 16px;
+  --space-lg: 24px;
+  --space-xl: 32px;
+  --space-2xl: 48px;
+  --space-3xl: 64px;
+
+  /* === 圆角 === */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* === 过渡 === */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+
+  /* === z-index 层级 === */
+  --z-sidebar: 100;
+  --z-topbar: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-tooltip: 500;
+}
+
+/* ============================================
+   白天模式（默认）配色方案
+   与暗黑模式保持同一套强调色体系，仅调整明度/对比度以适配浅色背景
+   ============================================ */
+[data-theme="light"] {
+  /* === 背景层级（冷调浅白）=== */
+  --bg-primary: #f5f7fb;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #eef1f7;
+  --bg-code: #f3f5f9;
+  --bg-terminal: #1e2230;
+  --bg-overlay: rgba(255, 255, 255, 0.78);
+
+  /* === 文字层级 === */
+  --text-primary: #1a2233;
+  --text-secondary: #5a6478;
+  --text-muted: #8b94a7;
+  --text-on-accent: #ffffff;
+
+  /* === 强调色（同色系，加深以提高浅底对比度）=== */
+  --accent-purple: #7c3aed;
+  --accent-cyan: #0891b2;
+  --accent-pink: #db2777;
+  --accent-green: #16a34a;
+  --accent-yellow: #b45309;
+  --accent-red: #dc2626;
+  --accent-blue: #2563eb;
+  --accent-orange: #ea580c;
+
+  /* === 边框 === */
+  --border-default: #e2e8f0;
+  --border-muted: #eef1f7;
+  --border-glow: rgba(124, 58, 237, 0.35);
+  --border-cyan-glow: rgba(8, 145, 178, 0.3);
+
+  /* === 渐变 === */
+  --gradient-primary: linear-gradient(135deg, #7c3aed 0%, #0891b2 100%);
+  --gradient-purple: linear-gradient(135deg, #7c3aed 0%, #db2777 100%);
+  --gradient-cyan: linear-gradient(135deg, #0891b2 0%, #2563eb 100%);
+  --gradient-glow: radial-gradient(circle, rgba(124, 58, 237, 0.1) 0%, transparent 70%);
+  --gradient-card: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(238, 241, 247, 0.9) 100%);
+  --gradient-hero: radial-gradient(ellipse at top, rgba(124, 58, 237, 0.08) 0%, transparent 50%),
+                   radial-gradient(ellipse at bottom right, rgba(8, 145, 178, 0.06) 0%, transparent 50%);
+
+  /* === 阴影（浅色用低透明黑/品牌色柔和阴影）=== */
+  --shadow-sm: 0 2px 8px rgba(26, 34, 51, 0.06);
+  --shadow-md: 0 4px 16px rgba(26, 34, 51, 0.08);
+  --shadow-lg: 0 8px 32px rgba(26, 34, 51, 0.1);
+  --shadow-glow: 0 0 20px rgba(124, 58, 237, 0.15);
+  --shadow-cyan-glow: 0 0 20px rgba(8, 145, 178, 0.15);
+}

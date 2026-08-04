@@ -1,0 +1,58 @@
+name: Build and Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: "pages-build"
+  cancel-in-progress: false
+
+jobs:
+  build-and-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Build data.js and cache-bust assets
+        run: python scripts/build_data.py
+
+      - name: Verify JSON validity
+        run: |
+          python - <<'PY'
+          import json
+          for i in range(1, 7):
+              with open(f'assets/data/chapter-{i}.json', encoding='utf-8') as f:
+                  json.load(f)
+          with open('assets/data/chapters.json', encoding='utf-8') as f:
+              json.load(f)
+          print('All JSON files are valid.')
+          PY
+
+      - name: Commit build artifacts if changed
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add assets/js/data.js assets/js/data.*.js assets/css/*.css index.html
+          if git diff --cached --quiet; then
+            echo "No build artifact changes to commit."
+          else
+            git commit -m "chore: auto-build data.js and cache-bust assets [ci skip]"
+            git push
+          fi
+
+      # 备注：本项目使用 GitHub Pages 的「Deploy from a branch」模式（main 分支根目录）。
+      # 上述提交会触发 Pages 自动重新部署。如后续切换到「GitHub Actions」部署源，
+      # 可在此 job 后增加 upload-pages-artifact + deploy-pages 步骤。
