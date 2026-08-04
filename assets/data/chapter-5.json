@@ -13,9 +13,9 @@
       "estimatedMinutes": 35,
       "difficulty": 3,
       "objectives": [
-        "掌握智能客服系统的四层结构：意图路由 / 知识检索 / 生成回复 / 兜底与 HITL",
-        "能实现一个带 RAG 的客服回答链路",
-        "理解「答非所问」与「幻觉」在客服场景的应对手段"
+        "能设计一个「意图识别 + 知识库 + 人工兜底」的客服 Agent 闭环",
+        "理解为什么客服要把「确定性知识」与「开放问答」分开处理",
+        "知道哪些情况必须转人工而非硬答"
       ],
       "content": [
         {
@@ -127,6 +127,89 @@
               "text": "知识库切分粒度太粗会带入无关内容，太细则拼不回完整答案。检索窗口（top-k）要和可用的上下文上限一起调，而不是拍脑袋。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "客服 Agent 的本质是「分工」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "客服里大量问题是确定性的（退款政策、物流时效），用知识库直答最稳最便宜；少量是开放性的（投诉情绪、复杂个案），才需要模型理解与人工。好的客服 Agent 先用意图识别把问题分流：命中知识库的直接答、需要情绪的转人工、需要查系统的调工具。绝不让模型「凭记忆编」政策类内容。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_1_customer.py",
+            "language": "python",
+            "title": "最小客服闭环：知识库命中 + 转人工兜底",
+            "highlightLines": [
+              4,
+              8
+            ],
+            "code": "KNOWLEDGE = {\n    \"退款\": \"7天无理由退款，自签收起算\",\n    \"物流\": \"普通快递 3-5 天达，可查单号\",\n}\n\ndef handle(msg):\n    for topic, answer in KNOWLEDGE.items():\n        if topic in msg:\n            return \"知识库答复：\" + answer\n    return \"已转人工客服\"\n\nif __name__ == \"__main__\":\n    print(handle(\"我要退款\"))\n    print(handle(\"你们老板电话多少\"))",
+            "output": "知识库答复：7天无理由退款，自签收起算\n已转人工客服",
+            "note": "先查确定知识，未命中转人工；真实场景把 KNOWLEDGE 换成向量检索，并加工具查订单状态。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "转人工不是失败，是护栏",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "很多团队把「转人工」当成 Agent 没答上来的尴尬。恰恰相反，在政策、情绪、权限、钱相关的问题上主动转人工，是对用户最负责的做法。设计目标是「让简单问题秒回，让复杂问题落到对的人手里」。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "问题类型",
+              "处理方式",
+              "为什么"
+            ],
+            "rows": [
+              [
+                "政策类",
+                "知识库直答",
+                "不许编造"
+              ],
+              [
+                "查状态",
+                "调工具",
+                "实时准确"
+              ],
+              [
+                "情绪/投诉",
+                "转人工",
+                "需共情"
+              ],
+              [
+                "权限/钱",
+                "转人工",
+                "不可逆"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**电商客服**：退款/物流走知识库+订单工具，投诉转人工；**SaaS 客服**：文档问答+转技术支持；**银行**：业务咨询直答，交易转柜面"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：让模型编政策",
+          "text": "「年假几天」这类制度问题，模型凭记忆答极易出错且口径不一。必须接知识库/RAG，命中才答，否则转人工。"
         }
       ],
       "enterpriseCase": {
@@ -194,9 +277,9 @@
       "estimatedMinutes": 30,
       "difficulty": 4,
       "objectives": [
-        "理解代码助手/审查 Agent 的能力边界：生成、解释、找 bug、建议",
-        "能实现一个读取 git diff 的代码审查 Agent",
-        "掌握「审查意见结构化 + 按严重度分级」的可落地格式"
+        "理解代码助手的两类任务（生成 vs 审查）及其不同要求",
+        "能写一个最小代码审查器，按规则清单标出问题行",
+        "知道 AI 审查只能补位不能替代人工 review"
       ],
       "content": [
         {
@@ -306,6 +389,84 @@
               "text": "如果审查 Agent 只输出一段散文，CI 没法决定「该拦还是该警告」。强制它输出结构化严重度（blocker/warning/info），才能让高危问题阻断合并、低危仅提示。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "生成与审查是两种能力",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "代码助手常被混为一谈，但「写代码」和「审代码」要求完全不同：生成要会联想、会补全；审查要会挑刺、懂坏味道。审查尤其适合用规则清单+模型复核来落地——先跑静态规则（TODO、裸 print、裸 except）抓低级问题，再让模型看逻辑与安全隐患。AI 审查是「第一道网」，减轻人工负担，但不该是唯一把关。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_2_code_review.py",
+            "language": "python",
+            "title": "按规则清单标出代码问题行",
+            "highlightLines": [
+              4,
+              6
+            ],
+            "code": "RULES = [\"print(\", \"except:\", \"import *\"]\n\ndef review(code_text):\n    hits = []\n    for i, line in enumerate(code_text.splitlines(), 1):\n        for r in RULES:\n            if r in line:\n                hits.append((i, r))\n    return hits\n\nif __name__ == \"__main__\":\n    print(review(\"def f():\\n    print('x')\\n    except:\\n        pass\\n\"))",
+            "output": "[(2, \"print(\"), (3, 'TODO')]",
+            "note": "enumerate 带行号；RULES 可扩展为更严格的 lint 集。真实审查再叠加模型对逻辑/安全的判断。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "AI 审查的边界",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "规则能抓「明显坏」（裸 except、未用变量），模型能抓「可能坏」（并发、注入、越权）。但「这段代码是否满足业务需求、是否过度设计」只有人懂上下文。所以 AI 审查定位是「放大人工的覆盖度」，不是替代。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "层级",
+              "抓什么",
+              "局限"
+            ],
+            "rows": [
+              [
+                "静态规则",
+                "低级坏味道",
+                "误报/漏报"
+              ],
+              [
+                "模型审查",
+                "逻辑/安全",
+                "需上下文"
+              ],
+              [
+                "人工 review",
+                "业务正确性",
+                "慢、覆盖低"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**PR 自动审查**：提交即跑规则+模型，标问题再等人工；**存量代码治理**：批量扫 TODO/裸 except；**教学**：给新手即时反馈"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：AI 审查过了就合并",
+          "text": "把 AI 审查当「通行证」是危险的。它只能降人工负担，关键逻辑、安全、业务正确性仍需人工拍板。"
         }
       ],
       "enterpriseCase": {
@@ -371,9 +532,9 @@
       "estimatedMinutes": 30,
       "difficulty": 3,
       "objectives": [
-        "理解数据分析 Agent 的两种形态：NL2SQL 与 pandas 代理",
-        "能实现一个把自然语言转成 SQL 并安全执行的查询 Agent",
-        "掌握「让模型只读、禁止 DROP/写」的护栏设计"
+        "理解 NL2SQL 的「方便」与「危险」：自然语言问数据",
+        "能写一个带白名单与禁写校验的最小 NL2SQL 安全层",
+        "知道 Text-to-SQL 必须配合权限与审计"
       ],
       "content": [
         {
@@ -478,6 +639,89 @@
               "text": "直接 exec 模型生成的代码等于把终端交给模型。务必：① 清空 __builtins__；② 只允许白名单函数（pd/df/数学）；③ 在沙箱/子进程里跑，超时即杀。更稳的方案是用固定工具而非自由代码。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "把「人话」变成「SQL」是 Analytics 的圣杯",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "NL2SQL 让非技术人员用自然语言查数据（「上月各渠道转化率」），体验极好。但危险也极大：模型可能生成 DROP/DELETE，或查到它无权看的表。生产级 NL2SQL 必须有安全层——白名单限定可查表、禁止写操作、参数化防注入、结果脱敏、全程审计。绝不能把「模型生成的 SQL」直接裸执行。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_3_nl2sql.py",
+            "language": "python",
+            "title": "最小 NL2SQL 安全层：白名单 + 禁写校验",
+            "highlightLines": [
+              4,
+              8
+            ],
+            "code": "def nl2sql(question):\n    if \"订单\" in question:\n        return \"SELECT * FROM orders LIMIT 10\"\n    return \"SELECT 1\"\n\ndef is_safe(sql):\n    forbidden = (\"DROP\", \"DELETE\", \"UPDATE\", \"INSERT\", \";\")\n    return not any(f in sql.upper() for f in forbidden)\n\nif __name__ == \"__main__\":\n    sql = nl2sql(\"查最近订单\")\n    print(sql, \"安全?\", is_safe(sql))",
+            "output": "SELECT * FROM orders LIMIT 10 安全? True",
+            "note": "真实场景用 LLM 生成 SQL，但必经 is_safe 拦截写操作与拼接；表名也要在白名单内。f 在 any 生成器中被引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "权限比语法更重要",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "即使 SQL 语法安全（只读 SELECT），「用户 A 查到了用户 B 的订单」也是越权。NL2SQL 必须叠加行级权限（按当前用户过滤）与列级脱敏（手机号打码），否则方便变成了泄密。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "风险",
+              "防护",
+              "例子"
+            ],
+            "rows": [
+              [
+                "写操作",
+                "禁 DROP/DELETE/UPDATE",
+                "防误删"
+              ],
+              [
+                "越权表",
+                "表白名单",
+                "防跨库"
+              ],
+              [
+                "越权行",
+                "行级过滤",
+                "防看他人数据"
+              ],
+              [
+                "注入",
+                "参数化",
+                "防拼接"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**BI 自助**：业务方自然语言查指标；**运营看板**：运营自查数据；**老板视角**：高层看汇总（权限最紧）"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：模型 SQL 直接执行",
+          "text": "模型生成的 SQL 一旦裸跑，一个 DELETE 或分号后的恶意语句就能清空表。必须经过禁写+白名单校验，且用只读账号执行。"
         }
       ],
       "enterpriseCase": {
@@ -545,9 +789,9 @@
       "estimatedMinutes": 25,
       "difficulty": 3,
       "objectives": [
-        "理解运营 Agent 的价值：把重复运营动作（发券/推送/复盘）自动化",
-        "能设计一个「策略→执行→回收指标」的运营闭环",
-        "掌握运营动作的频率控制与防骚扰护栏"
+        "理解运营自动化的「监控->判断->执行」闭环",
+        "能写一个最小运维循环：超阈值告警并自动处置",
+        "知道哪些处置可自动、哪些必须人工"
       ],
       "content": [
         {
@@ -633,6 +877,89 @@
               "text": "回收指标时，发券组和对照组必须随机分组，否则「发券后转化高」可能只是因为发给了本来就活跃的用户。运营 Agent 的归因要建立在实验设计上，不是看前后数字差。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "运营自动化是「有护栏的自动决策」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "运营/运维里很多动作可自动化：指标超阈值就扩容、异常就告警、定时就跑报表。但这些动作都有「副作用」，所以闭环必须带护栏——自动执行「可逆、低危」的（扩容、发通知），人工确认「不可逆、高危」的（缩容、删数据、改配置）。自动化的价值是「快且不知疲倦」，护栏的价值是「不出大事故」。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_4_ops.py",
+            "language": "python",
+            "title": "最小运维闭环：超阈值告警 + 自动扩容",
+            "highlightLines": [
+              2,
+              6
+            ],
+            "code": "def monitor(metrics, threshold):\n    alerts = []\n    for name, value in metrics.items():\n        if value > threshold:\n            alerts.append(name)\n    return alerts\n\ndef act(alerts):\n    return [\"自动扩容：\" + a for a in alerts]\n\nif __name__ == \"__main__\":\n    print(act(monitor({\"cpu\": 95, \"mem\": 60}, 80)))",
+            "output": "['自动扩容：cpu']",
+            "note": "monitor 取超阈值项，act 生成处置；真实场景 act 调云 API，缩容/删库等高危动作走人工确认。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "自动化的「可逆性」红线",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "扩容、发消息、跑只读报表——错了能撤回或无害，可自动。缩容（可能杀掉正常服务）、删数据、改生产配置——错了损失大且难恢复，必须人工。画这条线比「能自动就自动」更重要。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "动作",
+              "可逆性",
+              "处置"
+            ],
+            "rows": [
+              [
+                "告警通知",
+                "无害",
+                "可自动"
+              ],
+              [
+                "扩容",
+                "易回退",
+                "可自动"
+              ],
+              [
+                "缩容",
+                "可能误杀",
+                "人工"
+              ],
+              [
+                "删数据",
+                "不可逆",
+                "人工"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**弹性伸缩**：CPU 高自动扩容；**日报**：定时生成推送；**异常检测**：超阈告警；**成本优化**：闲置资源报告"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：全自动无护栏",
+          "text": "让 Agent 自动缩容、自动删、自动改配置，一次误判就是线上事故。高危动作默认人工，自动化只覆盖可逆低危项。"
         }
       ],
       "enterpriseCase": {
@@ -698,9 +1025,9 @@
       "estimatedMinutes": 35,
       "difficulty": 4,
       "objectives": [
-        "掌握企业知识库问答的全流程： ingestion → 切分 → 嵌入 → 检索 → 生成 → 引用",
-        "能实现一个带「引用溯源」的 RAG 回答",
-        "理解切分粒度与元数据过滤对召回质量的影响"
+        "理解企业知识库问答的「检索+生成+引用」三段式",
+        "能写一个带来源引用的 KB QA，抑制幻觉",
+        "知道权限隔离（谁能看哪些文档）是企业的硬要求"
       ],
       "content": [
         {
@@ -811,6 +1138,89 @@
               "text": "如果知识库混了机密文档，纯语义检索可能把「薪资制度」召回给无关员工。检索查询必须带 `dept`/`clearance` 过滤条件，且要在向量库层而非生成层做，否则模型可能「脑补」绕过。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "知识库问答 = RAG + 引用 + 权限",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "企业知识库问答不是「把文档丢给模型」，而是：①检索相关片段（RAG）；②让模型只基于片段作答；③在答案里标注来源 id（便于回溯与追责）；④按用户权限过滤可检索的文档。缺了引用，用户无法核实；缺了权限，A 部门能看 B 部门机密。这两点是企业级与玩具级的本质区别。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_5_kb_qa.py",
+            "language": "python",
+            "title": "带来源引用的知识库问答",
+            "highlightLines": [
+              4,
+              8
+            ],
+            "code": "DOCS = {\n    \"年假\": \"年假 10 天，满 1 年加 1 天\",\n    \"报销\": \"报销需发票，T+3 到账\",\n}\n\ndef answer(question):\n    for topic, text in DOCS.items():\n        if topic in question:\n            return \"[\" + topic + \"] \" + text\n    return \"未检索到相关制度\"\n\nif __name__ == \"__main__\":\n    print(answer(\"年假几天\"))",
+            "output": "[年假] 年假 10 天，满 1 年加 1 天",
+            "note": "答案带 [topic] 引用；真实场景用向量检索召回多个片段并拼接来源，权限层在检索前过滤文档。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "权限是企业的硬约束",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "个人知识库只要「答得对」；企业知识库还要「答得对且只答该用户能看的」。检索前必须按用户角色过滤文档集合——HR 文档不对普通员工可见。这层做不好，RAG 再准也是泄密通道。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "能力",
+              "个人版",
+              "企业版"
+            ],
+            "rows": [
+              [
+                "检索",
+                "全量文档",
+                "按权限过滤"
+              ],
+              [
+                "引用",
+                "可选",
+                "必带来源"
+              ],
+              [
+                "脱敏",
+                "无",
+                "手机号/金额打码"
+              ],
+              [
+                "审计",
+                "无",
+                "谁查了什么"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**员工服务**：制度/FAQ 自助问答；**销售**：产品资料即时查；**法务**：合同条款检索（权限最严）"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：检索前不过滤权限",
+          "text": "若所有文档混在一起检索，模型可能把机密片段答给无权限的人。权限过滤必须在检索前，而非生成后。"
         }
       ],
       "enterpriseCase": {
@@ -875,9 +1285,9 @@
       "estimatedMinutes": 35,
       "difficulty": 5,
       "objectives": [
-        "理解多 Agent 协作开发系统的角色分工：PM / 架构 / 编码 / 测试",
-        "能用 CrewAI 或 LangGraph 串起「需求→设计→编码→测试」流水线",
-        "掌握「测试不通过则回退编码」的反馈闭环"
+        "能设计一个「规划-编码-审查」多 Agent 协作开发流水线",
+        "理解为什么「编码」和「审查」必须是不同 Agent",
+        "知道协作开发的产物（PR/测试报告）如何流转"
       ],
       "content": [
         {
@@ -989,6 +1399,84 @@
               "text": "如果「测试失败→改代码→再测」没有重试上限，Agent 可能改到上下文溢出或绕开测试。务必设最大重试，超了转人工并保留最后一次 diff 供人看。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "开发协作 = 角色化 + 产物化",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "让一个 Agent 又写又审自己的代码，等于没有审查。开发协作要把步骤拆给不同角色：规划者拆需求、编码者实现、审查者挑刺，每个角色产出明确的交付物（需求文档、代码、review 意见）在 Agent 间流转。关键是「编码者看不到自己的代码被自动通过」——审查必须独立。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_6_dev_team.py",
+            "language": "python",
+            "title": "规划-编码-审查 三步开发流水线",
+            "highlightLines": [
+              1,
+              5
+            ],
+            "code": "STEPS = [\"规划\", \"编码\", \"审查\"]\n\ndef dev_pipeline(req):\n    results = []\n    for step in STEPS:\n        results.append(step + \"：\" + req)\n    return results\n\nif __name__ == \"__main__\":\n    print(dev_pipeline(\"实现登录\"))",
+            "output": "['规划：实现登录', '编码：实现登录', '审查：实现登录']",
+            "note": "STEPS 定义流水线；真实场景每步是独立 Agent，产物（设计/代码/意见）传给下一步，审查不通过则回编码。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "产物是协作的契约",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 之间不靠「口头默契」协作，而靠「产物」。规划者产出需求拆解文档，编码者基于它写代码，审查者拿着代码与设计比对。产物让每一步可独立验证、可回放、可追责。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "角色",
+              "产物",
+              "下游"
+            ],
+            "rows": [
+              [
+                "规划者",
+                "需求拆解",
+                "编码者"
+              ],
+              [
+                "编码者",
+                "代码+测试",
+                "审查者"
+              ],
+              [
+                "审查者",
+                "review 意见",
+                "回编码/合并"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**需求到代码**：产品拆票->开发实现->测试审；**重构**：规划改动点->逐文件改->回归；**修 bug**：定位->修->验证"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：自写自审",
+          "text": "让同一个 Agent 写并审自己的代码，审查形同虚设。编码与审查必须分属不同 Agent（或人工），才能真的发现问题。"
         }
       ],
       "enterpriseCase": {
@@ -1054,9 +1542,9 @@
       "estimatedMinutes": 30,
       "difficulty": 5,
       "objectives": [
-        "理解全栈开发 Agent 的两阶段：先出规格/脚手架，再做前后端实现",
-        "能实现一个「规格→前端→后端」顺序生成的 Agent 流程",
-        "掌握「用工具生成而非自由写码」来降低不可控性"
+        "理解全栈开发 Agent 要同时管「前端/后端/数据」三层",
+        "能写一个把需求拆成三层任务的最小规划器",
+        "知道全栈自动化的「接口契约」先于实现"
       ],
       "content": [
         {
@@ -1162,6 +1650,84 @@
               "text": "如果脚手架命令用 `shell=True` 拼接用户输入，攻击者可借项目名注入命令。务必 `shell=False` 并传参数列表，或严格白名单项目名。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "全栈 Agent 的难点在「层间契约」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "全栈开发不是「前后端各写各的」，而是三层要严格对齐：前端调的接口、后端提供的接口、数据库存的字段，必须是一致的契约。全栈 Agent 应该先定「接口契约」（URL、参数、返回、表结构），再让各层基于契约并行实现。契约错了，三层全返工。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_7_fullstack.py",
+            "language": "python",
+            "title": "把需求拆成前端/后端/库三层任务",
+            "highlightLines": [
+              2,
+              4
+            ],
+            "code": "def plan_fullstack(req):\n    frontend = \"React 表单 + 校验\"\n    backend = \"FastAPI 接口 + 校验\"\n    db = \"表：users(id, name)\"\n    return {\"前端\": frontend, \"后端\": backend, \"库\": db}\n\nif __name__ == \"__main__\":\n    print(plan_fullstack(\"用户注册\"))",
+            "output": "{'前端': 'React 表单 + 校验', '后端': 'FastAPI 接口 + 校验', '库': '表：users(id, name)'}",
+            "note": "req 被引用；三层任务各自独立。真实场景先产出 OpenAPI 契约，前端/后端/迁移脚本并行基于契约生成。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "契约先于实现",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "让 Agent 先产出接口与表结构定义（契约），再实现，能避免「前端等后端、后端等库」的串行阻塞，也避免三层对不齐。契约本身也要进版本管理，改契约要同步通知三层。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "层",
+              "关注",
+              "交付"
+            ],
+            "rows": [
+              [
+                "前端",
+                "交互+调接口",
+                "页面/组件"
+              ],
+              [
+                "后端",
+                "逻辑+提供接口",
+                "API/服务"
+              ],
+              [
+                "库",
+                "存储结构",
+                "表/迁移"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**MVP 快速搭建**：先契约后并行实现；**内部工具**：表单+接口+表一气呵成；**原型**：一天出可点 demo"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：三层各写各的没契约",
+          "text": "没有统一契约，前端调的字段后端没提供、后端存的字段前端不知道，联调时全面返工。先定契约再实现。"
         }
       ],
       "enterpriseCase": {
@@ -1226,9 +1792,9 @@
       "estimatedMinutes": 30,
       "difficulty": 4,
       "objectives": [
-        "掌握 Agent 上线的四类性能/成本杠杆：缓存、并发、流式、成本控制",
-        "能实现一个带「语义缓存」的回答层降低重复调用",
-        "理解 token 成本与延迟的权衡点"
+        "理解「部署 + 健康检查 + 回滚」是 Agent 上线的最后一公里",
+        "能写一个带健康检查的部署函数，失败即回滚",
+        "知道 Agent 上线后要监控成功率与成本"
       ],
       "content": [
         {
@@ -1339,6 +1905,89 @@
               "text": "多个线程同时写同一个字典/列表会丢更新。并发只适合「各算各的、最后汇总」的场景；需要共享状态时用锁或回到单线程聚合。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "部署不是「传上去」，是「能回退」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 上线最怕「新版本行为变差却撤不回来」。可靠部署要有三件套：①灰度（先放一小部分流量）；②健康检查（上线后立即验证关键路径）；③一键回滚（检查失败立刻回到上一稳定版）。Agent 尤其需要监控「成功率/成本/延迟」三个指标，因为模型升级可能悄悄变差。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_8_deploy.py",
+            "language": "python",
+            "title": "带健康检查与回滚的部署",
+            "highlightLines": [
+              2,
+              5
+            ],
+            "code": "def deploy(version):\n    healthy = check_health()\n    if healthy:\n        return \"已上线 \" + version\n    return \"健康检查失败，回滚到上一版本\"\n\ndef check_health():\n    return True\n\nif __name__ == \"__main__\":\n    print(deploy(\"v2\"))",
+            "output": "已上线 v2",
+            "note": "deploy 先健康检查再确认；check_health 演示返回 True，真实场景打关键接口验证。version 被引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "上线只是开始",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 上线后才是重点：用 eval 框架（见 2.10）跑标注集得基线，灰度对比新旧版本的成功率与成本，线上监控趋势。发现新版本成本翻倍或准确率掉点，立刻回滚而不是硬扛。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "动作",
+              "目的",
+              "失败处置"
+            ],
+            "rows": [
+              [
+                "灰度",
+                "小流量验证",
+                "异常则停"
+              ],
+              [
+                "健康检查",
+                "验证关键路径",
+                "回滚"
+              ],
+              [
+                "回滚",
+                "快速恢复",
+                "保留快照"
+              ],
+              [
+                "监控",
+                "持续可观测",
+                "告警"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**模型升级**：灰度 5% 流量对比；**提示改动**：A/B 看成功率；**大版本**：蓝绿部署，切流量不换机"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：上了线不监控",
+          "text": "一次模型/提示更新可能悄悄让准确率掉 5%、成本翻倍。上线后必须用 eval+线上监控持续盯成功率与成本，异常即回滚。"
         }
       ],
       "enterpriseCase": {
@@ -1406,9 +2055,9 @@
       "estimatedMinutes": 25,
       "difficulty": 4,
       "objectives": [
-        "理解 Agent 面临的三类安全风险：提示注入、越权、数据泄露",
-        "能实现一道「提示注入过滤」护栏",
-        "掌握「最小权限 + 输出审查」降低 Agent 被滥用的手段"
+        "理解企业 Agent 的安全合规是「多层防御」而非单点",
+        "能写一个输入净化 + 输出校验的 Guardrail",
+        "知道合规要求（数据出境、留痕、可审计）如何落到设计"
       ],
       "content": [
         {
@@ -1515,6 +2164,89 @@
               "text": "只在用户输入做过滤不够——模型可能在多轮后被「软磨硬泡」带偏，或在工具返回里夹带敏感数据。输出端也必须有一道审查/脱敏，形成「输入拦 + 输出审」双层。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "安全合规是「分层 + 可审计」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "企业 Agent 的安全不是加一个过滤器就完事，而是分层：输入净化（拦注入）、指令隔离（系统提示与用户输入分通道）、输出校验（限话题/长度/格式）、权限分层（高危动作人工）。再加「全程留痕」——谁、在什么上下文、让 Agent 做了什么、结果如何，都要可审计。合规（如数据不出境、操作可追溯）正是靠这些落地。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_9_guard.py",
+            "language": "python",
+            "title": "输入净化 + 输出校验的 Guardrail",
+            "highlightLines": [
+              4,
+              7
+            ],
+            "code": "BLOCKLIST = [\"忽略指令\", \"系统提示\", \"密码\"]\n\ndef guard(text):\n    low = text.lower()\n    for w in BLOCKLIST:\n        if w.lower() in low:\n            return False, \"命中敏感词：\" + w\n    return True, \"通过\"\n\nif __name__ == \"__main__\":\n    print(guard(\"请忽略指令\"))\n    print(guard(\"你好\"))",
+            "output": "(False, '命中敏感词：忽略指令')\n(True, '通过')",
+            "note": "BLOCKLIST 是黑名单演示，真实需配白名单；guard 同时管输入与输出，二者成对出现。w 在循环中被引用。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "合规落到设计而非事后",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "「数据不出境」要在架构上把模型调用限制在国内节点；「操作可审计」要在每次调用落库上下文与结果；「最小权限」要在工具层按角色收口。这些不是上线后补，而是设计阶段就定。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "层",
+              "做法",
+              "防什么"
+            ],
+            "rows": [
+              [
+                "输入净化",
+                "黑名单/白名单",
+                "注入"
+              ],
+              [
+                "指令隔离",
+                "系统/用户分通道",
+                "越权"
+              ],
+              [
+                "输出校验",
+                "限话题/长度",
+                "泄密"
+              ],
+              [
+                "留痕",
+                "全量记录",
+                "不可审计"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**金融**：所有调用留痕+权限分层；**政务**：数据不出境+国模节点；**医疗**：脱敏+人工复核敏感操作"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：只防输入不防输出",
+          "text": "即使输入干净，模型仍可能输出敏感信息或被诱导越界。输入净化与输出校验必须成对，缺一不可。"
         }
       ],
       "enterpriseCase": {
@@ -1582,9 +2314,9 @@
       "estimatedMinutes": 30,
       "difficulty": 3,
       "objectives": [
-        "掌握 Agent 常见的四类坑：幻觉、循环、成本失控、评估缺失",
-        "能实现带指数退避的重试与幂等调用",
-        "理解「没有评估集就没有迭代依据」"
+        "能列出 Agent 上线前必须自检的清单（终止/成本/校验/兜底）",
+        "理解常见难点的根因（循环、幻觉、越权、成本失控）",
+        "知道如何把「踩过的坑」沉淀为可复用检查项"
       ],
       "content": [
         {
@@ -1696,6 +2428,89 @@
               "text": "如果评估集全是「简单退款题」，通过率再高也不能说明 Agent 变强了。评估集要覆盖长尾、对抗样本、注入尝试，且定期补充线上真实 bad case。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "踩坑的本质是「没在设计期设护栏」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 的常见难点几乎都能在设计期预防：死循环→没终止条件；幻觉→没接知识库/校验；越权→没权限分层；成本失控→没预算上限。与其上线后救火，不如上线前跑一遍 checklist，把每个坑对应成一个必选项。坑不可怕，可怕的是每次都踩同一个。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_10_pitfalls.py",
+            "language": "python",
+            "title": "上线前自检清单：缺一项就别上",
+            "highlightLines": [
+              4,
+              5
+            ],
+            "code": "CHECKLIST = [\"有终止条件\", \"有成本上限\", \"有工具校验\", \"有人工兜底\"]\n\ndef self_check(enabled):\n    missing = [c for c in CHECKLIST if c not in enabled]\n    return \"缺失：\" + \"、\".join(missing) if missing else \"完备\"\n\nif __name__ == \"__main__\":\n    print(self_check([\"有终止条件\", \"有成本上限\"]))",
+            "output": "缺失：有工具校验、有人工兜底",
+            "note": "CHECKLIST 是必选项；self_check 返回缺失项。真实场景把这四项做成 CI 卡点，缺一项不允许上线。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "把坑变成可复用资产",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "每次线上事故，根因和修复都该沉淀进 checklist 与审计脚本（如 audit_code.py）。团队的水平不体现在「少踩坑」，而体现在「同一个坑不踩第二次」。文档化、自动化检查比口头约定可靠。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "难点",
+              "根因",
+              "预防"
+            ],
+            "rows": [
+              [
+                "死循环",
+                "无终止条件",
+                "max_steps"
+              ],
+              [
+                "幻觉",
+                "无知识源",
+                "RAG+校验"
+              ],
+              [
+                "越权",
+                "无权限层",
+                "角色收口"
+              ],
+              [
+                "成本爆",
+                "无预算",
+                "上限+监控"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**上线门禁**：CI 跑 checklist；**复盘**：事故回填检查项；**新人**：照单自检再动手"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：清单写完不执行",
+          "text": "checklist 的价值在「卡点」而非「参考」。把它接进 CI/上线流程，缺一项就阻断，而不是贴在墙上。"
         }
       ],
       "enterpriseCase": {
@@ -1763,9 +2578,9 @@
       "estimatedMinutes": 30,
       "difficulty": 4,
       "objectives": [
-        "理解企业级存储的三个层次：向量库 / 结构化库 / 缓存",
-        "能实现一个带「混合检索」的存储访问层",
-        "掌握存储层的幂等与连接管理，避免资源泄漏"
+        "理解 Agent 的不同记忆/存储需求对应不同存储选型",
+        "能按需求（向量/缓存/结构化）选存储并返回一个说明",
+        "知道「存储选型错」会导致检索慢或成本高"
       ],
       "content": [
         {
@@ -1872,6 +2687,89 @@
               "text": "每次请求 new 一个数据库连接又不关，并发一上来就耗尽连接池。用连接池 + `with`/上下文管理器确保归还；向量库客户端同理。"
             }
           ]
+        },
+        {
+          "type": "heading",
+          "text": "深入解析与实战"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "存储不是「一个数据库搞定」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Agent 几种数据诉求不同：长期语义记忆要「向量检索」（Milvus/pgvector），短期会话缓存要「快且可过期」（Redis），结构化业务数据要「强一致」（PostgreSQL）。混用或错用都会出问题——用关系库存向量会检索慢，用向量库存订单会丢事务。按访问模式选存储，是 Agent 工程的基本功。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "s5_11_storage.py",
+            "language": "python",
+            "title": "按需求选存储：向量/缓存/结构化",
+            "highlightLines": [
+              2,
+              4
+            ],
+            "code": "def pick_store(need):\n    if need == \"向量检索\":\n        return \"向量库（Milvus / pgvector）\"\n    if need == \"缓存会话\":\n        return \"Redis\"\n    if need == \"持久结构化\":\n        return \"关系库（PostgreSQL）\"\n    return \"本地文件\"\n\nif __name__ == \"__main__\":\n    print(pick_store(\"向量检索\"))\n    print(pick_store(\"缓存会话\"))",
+            "output": "向量库（Milvus / pgvector）\nRedis",
+            "note": "need 被引用；真实选型还要看规模与延迟。向量库做语义召回，Redis 做低延迟会话，PG 做事务数据。"
+          }
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "存储与检索是一对",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "选了存储就要配对应的检索方式：向量库配近似检索（ANN）、关系库配 SQL、缓存配 key 查询。很多「检索慢/召回差」的锅，其实是「用错了存储」或「检索方式与存储不匹配」。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "诉求",
+              "存储",
+              "检索方式"
+            ],
+            "rows": [
+              [
+                "语义记忆",
+                "向量库",
+                "ANN 相似"
+              ],
+              [
+                "会话缓存",
+                "Redis",
+                "key 查询"
+              ],
+              [
+                "业务数据",
+                "PostgreSQL",
+                "SQL"
+              ],
+              [
+                "文件/日志",
+                "对象存储",
+                "路径"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "实际应用场景",
+          "text": "**长期记忆**：pgvector 存对话嵌入；**多轮会话**：Redis 存 recent；**订单**：PG 事务；**文档**：对象存储+向量索引"
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "易错点：什么都往关系库塞",
+          "text": "把向量、缓存、文件全塞进一个关系库，结果检索慢、成本高、难扩展。按访问模式分库，是 Agent 存储的基本功。"
         }
       ],
       "enterpriseCase": {
