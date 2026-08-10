@@ -5247,14 +5247,14 @@
         {
           "type": "doc",
           "title": "LangChain —— Tools & Toolkits",
-          "url": "https://python.langchain.com/docs/concepts/tools/",
-          "note": "Toolkit 是「一组相关工具」，是 Skill 思想在 LangChain 里的体现"
+          "url": "https://docs.langchain.com/oss/python/langchain/tools",
+          "note": "Tool 是 LangChain 里最小的能力单元，Toolkit 是一组相关工具——Skill 思想在 LangChain 里的体现"
         },
         {
           "type": "doc",
           "title": "MCP —— Servers 作为跨进程能力容器",
-          "url": "https://modelcontextprotocol.io/docs/concepts/servers",
-          "note": "把 3.6 的 MCP Server 和本节 Skill 对照看：管道 vs 商品"
+          "url": "https://modelcontextprotocol.io/docs",
+          "note": "MCP 官方文档（Server 是跨进程能力容器，标准化暴露工具/资源/提示）；把 3.6 的 MCP Server 和本节 Skill 对照看：管道 vs 商品"
         }
       ],
       "quiz": [
