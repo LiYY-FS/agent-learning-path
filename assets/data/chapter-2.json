@@ -3539,7 +3539,7 @@
         {
           "type": "doc",
           "title": "LlamaIndex 文档",
-          "url": "https://docs.llamaindex.ai/"
+          "url": "https://developers.llamaindex.ai/python/framework/"
         }
       ],
       "quiz": [
@@ -3949,7 +3949,7 @@
         {
           "type": "doc",
           "title": "OWASP LLM Top 10",
-          "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/",
+          "url": "https://genai.owasp.org/llm-top-10/",
           "note": "LLM 应用安全风险排行"
         },
         {

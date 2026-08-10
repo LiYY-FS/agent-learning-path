@@ -1749,7 +1749,7 @@
         {
           "type": "doc",
           "title": "Anthropic Prompt Engineering",
-          "url": "https://docs.anthropic.com/claude/docs/prompt-engineering",
+          "url": "https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices",
           "note": "Claude 官方指南"
         },
         {

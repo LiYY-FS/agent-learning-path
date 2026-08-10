@@ -1079,7 +1079,7 @@
         {
           "type": "doc",
           "title": "LlamaIndex 官方文档",
-          "url": "https://docs.llamaindex.ai/en/stable/",
+          "url": "https://developers.llamaindex.ai/python/framework/",
           "note": "RAG 型代表：索引、检索、重排、评估的抽象是选型对比的基准线"
         },
         {
@@ -1967,25 +1967,25 @@
         {
           "type": "doc",
           "title": "LangChain 官方文档（Python）",
-          "url": "https://python.langchain.com/docs/introduction/",
+          "url": "https://docs.langchain.com/oss/python/langchain/overview",
           "note": "从这里入门，Tutorials 部分可直接跟做"
         },
         {
           "type": "doc",
           "title": "LCEL 概念详解",
-          "url": "https://python.langchain.com/docs/concepts/lcel/",
+          "url": "https://docs.langchain.com/oss/python/langchain/overview",
           "note": "Runnable 协议与管道组合的权威说明"
         },
         {
           "type": "doc",
           "title": "How to: 结构化输出",
-          "url": "https://python.langchain.com/docs/how_to/structured_output/",
+          "url": "https://docs.langchain.com/oss/python/langchain/structured-output",
           "note": "with_structured_output 的各种用法与限制"
         },
         {
           "type": "doc",
           "title": "How to: 为 Chain 添加消息历史",
-          "url": "https://python.langchain.com/docs/how_to/message_history/",
+          "url": "https://docs.langchain.com/oss/python/langchain/overview",
           "note": "RunnableWithMessageHistory 官方指南"
         },
         {
@@ -3901,7 +3901,7 @@
             },
             {
               "type": "doc",
-              "url": "https://docs.llamaindex.ai/en/stable/module_guides/workflow/",
+              "url": "https://developers.llamaindex.ai/python/llamaagents/workflows/",
               "title": "LlamaIndex Workflows 官方模块指南",
               "note": "事件驱动编排的完整 API 与示例，含并发、分支、循环写法。"
             }
@@ -4159,31 +4159,31 @@
         {
           "type": "doc",
           "title": "LlamaIndex 官方文档",
-          "url": "https://docs.llamaindex.ai/en/stable/",
+          "url": "https://developers.llamaindex.ai/python/framework/",
           "note": "入口页，Understanding 章节是最好的上手路径。"
         },
         {
           "type": "doc",
           "title": "Indexing 模块指南",
-          "url": "https://docs.llamaindex.ai/en/stable/module_guides/indexing/",
+          "url": "https://developers.llamaindex.ai/python/framework/module_guides/indexing/",
           "note": "四种基础索引 + PropertyGraphIndex 的完整说明与选型建议。"
         },
         {
           "type": "doc",
           "title": "Response Synthesizer（response_mode 全解）",
-          "url": "https://docs.llamaindex.ai/en/stable/module_guides/querying/response_synthesizers/",
+          "url": "https://developers.llamaindex.ai/python/framework/module_guides/querying/response_synthesizers/",
           "note": "compact / refine / tree_summarize 等模式的内部机制。"
         },
         {
           "type": "doc",
           "title": "句子窗口检索示例（MetadataReplacementDemo）",
-          "url": "https://docs.llamaindex.ai/en/stable/examples/node_postprocessor/MetadataReplacementDemo/",
+          "url": "https://developers.llamaindex.ai/python/framework/module_guides/",
           "note": "SentenceWindowNodeParser + 重排的官方端到端 Notebook。"
         },
         {
           "type": "doc",
           "title": "Workflows 事件驱动编排",
-          "url": "https://docs.llamaindex.ai/en/stable/module_guides/workflow/",
+          "url": "https://developers.llamaindex.ai/python/llamaagents/workflows/",
           "note": "LlamaIndex 原生编排机制，替代早期 Query Pipeline。"
         },
         {
@@ -6566,7 +6566,7 @@
         {
           "type": "doc",
           "title": "LangChain Tracing 集成",
-          "url": "https://python.langchain.com/docs/integrations/tracing/",
+          "url": "https://docs.langchain.com/oss/python/integrations/providers/overview",
           "note": "在 LangChain 中开启追踪"
         }
       ],

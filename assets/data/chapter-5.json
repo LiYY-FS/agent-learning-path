@@ -373,7 +373,7 @@
         {
           "type": "doc",
           "title": "RAG 最佳实践",
-          "url": "https://python.langchain.com/docs/tutorials/rag/",
+          "url": "https://docs.langchain.com/oss/python/deepagents/rag",
           "note": "检索+生成的官方教程"
         },
         {
@@ -1128,7 +1128,7 @@
         {
           "type": "doc",
           "title": "LangChain SQL Agent",
-          "url": "https://python.langchain.com/docs/integrations/toolkits/sql_database/",
+          "url": "https://docs.langchain.com/oss/python/integrations/providers/overview",
           "note": "NL2SQL 的工具化实现"
         },
         {
@@ -1870,7 +1870,7 @@
         {
           "type": "doc",
           "title": "RAG 全流程教程",
-          "url": "https://python.langchain.com/docs/tutorials/rag/",
+          "url": "https://docs.langchain.com/oss/python/deepagents/rag",
           "note": "ingestion 到生成的完整示例"
         },
         {
@@ -3001,7 +3001,7 @@
         {
           "type": "doc",
           "title": "LangChain 缓存",
-          "url": "https://python.langchain.com/docs/how_to/llm_caching/",
+          "url": "https://docs.langchain.com/oss/python/langchain/overview",
           "note": "LLM 调用缓存的内置支持"
         },
         {
@@ -3382,7 +3382,7 @@
         {
           "type": "doc",
           "title": "OWASP LLM Top 10",
-          "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/",
+          "url": "https://genai.owasp.org/llm-top-10/",
           "note": "LLM 应用十大安全风险"
         },
         {

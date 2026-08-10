@@ -2059,7 +2059,7 @@
         {
           "type": "doc",
           "title": "OWASP Top 10 for LLM Applications",
-          "url": "https://owasp.org/www-project-top-10-for-large-language-model-applications/",
+          "url": "https://genai.owasp.org/llm-top-10/",
           "note": "LLM/Agent 安全的权威清单"
         },
         {
@@ -3288,7 +3288,7 @@
         {
           "type": "doc",
           "title": "LangChain 教程",
-          "url": "https://python.langchain.com/docs/tutorials/",
+          "url": "https://docs.langchain.com/oss/python/langchain/overview",
           "note": "框架动手练手首选"
         }
       ],
