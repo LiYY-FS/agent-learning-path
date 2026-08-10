@@ -4626,6 +4626,309 @@
         },
         {
           "type": "heading",
+          "text": "从零发布一个 MCP Server：完整工程化流程"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "第 1 步：脚手架与本地冒烟",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "先有一个能跑的 Server，再谈发布。用 `uv` 初始化工程、装 SDK、本地以开发模式拉起，确认 stdio 握手正常——这是后面所有发布动作的前提。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "3_6_scaffold.sh",
+                "language": "bash",
+                "title": "用 uv 初始化工程并本地冒烟测试",
+                "highlightLines": [
+                  2,
+                  6,
+                  9
+                ],
+                "code": "# 用 uv 初始化一个 MCP Server 工程（uv 是 Python 官方推荐的打包工具）\nuv init mcp-weather --lib\ncd mcp-weather\n\n# 安装 MCP Python SDK（FastMCP 在其中）\nuv add \"mcp[cli]\"\n\n# 本地冒烟：以开发模式拉起 Server，验证 stdio 握手是否正常\nuv run mcp dev src/mcp_weather/server.py\n\n# 跑通后锁定依赖，保证别人复现一致\nuv lock\n",
+                "output": "",
+                "note": "uv 是 Python 官方推荐的打包/虚拟环境工具；`mcp dev` 会启动一个带调试界面的本地 Server。这一步不联网、不发布，纯粹验证代码本身能跑。"
+              }
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "第 2 步：声明依赖与入口点（决定 uvx 能否一行拉起）",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "`[project]` 写元数据与依赖；关键在于 `[project.scripts]`——它把你的模块函数注册成一个控制台命令。没有它，`uvx mcp-weather` 就找不到入口，别人只能从源码跑。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "pyproject.toml",
+                "language": "toml",
+                "title": "pyproject.toml：元数据 + 依赖 + 控制台入口",
+                "highlightLines": [
+                  7,
+                  9
+                ],
+                "code": "[project]\nname = \"mcp-weather\"\nversion = \"0.1.0\"\ndescription = \"A minimal MCP server exposing a weather tool\"\nreadme = \"README.md\"\nrequires-python = \">=3.10\"\ndependencies = [\"mcp>=1.2.0\"]\n\n[project.scripts]\nmcp-weather = \"mcp_weather.server:main\"\n\n[build-system]\nrequires = [\"hatchling\"]\nbuild-backend = \"hatchling.build\"\n",
+                "output": "",
+                "note": "把版本钉死在 dependencies 里（如 mcp>=1.2.0）能保证别人装到兼容的 SDK。`[project.scripts]` 的 `模块:函数` 写法决定 `uvx` 拉起时执行哪个函数。"
+              }
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "claude_desktop_config.json",
+            "language": "json",
+            "title": "客户端接入配置：三种启动形态",
+            "highlightLines": [
+              4,
+              9
+            ],
+            "code": "{\n  \"mcpServers\": {\n    \"weather\": {\n      \"command\": \"uvx\",\n      \"args\": [\"--from\", \"mcp-weather\", \"mcp-weather\"],\n      \"env\": { \"OPENWEATHER_API_KEY\": \"填入你的密钥\" }\n    },\n    \"weather-local\": {\n      \"command\": \"uv\",\n      \"args\": [\"--directory\", \"/abs/path/to/mcp-weather\", \"run\", \"mcp-weather\"]\n    },\n    \"weather-node\": {\n      \"command\": \"npx\",\n      \"args\": [\"-y\", \"@modelcontextprotocol/server-everything\"]\n    }\n  }\n}\n",
+            "output": "",
+            "note": "形态一：已发布包用 `uvx` 一行拉起；形态二：源码用 `uv --directory` 跑；形态三：Node 生态用 `npx`。`env` 用于注入密钥，切勿把密钥写进 `args`（会被记录到进程命令行）。"
+          }
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "配置项",
+              "含义",
+              "最佳实践"
+            ],
+            "rows": [
+              [
+                "command",
+                "启动 Server 的可执行文件",
+                "写绝对路径，GUI 宿主不继承 shell 的 PATH"
+              ],
+              [
+                "args",
+                "传给 command 的参数列表",
+                "密钥不要进 args；放 env；路径用绝对路径"
+              ],
+              [
+                "env",
+                "注入的环境变量",
+                "只放必要密钥，避免泄露到进程参数"
+              ],
+              [
+                "stdio vs http",
+                "传输方式",
+                "本地优先 stdio；跨网络/多租户用 Streamable HTTP"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "配置四大坑",
+          "text": "① GUI 宿主（如桌面客户端）不继承 shell 的 PATH，必须写 `uvx`/`python` 的绝对路径，否则报 command not found。② 密钥硬编码进 `args` 会被记录到系统进程列表，一律走 `env`。③ 改完配置要**完全退出重启**宿主进程，仅重开对话不生效。④ Windows 商店版 Python 路径被虚拟化，建议用官方安装包的绝对路径。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "第 4 步：发布到 PyPI，让别人 `uvx` 一键安装",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "本地能跑 ≠ 别人能装。把包构建并发布到 PyPI（或 TestPyPI 先行验证），别人就能 `uvx mcp-weather` 直接拉起。推荐配置 Trusted Publishing（OIDC），用 CI 的临时凭证发布，免长期 token。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "3_6_publish.sh",
+                "language": "bash",
+                "title": "构建并发布到 PyPI（TestPyPI 先行验证）",
+                "highlightLines": [
+                  2,
+                  6,
+                  9
+                ],
+                "code": "# 1) 先发到 TestPyPI 验证安装链路，不出错再上正式源\nuv build\nuv publish --publish-url https://test.pypi.org/legacy/ dist/*\n\n# 2) 正式发布（推荐配置 Trusted Publishing / OIDC，免长期 token）\nuv publish dist/*\n\n# 3) 别人即可一行安装并运行你的 Server\nuvx mcp-weather\n",
+                "output": "",
+                "note": "先发 TestPyPI 验证安装链路，避免把坏包发到正式源。`uv publish` 走 PyPI 的 Trusted Publishing 时不需要在本地保存 token。"
+              }
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "第 5 步：上架官方 Registry，让发现机制生效",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "PyPI 只解决「能装上」，但 Agent 宿主还需要一个**发现**入口——这就是官方 MCP Registry。你提交一份 `server.json` 清单，注册表据此展示你的 Server 并生成安装配置。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "server.json",
+                "language": "json",
+                "title": "server.json：官方 Registry 清单（字段照真实 schema）",
+                "highlightLines": [
+                  2,
+                  3,
+                  4,
+                  7
+                ],
+                "code": "{\n  \"name\": \"io.github.yourname/mcp-weather\",\n  \"description\": \"MCP server exposing weather lookup and alerts as tools\",\n  \"version\": \"0.1.0\",\n  \"repository\": { \"url\": \"https://github.com/yourname/mcp-weather\" },\n  \"homepage\": \"https://github.com/yourname/mcp-weather#readme\",\n  \"packages\": [\n    {\n      \"registryType\": \"pypi\",\n      \"identifier\": \"mcp-weather\",\n      \"runtimeHint\": \"uvx\",\n      \"transport\": [\"stdio\"]\n    }\n  ]\n}\n",
+                "output": "",
+                "note": "`name` 是反向 DNS 命名空间（恰好一个斜杠）；`description` **硬上限 100 字符**，要极简；`version` 走 semver；`packages[].registryType` 标包来源（pypi/npm/oci/nuget/mcpb），`runtimeHint` 标拉起方式（uvx/npx/docker）。"
+              }
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "server.json 字段",
+              "约束",
+              "说明"
+            ],
+            "rows": [
+              [
+                "name",
+                "反向 DNS，恰好一个 /，≤200",
+                "命名空间隔离，如 io.github.<user>/<server>"
+              ],
+              [
+                "description",
+                "≤100 字符（硬约束）",
+                "极简一句话，是用户在注册表里看到的唯一摘要"
+              ],
+              [
+                "version",
+                "≤255，建议 semver",
+                "与 PyPI 包版本保持一致"
+              ],
+              [
+                "packages[].registryType",
+                "pypi/npm/oci/nuget/mcpb",
+                "包从哪个源安装"
+              ],
+              [
+                "packages[].runtimeHint",
+                "uvx/npx/docker/dnx",
+                "宿主用什么命令拉起"
+              ],
+              [
+                "packages[].transport",
+                "stdio / http 等",
+                "Server 支持的传输方式"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "所有权验证与发布命令",
+          "text": "发布前要在 README 里放一行所有权标记 `mcp-name: io.github.<user>/<server>`，注册表据此确认你拥有该命名空间（Docker 版用 `LABEL io.modelcontextprotocol.server.name=`）。随后用官方发布器：`mcp-publisher validate server.json` → `mcp-publisher login <方式>` → `mcp-publisher publish`（具体安装方式以官方仓库说明为准，本文不编造命令）。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "第 6 步：版本管理——三条独立的版本线",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "MCP Server 的「版本」其实有三条互相独立的线，别混为一谈：① **协议版本**（如 2025-06-18，在握手时协商，决定支持哪些原语）；② **包版本**（PyPI/npm 上的 semver，决定装哪份代码）；③ **server.json 的 version**（注册表展示用，通常与包版本对齐）。改了代码 bump 包版本，但协议没升级就不该动协议版本号。"
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "变更类型",
+              "判定为",
+              "例子"
+            ],
+            "rows": [
+              [
+                "删工具 / 改必填参数名或类型 / 改返回结构",
+                "major（破坏性）",
+                "把 `order_id` 必填改成 `order_no`"
+              ],
+              [
+                "加工具 / 加可选参数 / 加新能力不影响旧调用",
+                "minor（兼容新增）",
+                "给 `query_order` 增加可选 `lang`"
+              ],
+              [
+                "改 docstring / 修 bug / 性能优化",
+                "patch（无契约变化）",
+                "修正返回文案里的错别字"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "3_6_mcp_version_guard.py",
+            "language": "python",
+            "title": "工具契约版本守卫：自动判定 major/minor/patch",
+            "highlightLines": [
+              16
+            ],
+            "code": "from dataclasses import dataclass\n\n@dataclass\nclass ToolSchema:\n    name: str\n    required: list\n    optional: list\n    returns: str\n\ndef bump(level, base=\"1.0.0\"):\n    maj, min_, pat = (int(x) for x in base.split(\".\"))\n    if level == \"major\":\n        return f\"{maj+1}.0.0\"\n    if level == \"minor\":\n        return f\"{maj}.{min_+1}.0\"\n    return f\"{maj}.{min_}.{pat+1}\"\n\ndef diff_level(old, new):\n    if old.name != new.name or set(old.required) != set(new.required) or old.returns != new.returns:\n        return \"major\"\n    if set(new.optional) > set(old.optional) or old.optional != new.optional:\n        return \"minor\"\n    return \"patch\"\n\nOLD = ToolSchema(\"query_order\", [\"order_id\"], [\"detail\"], \"dict\")\nNEW = ToolSchema(\"query_order\", [\"order_id\"], [\"detail\", \"lang\"], \"dict\")\n\nif __name__ == \"__main__\":\n    level = diff_level(OLD, NEW)\n    print(f\"{OLD.name}: {level} -> {bump(level)}\")\n",
+            "output": "query_order: minor -> 1.1.0",
+            "note": "对比新旧工具 schema：必填参数、返回结构变了就是 major；只新增可选参数就是 minor；其余是 patch。`bump` 按 semver 给出建议新版本。把这段接进 CI，每次改 tool 都自动提示该 bump 哪一位。"
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "弃用流程",
+          "text": "破坏性变更不要「直接删」。旧工具名至少保留一个 minor 周期，在 `description` 前缀标注 `deprecated` 并指向替代工具，等调用方都迁移完再删除。这样下游 Agent 不会因为一次升级集体崩掉。"
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "维度",
+              "Python 生态",
+              "Node 生态"
+            ],
+            "rows": [
+              [
+                "工程元数据",
+                "pyproject.toml",
+                "package.json"
+              ],
+              [
+                "控制台入口",
+                "[project.scripts]",
+                "bin 字段"
+              ],
+              [
+                "构建+发布",
+                "uv build + uv publish",
+                "npm publish"
+              ],
+              [
+                "一行拉起",
+                "uvx <pkg>",
+                "npx <pkg>"
+              ],
+              [
+                "注册表来源",
+                "registryType: pypi",
+                "registryType: npm"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "heading",
           "text": "深入解析与实战"
         },
         {
@@ -4871,6 +5174,16 @@
           "title": "排查一个真实的「连不上」故障",
           "description": "在 `mcp_server.py` 的工具函数里加一行 `print(\"debug: called\")`，重新用 `3_6_mcp_client.py` 连接并调用工具，记录报错现象。然后改用 `logging` 输出到 stderr，验证问题消失。用一段话解释 stdio 传输下 stdout 为什么不能被占用。",
           "hints": "报错通常表现为 JSON 解析失败或连接被关闭。可以对比：把同样的 print 换成 Streamable HTTP 传输时是否还会出问题。"
+        },
+        {
+          "title": "写一份自己的 server.json 并本地自洽校验",
+          "description": "仿照正文示例，为你的一个 MCP Server 写 `server.json`：反向 DNS 命名空间、≤100 字符的 description、semver 的 version，以及一个 pypi 包声明。然后逐项核对：`name` 是否恰好一个斜杠、`description` 是否真不超 100 字符、`packages[].registryType` 与 `runtimeHint` 是否匹配。",
+          "hints": "把 description 复制到字符计数器里确认长度；`name` 用 `io.github.<你的用户名>/<服务名>` 这种反向 DNS 形式最稳妥。"
+        },
+        {
+          "title": "为一个工具走完「破坏性变更 + 弃用」全流程",
+          "description": "选正文 `query_order` 工具，把必填参数 `order_id` 改名为 `order_no`（这是 major 级破坏性变更）。按弃用流程：保留旧 `order_id` 至少一个 minor 周期、在 description 标注 deprecated 并指向新参数、用 `3_6_mcp_version_guard.py` 确认级别为 major，最后说明何时可以安全删除旧参数。",
+          "hints": "破坏性变更的核心是「给下游迁移窗口」，而不是「立刻干净」。写清楚删除旧参数的触发条件（如：下一个 major 版本）。"
         }
       ],
       "resources": [
@@ -4915,6 +5228,24 @@
           "title": "Anthropic：Introducing the Model Context Protocol",
           "url": "https://www.anthropic.com/news/model-context-protocol",
           "note": "2024-11 发布公告，讲清设计动机与生态目标"
+        },
+        {
+          "type": "doc",
+          "title": "MCP Registry 说明（官方）",
+          "url": "https://modelcontextprotocol.io/registry/about",
+          "note": "讲清楚 Server 如何上架、命名空间与所有权验证机制"
+        },
+        {
+          "type": "doc",
+          "title": "modelcontextprotocol/registry 代码库",
+          "url": "https://github.com/modelcontextprotocol/registry",
+          "note": "官方注册表实现与发布器 mcp-publisher 的源码"
+        },
+        {
+          "type": "doc",
+          "title": "server.json Schema（2025-12-11）",
+          "url": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+          "note": "上架清单的字段级约束，写 server.json 时照此校验"
         }
       ],
       "quiz": [
@@ -5195,6 +5526,284 @@
           "variant": "tip",
           "title": "工程化扩展",
           "text": "生产级 Skill 系统还要补：**版本化**（同名 Skill 升级不破坏旧调用方）、**依赖声明**（Skill A 依赖 Skill B）、**沙箱隔离**（Skill 内部代码跑在受限环境，防逃逸）、**调用计量与计费**。这些加上去，就是一个完整的「Agent 能力平台」。"
+        },
+        {
+          "type": "heading",
+          "text": "从零创建并发布一个 Skill：SKILL.md 工程实践"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "从「Python class 抽象」到「文件约定」",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "前面用 Python class 演示了 Skill 的抽象，但真实工程里业界收敛成一个 **Markdown 文件（SKILL.md）** 而不是一段代码。原因很实在：Markdown 可读、可被 git diff、可版本化、不需要运行时即可被调度器「读」到——调度器在启动时就扫描所有 SKILL.md 的声明，按需再加载正文，比把逻辑编译进二进制更容易分发与审计。"
+            }
+          ]
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "3_7_skill_tree.txt",
+            "language": "plaintext",
+            "title": "Skill 目录布局",
+            "highlightLines": [],
+            "code": "skill-weather/\n├── SKILL.md            # 必需：能力声明 + 使用说明\n├── scripts/            # 可选：脚本（如数据抓取、格式转换）\n│   └── fetch.py\n├── references/         # 可选：详细文档，被 SKILL.md 引用\n│   └── api.md\n└── assets/             # 可选：模板、示例、静态资源\n    └── sample.json\n",
+            "output": "",
+            "note": "`SKILL.md` 是必需项；`scripts/`（脚本）、`references/`（长文档）、`assets/`（模板/示例）都是可选的，按需添加。目录名建议与 SKILL.md 里的 `name` 一致。"
+          }
+        },
+        {
+          "type": "code",
+          "data": {
+            "filename": "SKILL.md",
+            "language": "markdown",
+            "title": "完整 SKILL.md 示例（frontmatter 全字段 + body 结构）",
+            "highlightLines": [
+              2,
+              3,
+              9
+            ],
+            "code": "---\nname: weather-skill\ndescription: 查询指定城市的实时天气与预警。当用户问\"今天天气\"\"是否下雨\"\"气象预警\"时使用；关键词：天气、气温、降雨、预警。\nlicense: MIT\ncompatibility: 需要 Python 3.10+ 与 OpenWeather API key\nmetadata:\n  author: yourname\n  version: 1.0.0\nallowed-tools: Read Bash(python *)\n---\n\n# Weather Skill\n\n## Instructions\n1. 从用户输入抽取城市名与日期。\n2. 调用 scripts/fetch.py 获取天气数据。\n3. 按用户语言格式化输出，附预警提示。\n\n## Rules\n- 缺失城市名时先追问，不要猜测。\n- 不缓存超过 10 分钟的数据。\n\n## Examples\n用户：\"北京今天天气怎么样？\"\n→ 调用 fetch.py 北京今日，返回气温与降雨概率。\n",
+            "output": "",
+            "note": "frontmatter 用 `---` 包裹；body 是给模型看的使用说明，常见三段：Instructions（步骤）/ Rules（约束）/ Examples（示例）。`allowed-tools` 是实验性字段，声明这个 Skill 允许调用哪些工具。"
+          }
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "frontmatter 字段",
+              "必填",
+              "约束"
+            ],
+            "rows": [
+              [
+                "name",
+                "是",
+                "≤64；小写字母/数字/连字符；不可首尾或连续连字符；须与目录名一致"
+              ],
+              [
+                "description",
+                "是",
+                "≤1024；第三人称；写清「做什么 + 何时用」+ 触发关键词"
+              ],
+              [
+                "license",
+                "否",
+                "许可证标识，如 MIT"
+              ],
+              [
+                "compatibility",
+                "否",
+                "≤500；运行环境/依赖要求"
+              ],
+              [
+                "metadata",
+                "否",
+                "任意键值，常放 author / version"
+              ],
+              [
+                "allowed-tools",
+                "否",
+                "空格分隔的工具名（实验性）"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "danger",
+          "title": "name 命名四条硬规则",
+          "text": "① 只能小写字母、数字、连字符；② 不能以连字符开头或结尾；③ 不能有连续连字符（`my--skill` 非法）；④ 必须与目录名完全一致。反例：`WeatherSkill`（大写）、`-weather`（开头连字符）、`weather-`（结尾连字符）、`wea--ther`（连续连字符）全部非法。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "description 是唯一的发现入口",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "模型/调度器在海量 Skill 里只靠 `description` 决定「这次要不要调你」。写好描述 = 写清两件事：**做什么** + **何时用**，并带够触发关键词。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "写法",
+                  "示例"
+                ],
+                "rows": [
+                  [
+                    "差",
+                    "处理天气相关事务（太含糊，模型判断不了何时用）"
+                  ],
+                  [
+                    "好",
+                    "查询指定城市实时天气与预警；用户问\"今天天气\"\"是否下雨\"\"气象预警\"时使用；关键词：天气、气温、降雨、预警"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "加载阶段",
+              "加载内容",
+              "预算"
+            ],
+            "rows": [
+              [
+                "启动时常驻",
+                "frontmatter 的 metadata",
+                "约 100 tokens"
+              ],
+              [
+                "激活时",
+                "SKILL.md 的 body（Instructions/Rules/Examples）",
+                "< 5000 tokens"
+              ],
+              [
+                "按需",
+                "references/ 下的长文档、scripts/ 下的脚本",
+                "用户触发时才读"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "tip",
+          "title": "控制体积，详情下沉",
+          "text": "SKILL.md 正文尽量压在 500 行内；把 API 细节、字段表、长示例放进 `references/`，在 body 里用一行引用指向它（如「详见 references/api.md」）。引用只做一层，不要链式跳转，否则模型容易中途丢失上下文。"
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "第 5 步：打包与分发",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Skill 的分发单元就是那个目录。校验通过后，可以放用户级目录（`~/.workbuddy/skills/`）、项目级目录（仓库内 `.workbuddy/skills/`），或整个丢进 Git 仓库让团队 clone + 软链。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "3_7_skill_package.sh",
+                "language": "bash",
+                "title": "校验、打包、安装路径",
+                "highlightLines": [
+                  2,
+                  10
+                ],
+                "code": "# 1) 用官方校验器检查 SKILL.md 合法性（安装方式见官方仓库说明，不在此编造）\nskills-ref validate ./skill-weather\n\n# 2) 以目录形式分发（用户级 / 项目级）\n#    用户级：~/.workbuddy/skills/skill-weather/\n#    项目级：<repo>/.workbuddy/skills/skill-weather/\n\n# 3) 团队用 Git 仓库分发，其他人 clone 后软链到 skills 目录\ngit clone git@github.com:yourname/skill-weather.git\nln -s \"$(pwd)/skill-weather\" ~/.workbuddy/skills/skill-weather\n",
+                "output": "",
+                "note": "`skills-ref validate` 校验 SKILL.md 合法性（安装方式以官方仓库说明为准）。用户级与项目级并存时通常项目级优先，便于团队锁定版本。"
+              }
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "版本管理与同名多版本解析",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "Skill 也需要版本化：同名 Skill 升级不能破坏旧调用方，团队还可能同时装了多个版本。下面的小程序演示如何解析「满足兼容约束的最高版本」。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "3_7_skill_semver.py",
+                "language": "python",
+                "title": "semver 解析 + 兼容判定 + 同名多版本 resolve",
+                "highlightLines": [
+                  12,
+                  13,
+                  14
+                ],
+                "code": "def parse(v):\n    return tuple(int(x) for x in v.split(\".\"))\n\ndef compatible(required, candidate):\n    r = parse(required)\n    c = parse(candidate)\n    if c[0] != r[0]:\n        return False\n    return c >= r\n\ndef resolve(name, required, registry):\n    cands = [v for (n, v) in registry if n == name and compatible(required, v)]\n    if not cands:\n        return None\n    return max(cands, key=parse)\n\nREGISTRY = [\n    (\"order_lookup\", \"1.0.0\"),\n    (\"order_lookup\", \"1.2.0\"),\n    (\"order_lookup\", \"2.0.0\"),\n    (\"order_lookup\", \"1.4.1\"),\n]\n\nif __name__ == \"__main__\":\n    print(\"require ^1.0.0 ->\", resolve(\"order_lookup\", \"1.0.0\", REGISTRY))\n    print(\"require ^1.2.0 ->\", resolve(\"order_lookup\", \"1.2.0\", REGISTRY))\n    print(\"require ^2.0.0 ->\", resolve(\"order_lookup\", \"2.0.0\", REGISTRY))\n",
+                "output": "require ^1.0.0 -> 1.4.1\nrequire ^1.2.0 -> 1.4.1\nrequire ^2.0.0 -> 2.0.0",
+                "note": "`compatible` 实现 `^` 语义：主版本相同且 >= 下限。`resolve` 从注册表里挑出兼容的最高版本。当两个团队都叫 `order_lookup` 时，靠 `name` 加命名空间（如 `team-a/order_lookup`）区分，再走这套解析。"
+              }
+            }
+          ]
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "变更类型",
+              "判定为",
+              "例子"
+            ],
+            "rows": [
+              [
+                "改 name / 删 scripts 入口 / 收紧 allowed-tools",
+                "major",
+                "把 `weather-skill` 改名为 `wx-skill`"
+              ],
+              [
+                "加能力、加 references、放宽 allowed-tools",
+                "minor",
+                "新增「空气质量」查询子能力"
+              ],
+              [
+                "改文案、修示例、补描述",
+                "patch",
+                "修正 Examples 里的笔误"
+              ]
+            ]
+          }
+        },
+        {
+          "type": "callout",
+          "variant": "warning",
+          "title": "弃用与迁移",
+          "text": "下线一个 Skill 不要「直接删」。在 `metadata` 里标注 `deprecated: true` 并指向替代 Skill，保留一个版本周期让调用方迁移，再正式移除。命名空间（如 `team-a/order_lookup`）能有效隔离不同团队的同名 Skill，避免误解析到错误版本。"
+        },
+        {
+          "type": "table",
+          "data": {
+            "headers": [
+              "维度",
+              "Skill（SKILL.md）",
+              "MCP Server（server.json）"
+            ],
+            "rows": [
+              [
+                "分发单元",
+                "目录（SKILL.md + 附属文件）",
+                "包（pypi/npm/oci）+ server.json"
+              ],
+              [
+                "安装方式",
+                "复制/软链/Git 仓库",
+                "uvx / npx / docker 拉起"
+              ],
+              [
+                "版本载体",
+                "SKILL.md 内 metadata.version",
+                "包版本 + server.json version"
+              ],
+              [
+                "发现机制",
+                "调度器扫描目录读 description",
+                "注册表 + 客户端配置"
+              ],
+              [
+                "权限边界",
+                "allowed-tools 声明",
+                "宿主授予的进程权限"
+              ],
+              [
+                "是否跨进程",
+                "通常同进程内加载",
+                "独立进程，stdio/http 通信"
+              ]
+            ]
+          }
         }
       ],
       "enterpriseCase": {
@@ -5229,6 +5838,16 @@
           "title": "用注册表实现「能力市场」雏形",
           "description": "基于 `s3_7_registry.py`，扩展 `register` 让每个 Skill 带 `version` 字段；扩展 `discover` 在返回名字时同时返回版本。再写一个 `resolve(name, version)` 按「同名取最高兼容版本」解析。",
           "hints": "版本比较可以用 `tuple(map(int, v.split('.')))`。思考：当两个团队都叫 `order_lookup` 时，命名空间怎么管？"
+        },
+        {
+          "title": "写一个 SKILL.md 并本地校验",
+          "description": "为「订单查询」能力写一个 SKILL.md：遵守 name 命名四规则、写清 description（做什么+何时用+关键词）、用 Instructions/Rules/Examples 三段组织 body。然后用 `skills-ref validate` 校验，修正所有报错。",
+          "hints": "先想清楚「这个能力解决什么业务目标」，description 就从这里提炼；body 的 Examples 用真实用户问句 → 期望动作的形式，模型最容易对齐。"
+        },
+        {
+          "title": "为同名多版本 resolve 增加命名空间隔离",
+          "description": "在 `3_7_skill_semver.py` 基础上，把注册表项从 `(name, version)` 扩展为 `(namespace, name, version)`，让 `resolve` 先按命名空间过滤再按版本解析。给 `team-a/order_lookup` 与 `team-b/order_lookup` 各放两个版本，验证不会串版本。",
+          "hints": "命名空间可以简单拼成 `namespace/name` 作为注册表 key；`compatible` 与 `parse` 逻辑不变，只是过滤条件多一层。"
         }
       ],
       "resources": [
@@ -5255,6 +5874,30 @@
           "title": "MCP —— Servers 作为跨进程能力容器",
           "url": "https://modelcontextprotocol.io/docs",
           "note": "MCP 官方文档（Server 是跨进程能力容器，标准化暴露工具/资源/提示）；把 3.6 的 MCP Server 和本节 Skill 对照看：管道 vs 商品"
+        },
+        {
+          "type": "doc",
+          "title": "Agent Skills 规范（官方）",
+          "url": "https://agentskills.io/specification",
+          "note": "SKILL.md 的字段级权威定义与渐进式披露预算"
+        },
+        {
+          "type": "doc",
+          "title": "agentskills/agentskills 参考实现",
+          "url": "https://github.com/agentskills/agentskills",
+          "note": "官方校验器 skills-ref 与示例 Skill 的源码"
+        },
+        {
+          "type": "doc",
+          "title": "MCP Registry 说明（对照阅读）",
+          "url": "https://modelcontextprotocol.io/registry/about",
+          "note": "理解 Server 如何上架，与 Skill 的分发形态做对照"
+        },
+        {
+          "type": "doc",
+          "title": "modelcontextprotocol/registry 代码库",
+          "url": "https://github.com/modelcontextprotocol/registry",
+          "note": "注册表实现，印证「分发单元 / 发现机制」的差异"
         }
       ],
       "quiz": [

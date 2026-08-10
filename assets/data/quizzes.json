@@ -4504,19 +4504,23 @@
       "options": [
         {
           "key": "A",
-          "text": "Skill 就是 Tool 的别名，两者完全等价"
+          "text": "Skill 就是 Tool 的别名，两者完全等价",
+          "correct": false
         },
         {
           "key": "B",
-          "text": "Skill 把工具链+流程+权限打包成可复用能力单元，Tool 是原子函数调用"
+          "text": "Skill 把工具链+流程+权限打包成可复用能力单元，Tool 是原子函数调用",
+          "correct": true
         },
         {
           "key": "C",
-          "text": "Skill 只能用在低代码平台，Tool 用在代码框架"
+          "text": "Skill 只能用在低代码平台，Tool 用在代码框架",
+          "correct": false
         },
         {
           "key": "D",
-          "text": "Tool 比 Skill 更高级、能力更强"
+          "text": "Tool 比 Skill 更高级、能力更强",
+          "correct": false
         }
       ],
       "explanation": "Tool 是原子级函数调用，Skill 在其之上封装了达成业务目标的工具链、流程与权限，是更粗粒度的能力单元。"
@@ -4531,19 +4535,23 @@
       "options": [
         {
           "key": "A",
-          "text": "给开发者看的代码注释"
+          "text": "给开发者看的代码注释",
+          "correct": false
         },
         {
           "key": "B",
-          "text": "让模型/调度器知道这个能力能做什么、何时该调用"
+          "text": "让模型/调度器知道这个能力能做什么、何时该调用",
+          "correct": true
         },
         {
           "key": "C",
-          "text": "满足代码规范检查"
+          "text": "满足代码规范检查",
+          "correct": false
         },
         {
           "key": "D",
-          "text": "替代正式的 API 文档"
+          "text": "替代正式的 API 文档",
+          "correct": false
         }
       ],
       "explanation": "description 是 Skill 被发现和选中的唯一依据，模型/调度器依据它判断是否调用；缺失或含糊会导致能力无法被正确路由。"
@@ -4558,19 +4566,23 @@
       "options": [
         {
           "key": "A",
-          "text": "单一职责"
+          "text": "单一职责",
+          "correct": false
         },
         {
           "key": "B",
-          "text": "权限最大化"
+          "text": "权限最大化",
+          "correct": true
         },
         {
           "key": "C",
-          "text": "可组合"
+          "text": "可组合",
+          "correct": false
         },
         {
           "key": "D",
-          "text": "声明式描述"
+          "text": "声明式描述",
+          "correct": false
         }
       ],
       "explanation": "Skill 的权限应遵循最小化原则，只申请完成该能力所必需的权限，避免越权风险。「权限最大化」是反模式。"
@@ -4585,19 +4597,23 @@
       "options": [
         {
           "key": "A",
-          "text": "MCP 是工具层的标准化传输协议，Skill 是能力的封装抽象，两者分属不同层次"
+          "text": "MCP 是工具层的标准化传输协议，Skill 是能力的封装抽象，两者分属不同层次",
+          "correct": true
         },
         {
           "key": "B",
-          "text": "两者正交互补：MCP 解决「怎么传」，Skill 解决「怎么封装组合」"
+          "text": "两者正交互补：MCP 解决「怎么传」，Skill 解决「怎么封装组合」",
+          "correct": true
         },
         {
           "key": "C",
-          "text": "有了 MCP 就不需要 Skill 概念"
+          "text": "有了 MCP 就不需要 Skill 概念",
+          "correct": false
         },
         {
           "key": "D",
-          "text": "Skill 必须通过 MCP 暴露才能被使用"
+          "text": "Skill 必须通过 MCP 暴露才能被使用",
+          "correct": false
         }
       ],
       "explanation": "MCP 与 Skill 分属协议层与抽象层，正交互补，不是替代关系；Skill 也可通过普通函数、插件等方式暴露，MCP 只是可选的标准化通道之一。"
@@ -4612,19 +4628,23 @@
       "options": [
         {
           "key": "A",
-          "text": "LangChain 的 LLMChain"
+          "text": "LangChain 的 LLMChain",
+          "correct": false
         },
         {
           "key": "B",
-          "text": "Semantic Kernel 的 Plugin（原名 Skill）"
+          "text": "Semantic Kernel 的 Plugin（原名 Skill）",
+          "correct": true
         },
         {
           "key": "C",
-          "text": "OpenAI 的 tokenizer"
+          "text": "OpenAI 的 tokenizer",
+          "correct": false
         },
         {
           "key": "D",
-          "text": "LlamaIndex 的 Index"
+          "text": "LlamaIndex 的 Index",
+          "correct": false
         }
       ],
       "explanation": "Semantic Kernel 早期用 Skill 命名能力封装单元，后改名 Plugin，是「Skill」这个词在主流框架中最直接的出处与对应。"
@@ -4639,19 +4659,23 @@
       "options": [
         {
           "key": "A",
-          "text": "把多个不相关能力塞进同一个 Skill（大杂烩）"
+          "text": "把多个不相关能力塞进同一个 Skill（大杂烩）",
+          "correct": true
         },
         {
           "key": "B",
-          "text": "权限申请过宽，直接给 order:* 全权限"
+          "text": "权限申请过宽，直接给 order:* 全权限",
+          "correct": true
         },
         {
           "key": "C",
-          "text": "缺少声明式描述，导致模型不知道何时该用"
+          "text": "缺少声明式描述，导致模型不知道何时该用",
+          "correct": true
         },
         {
           "key": "D",
-          "text": "让 Skill 只做一件事、职责单一"
+          "text": "让 Skill 只做一件事、职责单一",
+          "correct": false
         }
       ],
       "explanation": "A/B/C 都是典型误区；D 是正确做法（单一职责），不是误区。"
@@ -4701,11 +4725,11 @@
         "ch3-3.2-q1",
         "ch3-3.3-q1",
         "ch3-3.6-q1",
-        "ch3-3.8-q1",
+        "ch3-3.9-q1",
         "ch3-3.4-q1",
         "ch3-3.5-q1",
-        "ch3-3.7-q1",
-        "ch3-3.9-q1"
+        "ch3-3.8-q1",
+        "ch3-3.10-q1"
       ],
       "passingScore": 70
     },
