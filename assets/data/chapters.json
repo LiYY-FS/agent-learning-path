@@ -162,18 +162,24 @@
         },
         {
           "id": "3.7",
+          "title": "Agent Skill 与能力封装",
+          "estimatedMinutes": 40,
+          "difficulty": 3
+        },
+        {
+          "id": "3.8",
           "title": "低代码平台对比",
           "estimatedMinutes": 55,
           "difficulty": 2
         },
         {
-          "id": "3.8",
+          "id": "3.9",
           "title": "可观测性与监控",
           "estimatedMinutes": 45,
           "difficulty": 3
         },
         {
-          "id": "3.9",
+          "id": "3.10",
           "title": "代码沙箱与执行环境",
           "estimatedMinutes": 45,
           "difficulty": 3

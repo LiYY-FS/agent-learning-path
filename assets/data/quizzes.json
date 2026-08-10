@@ -1364,9 +1364,9 @@
       "explanation": "MCP 基于 JSON-RPC 2.0 协议进行通信，支持 stdio 和 SSE 两种传输方式。"
     },
     {
-      "id": "ch3-3.8-q1",
+      "id": "ch3-3.9-q1",
       "chapter": "ch3",
-      "section": "3.8",
+      "section": "3.9",
       "type": "single",
       "difficulty": 3,
       "question": "传统软件系统（非 Agent）可观测性的三大支柱是什么？",
@@ -1784,9 +1784,9 @@
       "explanation": "VectorStoreIndex.from_documents 内部完成切分、向量化与索引构建，是 LlamaIndex RAG 最常用的入口；Retriever 负责检索，Node Parser 只负责切分。"
     },
     {
-      "id": "ch3-3.7-q1",
+      "id": "ch3-3.8-q1",
       "chapter": "ch3",
-      "section": "3.7",
+      "section": "3.8",
       "type": "single",
       "difficulty": 2,
       "question": "下列哪种场景最适合优先选择低代码平台（如 Dify）而非纯代码开发？",
@@ -1812,9 +1812,9 @@
       "explanation": "低代码平台适合快速验证、标准应用与编程能力有限的团队；复杂逻辑、高性能、深度定制仍需代码开发。"
     },
     {
-      "id": "ch3-3.9-q1",
+      "id": "ch3-3.10-q1",
       "chapter": "ch3",
-      "section": "3.9",
+      "section": "3.10",
       "type": "single",
       "difficulty": 3,
       "question": "对 Agent 生成的代码，生产环境最安全的执行方式是？",
@@ -2680,9 +2680,9 @@
       "explanation": "多宿主复用 + 独立部署 + 独立审计，正是 MCP 的典型收益场景；跨机房/跨应用访问需要远程传输，因此选 Streamable HTTP。A 退回 M×N 重复集成；C 的 stdio 无法做到独立部署与集中审计（每个宿主各起一份本地进程）；D 是明显的反模式。"
     },
     {
-      "id": "ch3-3.7-q2",
+      "id": "ch3-3.8-q2",
       "chapter": "ch3",
-      "section": "3.7",
+      "section": "3.8",
       "type": "single",
       "difficulty": 2,
       "question": "关于 Dify 与 Coze（扣子）的差异，下列说法最准确的是？",
@@ -2708,9 +2708,9 @@
       "explanation": "两者的编排能力都不弱，本质差异在部署形态与生态：Dify 是开源项目，docker compose 即可完整私有化，适合有合规约束的企业；Coze 以 SaaS 托管为主（2025 年开源了 Coze Studio 社区版），真正的差异化价值是官方插件市场和一键发布到飞书、微信公众号、豆包等多个渠道。A、C、D 都与事实不符。"
     },
     {
-      "id": "ch3-3.7-q3",
+      "id": "ch3-3.8-q3",
       "chapter": "ch3",
-      "section": "3.7",
+      "section": "3.8",
       "type": "single",
       "difficulty": 2,
       "question": "某公司要做内部 SOP 知识问答，硬约束是「文档不得出内网」，团队有成熟的 K8s 运维能力，且业务方要求每条回答都能展示引用来源。按本节的决策路径，最合适的方案是？",
@@ -2736,9 +2736,9 @@
       "explanation": "「数据不能出内网」直接排除 SaaS 托管方案（A）；有 K8s 运维能力则自托管无障碍，Dify 与 FastGPT 都开源可自托管且原生支持引用溯源，正是这条路径的终点（C）。B 属于过度工程，需求还没验证就投入手写成本；D 的问题不在协议而在生产化能力——Flowise 的多租户、权限与审计较弱，更适合原型和学习。"
     },
     {
-      "id": "ch3-3.7-q4",
+      "id": "ch3-3.8-q4",
       "chapter": "ch3",
-      "section": "3.7",
+      "section": "3.8",
       "type": "single",
       "difficulty": 3,
       "question": "你在自托管 Dify 上写脚本给知识库灌文档，调用 `POST /v1/datasets/{dataset_id}/document/create-by-text` 时始终返回 401，但同一份代码里调 `/v1/chat-messages` 却完全正常。最可能的原因是？",
@@ -2764,9 +2764,9 @@
       "explanation": "Dify 的密钥分两类且互不通用：应用密钥 `app-` 用于 `/chat-messages`、`/workflows/run` 等应用接口，知识库密钥 `dataset-` 用于 `/datasets/*` 系列接口。`/chat-messages` 能通恰恰说明你手里拿的是应用密钥，拿它打知识库接口必然 401。C 不成立（自托管同样提供知识库 API）；D 描述的是参数问题，会返回 400 而不是 401；A 纯属虚构。"
     },
     {
-      "id": "ch3-3.7-q5",
+      "id": "ch3-3.8-q5",
       "chapter": "ch3",
-      "section": "3.7",
+      "section": "3.8",
       "type": "single",
       "difficulty": 3,
       "question": "团队用低代码平台做了半年，现在出现「多人改同一个工作流互相覆盖」「改坏了线上才发现」两个问题。下列哪组「逃生舱」措施最对症？",
@@ -2792,9 +2792,9 @@
       "explanation": "两个问题分别对应「版本与协作弱」和「评测与回归缺失」。前者的标准解法是把工作流导出成文本 DSL 进 Git，借用成熟的 PR/diff/review 流程；后者的解法是黄金问答集 + 批量回归脚本 + CI 卡口，让每次改动都有数字兜底。A 只是加注释，救不了并发覆盖；B 是把洗澡水和孩子一起倒掉，成本过高；D 换平台不解决流程问题，独立账号也阻止不了同一个工作流被互相覆盖。"
     },
     {
-      "id": "ch3-3.7-q6",
+      "id": "ch3-3.8-q6",
       "chapter": "ch3",
-      "section": "3.7",
+      "section": "3.8",
       "type": "single",
       "difficulty": 2,
       "question": "需求是「每天早上 8 点自动拉取昨日工单系统数据，用 LLM 归类总结，写入表格并推送到群」。在本节介绍的平台里，最贴合这个需求的是？",
@@ -2820,9 +2820,9 @@
       "explanation": "这个需求的重心是「跨系统自动化 + 定时调度 + 失败重试」，LLM 只承担其中一步归类总结，正是 n8n 的主场（Cron 触发、数百个连接器、错误分支与重试）。B 的知识库能力在此用不上；C 偏原型与链式实验，调度与集成能力弱；D 的分发生态解决的是「机器人给谁用」，与定时 ETL 类需求不匹配。"
     },
     {
-      "id": "ch3-3.8-q2",
+      "id": "ch3-3.9-q2",
       "chapter": "ch3",
-      "section": "3.8",
+      "section": "3.9",
       "type": "single",
       "difficulty": 2,
       "question": "Agent 可观测性的三大支柱通常指？",
@@ -2848,9 +2848,9 @@
       "explanation": "对 Agent 而言，可观测性三大支柱具体化为 Traces（链路）、Metrics（指标）、Evals（评估），Logs 虽重要但不属于这里强调的三支柱。"
     },
     {
-      "id": "ch3-3.8-q3",
+      "id": "ch3-3.9-q3",
       "chapter": "ch3",
-      "section": "3.8",
+      "section": "3.9",
       "type": "single",
       "difficulty": 2,
       "question": "在一次 Agent 调用中，每一个 LLM 调用、工具调用通常对应可观测性中的？",
@@ -2876,9 +2876,9 @@
       "explanation": "Trace 表示一次完整请求的端到端生命周期；其中的每个最小工作单元（LLM 调用、工具调用）是一个 Span。"
     },
     {
-      "id": "ch3-3.8-q4",
+      "id": "ch3-3.9-q4",
       "chapter": "ch3",
-      "section": "3.8",
+      "section": "3.9",
       "type": "single",
       "difficulty": 3,
       "question": "你在 LangSmith 中看不到任何 trace，最可能的原因是？",
@@ -2904,9 +2904,9 @@
       "explanation": "LangChain 的 LLM 调用在开启 LANGSMITH_TRACING=true 后会自动上报，无需 @observe 等埋点；看不到 trace 多半是 tracing 开关没打开或 API Key 缺失。"
     },
     {
-      "id": "ch3-3.8-q5",
+      "id": "ch3-3.9-q5",
       "chapter": "ch3",
-      "section": "3.8",
+      "section": "3.9",
       "type": "single",
       "difficulty": 2,
       "question": "OpenTelemetry / OpenLLMetry 相对 LangSmith / Langfuse 的主要优势是？",
@@ -2932,9 +2932,9 @@
       "explanation": "OpenTelemetry 是 CNCF 开放标准，OpenLLMetry 在其上提供 LLM 自动埋点，能把 LLM 调用汇入团队已有的 APM 体系，而非另起一套。"
     },
     {
-      "id": "ch3-3.8-q6",
+      "id": "ch3-3.9-q6",
       "chapter": "ch3",
-      "section": "3.8",
+      "section": "3.9",
       "type": "single",
       "difficulty": 3,
       "question": "评估 Agent 输出质量时，「LLM-as-judge」指的是？",
@@ -2960,9 +2960,9 @@
       "explanation": "LLM-as-judge 是用一个（通常更强的）模型作为评委，对生成结果打分或判断好坏，适合开放式问答这类难以精确匹配的场景。"
     },
     {
-      "id": "ch3-3.9-q2",
+      "id": "ch3-3.10-q2",
       "chapter": "ch3",
-      "section": "3.9",
+      "section": "3.10",
       "type": "single",
       "difficulty": 2,
       "question": "团队用 Docker 沙箱执行 LLM 生成的代码，已经设置了 `mem_limit`、`pids_limit` 和 `user=nobody`。某次事故中，沙箱里的代码成功把宿主环境变量里的 API Key 发送到了外部服务器。最可能漏掉的是哪一项？",
@@ -2988,9 +2988,9 @@
       "explanation": "数据外泄的必要条件是「能连出去」。`mem_limit`/`pids_limit` 管资源，`user=nobody` 管权限，都拦不住网络请求。只有禁网（`--network none`）才能从根上断掉外联通道。另外环境变量本身也不该继承宿主的，执行沙箱必须显式白名单传入环境变量。"
     },
     {
-      "id": "ch3-3.9-q3",
+      "id": "ch3-3.10-q3",
       "chapter": "ch3",
-      "section": "3.9",
+      "section": "3.10",
       "type": "single",
       "difficulty": 3,
       "question": "关于 RestrictedPython，下面哪个说法是**正确**的？",
@@ -3016,9 +3016,9 @@
       "explanation": "RestrictedPython 是**语言级**限制，代码仍在当前进程、当前解释器里跑，既挡不住死循环也挡不住内存耗尽（A、B 错）。它的防护是两层：编译期改写 AST（拒绝下划线开头的名字/属性）+ 运行期用安全的 `__builtins__` 和 guard 函数，两层缺一不可（D 错）。`import os` 语法上是合法的，失败发生在运行时找不到 `__import__`。"
     },
     {
-      "id": "ch3-3.9-q4",
+      "id": "ch3-3.10-q4",
       "chapter": "ch3",
-      "section": "3.9",
+      "section": "3.10",
       "type": "single",
       "difficulty": 3,
       "question": "【排查】用 `subprocess.Popen` + `communicate(timeout=5)` 实现沙箱，超时后调用了 `proc.kill()`。上线后发现机器上堆积了大量本该被杀掉的进程，CPU 长期打满。最可能的原因是？",
@@ -3044,9 +3044,9 @@
       "explanation": "`proc.kill()` 只对直接子进程的 PID 生效。如果被执行的代码自己 `fork` 或 `Popen` 了新进程，父进程死后这些孙进程会被 PID 1 收养继续跑。正确做法是在 `preexec_fn` 里 `os.setsid()` 让子进程独立成组，超时时用 `os.killpg(os.getpgid(pid), SIGKILL)` 整组杀掉。`SIGKILL` 无法被捕获或忽略（C 错）。"
     },
     {
-      "id": "ch3-3.9-q5",
+      "id": "ch3-3.10-q5",
       "chapter": "ch3",
-      "section": "3.9",
+      "section": "3.10",
       "type": "single",
       "difficulty": 2,
       "question": "经典的 Python 沙箱逃逸链 `().__class__.__bases__[0].__subclasses__()` 利用的是什么？纯 AST 白名单方案是怎么堵住它的？",
@@ -3072,9 +3072,9 @@
       "explanation": "这条链子从一个普通空元组出发，沿着 `__class__` → `__bases__` → `__subclasses__` 一路爬到 `object` 的所有子类，从中翻出能执行命令的类。它的每一步都是**属性访问**，所以只要白名单里不包含 `ast.Attribute`，整条链在语法检查阶段就被拒了。清空 `__builtins__` 是必要条件但不充分——正是因为有属性穿透，光清 builtins 并不安全。"
     },
     {
-      "id": "ch3-3.9-q6",
+      "id": "ch3-3.10-q6",
       "chapter": "ch3",
-      "section": "3.9",
+      "section": "3.10",
       "type": "single",
       "difficulty": 2,
       "question": "把沙箱接进 Agent 时，关于「代码执行工具」的输出处理，下面哪种做法最合理？",
@@ -4493,6 +4493,168 @@
         }
       ],
       "explanation": "可勾选清单提供即时反馈，避免「学了很多却没落地」。"
+    },
+    {
+      "id": "ch3-3.7-q1",
+      "chapter": "ch3",
+      "section": "3.7",
+      "type": "single",
+      "difficulty": 2,
+      "question": "Skill 与 Tool 的核心区别是什么？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Skill 就是 Tool 的别名，两者完全等价"
+        },
+        {
+          "key": "B",
+          "text": "Skill 把工具链+流程+权限打包成可复用能力单元，Tool 是原子函数调用"
+        },
+        {
+          "key": "C",
+          "text": "Skill 只能用在低代码平台，Tool 用在代码框架"
+        },
+        {
+          "key": "D",
+          "text": "Tool 比 Skill 更高级、能力更强"
+        }
+      ],
+      "explanation": "Tool 是原子级函数调用，Skill 在其之上封装了达成业务目标的工具链、流程与权限，是更粗粒度的能力单元。"
+    },
+    {
+      "id": "ch3-3.7-q2",
+      "chapter": "ch3",
+      "section": "3.7",
+      "type": "single",
+      "difficulty": 3,
+      "question": "Skill 的「声明式描述（description）」最主要的作用是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "给开发者看的代码注释"
+        },
+        {
+          "key": "B",
+          "text": "让模型/调度器知道这个能力能做什么、何时该调用"
+        },
+        {
+          "key": "C",
+          "text": "满足代码规范检查"
+        },
+        {
+          "key": "D",
+          "text": "替代正式的 API 文档"
+        }
+      ],
+      "explanation": "description 是 Skill 被发现和选中的唯一依据，模型/调度器依据它判断是否调用；缺失或含糊会导致能力无法被正确路由。"
+    },
+    {
+      "id": "ch3-3.7-q3",
+      "chapter": "ch3",
+      "section": "3.7",
+      "type": "single",
+      "difficulty": 2,
+      "question": "下列哪项不是 Skill 的设计原则？",
+      "options": [
+        {
+          "key": "A",
+          "text": "单一职责"
+        },
+        {
+          "key": "B",
+          "text": "权限最大化"
+        },
+        {
+          "key": "C",
+          "text": "可组合"
+        },
+        {
+          "key": "D",
+          "text": "声明式描述"
+        }
+      ],
+      "explanation": "Skill 的权限应遵循最小化原则，只申请完成该能力所必需的权限，避免越权风险。「权限最大化」是反模式。"
+    },
+    {
+      "id": "ch3-3.7-q4",
+      "chapter": "ch3",
+      "section": "3.7",
+      "type": "multiple",
+      "difficulty": 3,
+      "question": "关于 Skill 与 MCP 的关系，以下说法正确的有？（多选）",
+      "options": [
+        {
+          "key": "A",
+          "text": "MCP 是工具层的标准化传输协议，Skill 是能力的封装抽象，两者分属不同层次"
+        },
+        {
+          "key": "B",
+          "text": "两者正交互补：MCP 解决「怎么传」，Skill 解决「怎么封装组合」"
+        },
+        {
+          "key": "C",
+          "text": "有了 MCP 就不需要 Skill 概念"
+        },
+        {
+          "key": "D",
+          "text": "Skill 必须通过 MCP 暴露才能被使用"
+        }
+      ],
+      "explanation": "MCP 与 Skill 分属协议层与抽象层，正交互补，不是替代关系；Skill 也可通过普通函数、插件等方式暴露，MCP 只是可选的标准化通道之一。"
+    },
+    {
+      "id": "ch3-3.7-q5",
+      "chapter": "ch3",
+      "section": "3.7",
+      "type": "single",
+      "difficulty": 3,
+      "question": "跨框架映射中，Skill 概念最接近下列哪个？",
+      "options": [
+        {
+          "key": "A",
+          "text": "LangChain 的 LLMChain"
+        },
+        {
+          "key": "B",
+          "text": "Semantic Kernel 的 Plugin（原名 Skill）"
+        },
+        {
+          "key": "C",
+          "text": "OpenAI 的 tokenizer"
+        },
+        {
+          "key": "D",
+          "text": "LlamaIndex 的 Index"
+        }
+      ],
+      "explanation": "Semantic Kernel 早期用 Skill 命名能力封装单元，后改名 Plugin，是「Skill」这个词在主流框架中最直接的出处与对应。"
+    },
+    {
+      "id": "ch3-3.7-q6",
+      "chapter": "ch3",
+      "section": "3.7",
+      "type": "multiple",
+      "difficulty": 3,
+      "question": "设计 Skill 时的常见误区有？（多选）",
+      "options": [
+        {
+          "key": "A",
+          "text": "把多个不相关能力塞进同一个 Skill（大杂烩）"
+        },
+        {
+          "key": "B",
+          "text": "权限申请过宽，直接给 order:* 全权限"
+        },
+        {
+          "key": "C",
+          "text": "缺少声明式描述，导致模型不知道何时该用"
+        },
+        {
+          "key": "D",
+          "text": "让 Skill 只做一件事、职责单一"
+        }
+      ],
+      "explanation": "A/B/C 都是典型误区；D 是正确做法（单一职责），不是误区。"
     }
   ],
   "chapterQuizzes": [
