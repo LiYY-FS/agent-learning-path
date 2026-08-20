@@ -414,3 +414,37 @@
     padding: var(--space-lg) var(--content-padding);
   }
 }
+
+/* === 侧边栏版本信息 === */
+.sidebar__meta {
+  margin-top: var(--space-md);
+  padding: var(--space-sm);
+  border: 1px solid var(--border-muted);
+  border-radius: var(--radius-md);
+  background: var(--surface-card);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 10px;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
+.sidebar__meta-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.sidebar__meta-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+  font-family: var(--font-mono);
+}
+@media (max-width: 900px) {
+  .sidebar__meta {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+  .sidebar__meta-value { text-align: left; }
+}
+

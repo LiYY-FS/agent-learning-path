@@ -44,7 +44,9 @@
           "estimatedMinutes": 10,
           "difficulty": 1
         }
-      ]
+      ],
+      "lastUpdated": "2026-08-20",
+      "version": "2026.08.20"
     },
     {
       "id": "ch2",
@@ -114,7 +116,9 @@
           "estimatedMinutes": 20,
           "difficulty": 2
         }
-      ]
+      ],
+      "lastUpdated": "2026-08-20",
+      "version": "2026.08.20"
     },
     {
       "id": "ch3",
@@ -184,7 +188,9 @@
           "estimatedMinutes": 45,
           "difficulty": 3
         }
-      ]
+      ],
+      "lastUpdated": "2026-08-20",
+      "version": "2026.08.20"
     },
     {
       "id": "ch4",
@@ -242,7 +248,9 @@
           "estimatedMinutes": 25,
           "difficulty": 4
         }
-      ]
+      ],
+      "lastUpdated": "2026-08-20",
+      "version": "2026.08.20"
     },
     {
       "id": "ch5",
@@ -318,7 +326,9 @@
           "estimatedMinutes": 30,
           "difficulty": 4
         }
-      ]
+      ],
+      "lastUpdated": "2026-08-20",
+      "version": "2026.08.20"
     },
     {
       "id": "ch6",
@@ -376,7 +386,13 @@
           "estimatedMinutes": 10,
           "difficulty": 1
         }
-      ]
+      ],
+      "lastUpdated": "2026-08-20",
+      "version": "2026.08.20"
     }
-  ]
+  ],
+  "version": "2026.08.20",
+  "lastUpdated": "2026-08-20",
+  "updatedAt": "2026-08-20T12:52:00+08:00",
+  "description": "AI Agent 开发学习路线：6 章 53 小节，覆盖 LLM、ReAct、RAG、LangChain/LangGraph、OpenAI Agents SDK、LlamaIndex、MCP、Agent Skill、多 Agent、Computer Use 与行业落地。"
 }
