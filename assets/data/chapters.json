@@ -187,6 +187,12 @@
           "title": "代码沙箱与执行环境",
           "estimatedMinutes": 45,
           "difficulty": 3
+        },
+        {
+          "id": "3.11",
+          "title": "AutoGen 多智能体框架",
+          "estimatedMinutes": 55,
+          "difficulty": 3
         }
       ],
       "lastUpdated": "2026-08-20",
@@ -391,8 +397,8 @@
       "version": "2026.08.20"
     }
   ],
-  "version": "2026.08.20",
-  "lastUpdated": "2026-08-20",
-  "updatedAt": "2026-08-20T12:52:00+08:00",
-  "description": "AI Agent 开发学习路线：6 章 53 小节，覆盖 LLM、ReAct、RAG、LangChain/LangGraph、OpenAI Agents SDK、LlamaIndex、MCP、Agent Skill、多 Agent、Computer Use 与行业落地。"
+  "version": "2026.08.21",
+  "lastUpdated": "2026-08-21",
+  "updatedAt": "2026-08-21T15:05:00+08:00",
+  "description": "AI Agent 开发学习路线：6 章 54 小节，覆盖 LLM、ReAct、RAG、LangChain/LangGraph、OpenAI Agents SDK、LlamaIndex、MCP、Agent Skill、多 Agent、Computer Use 与行业落地。"
 }

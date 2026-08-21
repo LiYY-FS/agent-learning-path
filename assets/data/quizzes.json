@@ -4679,6 +4679,146 @@
         }
       ],
       "explanation": "A/B/C 都是典型误区；D 是正确做法（单一职责），不是误区。"
+    },
+    {
+      "id": "ch3-3.11-q1",
+      "chapter": "ch3",
+      "section": "3.11",
+      "type": "single",
+      "difficulty": 2,
+      "question": "在 AutoGen 中，负责「代表人或执行环境、可真正运行代码」的组件是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "AssistantAgent"
+        },
+        {
+          "key": "B",
+          "text": "UserProxyAgent",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "GroupChat"
+        },
+        {
+          "key": "D",
+          "text": "ConversableAgent"
+        }
+      ],
+      "explanation": "UserProxyAgent 代表人或执行环境：它既能代发用户消息，也能在开启 code_execution_config 时真正执行代码。AssistantAgent 只做 LLM 思考。"
+    },
+    {
+      "id": "ch3-3.11-q2",
+      "chapter": "ch3",
+      "section": "3.11",
+      "type": "single",
+      "difficulty": 1,
+      "question": "UserProxyAgent 的 human_input_mode=\"NEVER\" 表示？",
+      "options": [
+        {
+          "key": "A",
+          "text": "每轮都向人提问"
+        },
+        {
+          "key": "B",
+          "text": "只在对话终止时问人"
+        },
+        {
+          "key": "C",
+          "text": "从不向人追问，全自动运行",
+          "correct": true
+        },
+        {
+          "key": "D",
+          "text": "仅在代码执行出错时问人"
+        }
+      ],
+      "explanation": "NEVER 表示全程不向人索取输入，对话按 auto_reply 上限自动跑完；ALWAYS 每轮都问；TERMINATE 在终止信号前那一轮才问。"
+    },
+    {
+      "id": "ch3-3.11-q3",
+      "chapter": "ch3",
+      "section": "3.11",
+      "type": "single",
+      "difficulty": 2,
+      "question": "在 GroupChat 里，防止对话无限循环、控制成本的关键参数是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "max_round",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "system_message"
+        },
+        {
+          "key": "C",
+          "text": "llm_config"
+        },
+        {
+          "key": "D",
+          "text": "name"
+        }
+      ],
+      "explanation": "max_round 限定群聊总轮次，到达即终止；它还常与 is_termination_msg 配合，避免无限讨论烧钱。"
+    },
+    {
+      "id": "ch3-3.11-q4",
+      "chapter": "ch3",
+      "section": "3.11",
+      "type": "single",
+      "difficulty": 3,
+      "question": "关于 AutoGen 0.2 与 0.4，下列说法正确的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "0.4 用 RoundRobinGroupChat 做群聊编排",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "0.2 的包名是 autogen-agentchat"
+        },
+        {
+          "key": "C",
+          "text": "两个版本 API 完全相同"
+        },
+        {
+          "key": "D",
+          "text": "0.4 不支持异步"
+        }
+      ],
+      "explanation": "0.4 / AG2 用 autogen-agentchat 提供 RoundRobinGroupChat 等 Team 编排，且原生异步；0.2 包名为 pyautogen，两者 API 差异明显。"
+    },
+    {
+      "id": "ch3-3.11-q5",
+      "chapter": "ch3",
+      "section": "3.11",
+      "type": "single",
+      "difficulty": 3,
+      "question": "启用 UserProxyAgent 的代码执行功能时，生产环境最稳妥的做法是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "use_docker=False 在本机直跑"
+        },
+        {
+          "key": "B",
+          "text": "use_docker=True 在隔离容器执行",
+          "correct": true
+        },
+        {
+          "key": "C",
+          "text": "把 OPENAI_API_KEY 写进代码"
+        },
+        {
+          "key": "D",
+          "text": "关闭 human_input_mode"
+        }
+      ],
+      "explanation": "use_docker=True 在隔离容器执行未知代码，避免本机被恶意/错误代码破坏；密钥应走环境变量，绝不硬编码；高风险执行还可配合 human_input_mode=TERMINATE 人工确认。"
     }
   ],
   "chapterQuizzes": [

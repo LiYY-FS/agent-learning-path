@@ -8025,6 +8025,546 @@
         "ch3-3.10-q5",
         "ch3-3.10-q6"
       ]
+    },
+    {
+      "id": "3.11",
+      "title": "AutoGen 多智能体框架",
+      "subtitle": "用微软 AutoGen 把多智能体协作跑起来：核心组件、对话编排、代码生成与调试，以及 0.2 与 0.4 双版本对照",
+      "estimatedMinutes": 55,
+      "difficulty": 3,
+      "objectives": [
+        "能说出 ConversableAgent / AssistantAgent / UserProxyAgent 三者各自的职责与区别",
+        "能写出并运行一个最小双人对话（AssistantAgent + UserProxyAgent）",
+        "理解 GroupChat 群聊如何做任务编排，以及 AutoGen 0.2 与 0.4 的主要差异"
+      ],
+      "content": [
+        {
+          "type": "knowledgePoint",
+          "title": "多智能体协作的核心概念与模式",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "单个 Agent 把「感知—思考—行动」全塞进一个 Prompt，遇到长任务会撞上上下文窗口、角色漂移和错误累积三堵墙。**多智能体** 的核心思路是把一个复杂目标拆给多个专职 Agent，每个 Agent 只看自己那份上下文、只做自己那件事，再用明确的消息通信把结果拼起来。AutoGen 把这种「Agent 之间互发消息」抽象成统一的对话原语，让编排多智能体变得像写一个聊天群一样自然。"
+            },
+            {
+              "type": "mermaid",
+              "data": {
+                "title": "AutoGen 的四种对话拓扑",
+                "code": "flowchart TB\n  subgraph 双人对话\n    A1[AssistantAgent] <--> U1[UserProxyAgent]\n  end\n  subgraph GroupChat 群聊\n    M[GroupChatManager] --> G1[Agent1]\n    M --> G2[Agent2]\n    M --> G3[Agent3]\n    G1 <--> G2\n    G2 <--> G3\n  end\n  subgraph 嵌套 chat\n    P[Parent Agent] --> C1[Child Agent A]\n    P --> C2[Child Agent B]\n  end\n  subgraph 人类介入\n    H[人类] -->|ALWAYS / TERMINATE| U2[UserProxyAgent]\n  end"
+              }
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "模式",
+                  "结构",
+                  "优点",
+                  "缺点",
+                  "适用场景"
+                ],
+                "rows": [
+                  [
+                    "**双人对话**",
+                    "两个 Agent 互发消息（Assistant + UserProxy）",
+                    "最简单、易调试",
+                    "能力受限、无并行",
+                    "问答、单轮任务、教学"
+                  ],
+                  [
+                    "**GroupChat 群聊**",
+                    "Manager 在多个 Agent 间轮转发言",
+                    "多角色并行、各司其职",
+                    "轮次/成本需控制",
+                    "代码评审、调研编排、任务流水线"
+                  ],
+                  [
+                    "**嵌套 chat**",
+                    "父 Agent 调用子 Agent 完成任务",
+                    "结构清晰、可复用",
+                    "调度逻辑复杂",
+                    "子任务可独立验证的复杂目标"
+                  ],
+                  [
+                    "**Human-in-the-loop**",
+                    "UserProxyAgent 在 ALWAYS/TERMINATE 时请人确认",
+                    "关键决策有人把关",
+                    "阻断自动化",
+                    "高风险操作、需合规审批"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "最小可用原则",
+              "text": "先用一个 Agent + 工具跑通主链路，再在「真的卡住」的地方拆出第二个 Agent。多数项目最终停在 2~4 个 Agent，而不是几十个。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "AutoGen 0.2 架构与核心组件",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "AutoGen 0.2（包名 `pyautogen`）的设计哲学是「一切皆 ConversableAgent」：所有 Agent 都继承自 `ConversableAgent`，天然具备收发消息、调用 LLM、执行代码三种能力。`AssistantAgent` 与 `UserProxyAgent` 只是给它预设了不同默认行为的两个便捷子类。理解下面这张组件/参数表，你就掌握了 0.2 的骨架。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "组件 / 参数",
+                  "作用",
+                  "典型取值"
+                ],
+                "rows": [
+                  [
+                    "ConversableAgent",
+                    "所有 Agent 的基类，能收发消息、调用 LLM、执行代码",
+                    "（基类，少用直接实例化）"
+                  ],
+                  [
+                    "AssistantAgent",
+                    "纯 LLM 角色，负责思考与生成内容",
+                    "llm_config + system_message"
+                  ],
+                  [
+                    "UserProxyAgent",
+                    "代表人或执行环境，可代发消息、执行代码",
+                    "human_input_mode / code_execution_config"
+                  ],
+                  [
+                    "GroupChat",
+                    "把多个 Agent 组成一个群聊会话",
+                    "agents + max_round"
+                  ],
+                  [
+                    "GroupChatManager",
+                    "群聊主持人，决定下一发言人、何时终止",
+                    "llm_config + speaker_selection_method"
+                  ],
+                  [
+                    "llm_config",
+                    "模型与密钥配置（dict 或 config_list）",
+                    "{\"model\":\"gpt-4o-mini\",\"api_key\":...}"
+                  ],
+                  [
+                    "human_input_mode",
+                    "何时向人索取输入",
+                    "ALWAYS / TERMINATE / NEVER"
+                  ],
+                  [
+                    "code_execution_config",
+                    "是否及如何在本地/容器执行代码",
+                    "False / {use_docker:True}"
+                  ],
+                  [
+                    "max_consecutive_auto_reply",
+                    "单 Agent 连续自动回复上限，防失控",
+                    "2 ~ 10"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "config_list 还是 dict？",
+              "text": "0.2 既支持把多个模型塞进 `config_list` 做负载均衡/故障转移（用 `config_list_from_json`），也支持直接传一个 `{\"model\":..., \"api_key\":...}` 的 dict。教学与原型用 dict 最直观，生产再升级到 config_list。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "第一个双人对话（0.2 真实代码）",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "下面是最短可跑的 AutoGen 双人对话：`AssistantAgent` 负责回答，`UserProxyAgent` 代表用户把问题发出去。`human_input_mode=\"NEVER\"` 表示全程不向人追问，自动跑完；`max_consecutive_auto_reply=2` 限制自动来回的轮数，防止成本失控。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s3_11_two_agent.py",
+                "language": "python",
+                "title": "最小双人对话：AssistantAgent 回答，UserProxyAgent 代发消息",
+                "highlightLines": [
+                  7,
+                  10,
+                  16,
+                  23
+                ],
+                "code": "import os\n\nfrom autogen import AssistantAgent, UserProxyAgent\n\nllm_config = {\n    \"model\": \"gpt-4o-mini\",\n    \"api_key\": os.environ.get(\"OPENAI_API_KEY\"),\n}\n\nassistant = AssistantAgent(\n    name=\"assistant\",\n    llm_config=llm_config,\n    system_message=\"你是一个严谨的 AI 助教，回答简洁、给出要点。\",\n)\n\nuser_proxy = UserProxyAgent(\n    name=\"user_proxy\",\n    human_input_mode=\"NEVER\",\n    code_execution_config=False,\n    max_consecutive_auto_reply=2,\n)\n\nuser_proxy.initiate_chat(\n    assistant,\n    message=\"用三句话介绍什么是多智能体系统。\",\n)\n",
+                "output": "user_proxy (to assistant):\n用三句话介绍什么是多智能体系统。\n\nassistant (to user_proxy):\n多智能体系统由多个分工明确的 AI Agent 组成，彼此通过消息协作完成单一 Agent 难以搞定的复杂任务。\n它把规划、执行、校验等职责拆给不同角色，降低单 Agent 的上下文压力与角色漂移。\n典型形态包括主管-员工、群聊投票、人工介入确认等，常用于代码生成、调研编排和自动化流水线。\n\nuser_proxy (to assistant):\n（human_input_mode=NEVER，本轮不再向人追问，自动结束）\n",
+                "note": "运行前置：pip install pyautogen，并 export OPENAI_API_KEY=你的密钥。以下为示意性对话记录，实际内容由模型生成。把 human_input_mode 改成 TERMINATE 可在每轮结束前询问你是否继续。"
+              }
+            },
+            {
+              "type": "paragraph",
+              "text": "**分步解析**：① `llm_config` 把模型名与密钥封装成一个 dict，两个 Agent 共用同一份配置；② `AssistantAgent` 只持有系统提示，不碰人类输入；③ `UserProxyAgent` 用 `human_input_mode=\"NEVER\"` 关闭人工阻塞，用 `code_execution_config=False` 关闭本地代码执行（教学先用不着）；④ `initiate_chat` 启动对话，第一个消息由 user_proxy 发出，之后双方按 `max_consecutive_auto_reply` 自动交替，直到达上限或某方发出终止信号。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "离线 mock 版：无 Key 也能跑通流程",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "上面那段真实代码需要 OpenAI Key 才能跑。为了让你在不申请密钥的情况下也看清「消息如何在两个 Agent 之间往返」，下面用纯标准库复刻了完全相同的调用形态——`AssistantAgent` / `UserProxyAgent` / `initiate_chat` 一个不差，只是把 LLM 调用换成固定模板回复。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s3_11_mock.py",
+                "language": "python",
+                "title": "离线 mock：纯标准库模拟 AutoGen 双人对话循环，无需任何依赖",
+                "highlightLines": [
+                  10,
+                  24,
+                  27,
+                  40
+                ],
+                "code": "\"\"\"离线 mock：用纯标准库模拟 AutoGen 的双人对话循环，无需任何外部依赖或 API Key。\n\n它刻意复刻 AutoGen 的调用形态：\n  - AssistantAgent：持有一段 system_message，对收到的消息生成\"回复\"\n  - UserProxyAgent：human_input_mode=\"NEVER\" 时自动把用户首条消息发出，不再向人追问\n  - initiate_chat(agent, message)：启动一轮对话，双方交替回复直到达到 max_consecutive_auto_reply\n\"\"\"\n\n\nclass AssistantAgent:\n    def __init__(self, name, system_message=\"\"):\n        self.name = name\n        self.system_message = system_message\n\n    def generate_reply(self, last_message):\n        # 真实 AutoGen 这里会调用 LLM；mock 用固定模板，保证离线可复现\n        return f\"[{self.name}] 收到：{last_message}\\n我已经按职责（{self.system_message}）整理好下一步建议。\"\n\n\nclass UserProxyAgent:\n    def __init__(self, name, human_input_mode=\"NEVER\", max_consecutive_auto_reply=2):\n        self.name = name\n        self.human_input_mode = human_input_mode\n        self.max_consecutive_auto_reply = max_consecutive_auto_reply\n\n    def initiate_chat(self, assistant, message):\n        print(f\"{self.name} (to {assistant.name}):\\n{message}\\n\")\n        history = [message]\n        for turn in range(self.max_consecutive_auto_reply):\n            reply = assistant.generate_reply(history[-1])\n            print(f\"{assistant.name} (to {self.name}):\\n{reply}\\n\")\n            history.append(reply)\n            if turn < self.max_consecutive_auto_reply - 1:\n                echo = f\"{self.name}：明白了，请继续。\"\n                print(f\"{self.name} (to {assistant.name}):\\n{echo}\\n\")\n                history.append(echo)\n        return history\n\n\nif __name__ == \"__main__\":\n    assistant = AssistantAgent(\"assistant\", system_message=\"严谨的 AI 助教\")\n    user_proxy = UserProxyAgent(\"user_proxy\", human_input_mode=\"NEVER\", max_consecutive_auto_reply=2)\n    user_proxy.initiate_chat(assistant, message=\"用三句话介绍什么是多智能体系统。\")\n",
+                "output": "user_proxy (to assistant):\n用三句话介绍什么是多智能体系统。\n\nassistant (to user_proxy):\n[assistant] 收到：用三句话介绍什么是多智能体系统。\n我已经按职责（严谨的 AI 助教）整理好下一步建议。\n\nuser_proxy (to assistant):\nuser_proxy：明白了，请继续。\n\nassistant (to user_proxy):\n[assistant] 收到：user_proxy：明白了，请继续。\n我已经按职责（严谨的 AI 助教）整理好下一步建议。\n\n",
+                "note": "这是教学用的离线替代：用固定模板模拟 LLM 回复，让你看清对话驱动器本质。真实 AutoGen 在这里把 generate_reply 换成 LLM 调用即可，结构完全一致。"
+              }
+            },
+            {
+              "type": "paragraph",
+              "text": "**分步解析**：① `AssistantAgent.generate_reply` 在真实框架里会调用 LLM，这里用 f-string 模板代替，保证离线可复现；② `UserProxyAgent.initiate_chat` 先打印用户首条消息，再进入 `for turn` 循环，每轮让 assistant 回复、按需回显一句「请继续」；③ `max_consecutive_auto_reply` 决定循环次数，达到上限即停——这正是 AutoGen 防止「对话停不下来」的核心机制。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "GroupChat 群聊与任务编排（0.2 真实代码）",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "当任务需要多个角色协作（如「先规划、再写码、再自测」），`GroupChat` 让一组 Agent 在同一个会话里轮流转发消息，由 `GroupChatManager` 决定下一发言人。`max_round` 是群聊的总轮次上限，是控制成本的关键阀门。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s3_11_groupchat.py",
+                "language": "python",
+                "title": "GroupChat 群聊：planner 拆解任务，coder 写码，user 收口",
+                "highlightLines": [
+                  7,
+                  10,
+                  15,
+                  20,
+                  29,
+                  32,
+                  33
+                ],
+                "code": "import os\n\nfrom autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager\n\nllm_config = {\n    \"model\": \"gpt-4o-mini\",\n    \"api_key\": os.environ.get(\"OPENAI_API_KEY\"),\n}\n\nplanner = AssistantAgent(\n    name=\"planner\",\n    llm_config=llm_config,\n    system_message=\"你是项目经理，把任务拆成步骤并分派给团队成员。\",\n)\ncoder = AssistantAgent(\n    name=\"coder\",\n    llm_config=llm_config,\n    system_message=\"你是程序员，只输出可运行的 Python 代码。\",\n)\nuser_proxy = UserProxyAgent(\n    name=\"user\",\n    human_input_mode=\"NEVER\",\n    code_execution_config=False,\n    max_consecutive_auto_reply=2,\n)\n\ngroup = GroupChat(\n    agents=[user_proxy, planner, coder],\n    messages=[],\n    max_round=6,\n)\nmanager = GroupChatManager(group, llm_config=llm_config)\nuser_proxy.initiate_chat(manager, message=\"写一个函数计算斐波那契数列前 n 项。\")\n",
+                "output": "user (to planner):\n写一个函数计算斐波那契数列前 n 项。\n\nplanner (to coder):\n请实现 fib(n)，返回前 n 项列表，并写一句使用示例。\n\ncoder (to user):\n```python\ndef fib(n):\n    a, b = 0, 1\n    return [a := b + (b := a)][0] if n == 1 else fib(n - 1) + [a]\n```\n\nuser (to planner):\n（已按 max_round 收敛，群聊结束）\n",
+                "note": "运行前置同双人对话（需 OPENAI_API_KEY）。max_round=6 表示群聊最多 6 轮，到达即终止，避免无限讨论烧钱。"
+              }
+            },
+            {
+              "type": "paragraph",
+              "text": "**分步解析**：① `planner` / `coder` 是两个不同 system_message 的 `AssistantAgent`，职责边界清晰；② `user_proxy` 用 `NEVER` 模式，只负责「发起话题 + 收口」，不在中途打断；③ `GroupChat(agents=[...], max_round=6)` 把所有角色拉进同一会话；④ `GroupChatManager` 持有一个 `llm_config`，用它来判断「谁该接着说」以及「是否该结束」；⑤ `user_proxy.initiate_chat(manager, ...)` 的首个消息会触发群聊，由 manager 接管后续发言顺序。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "实战：代码生成与调试（含安全提醒）",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "AutoGen 最经典的场景之一，是让 `UserProxyAgent` 开启 `code_execution_config`，真正把 `AssistantAgent` 生成的代码跑起来并回看结果，形成「生成 → 执行 → 报错 → 修正」的闭环。这一步的生产安全性是重中之重。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s3_11_code_debug.py",
+                "language": "python",
+                "title": "代码生成与调试：UserProxyAgent 真正执行生成的 Python",
+                "highlightLines": [
+                  7,
+                  10,
+                  16,
+                  20,
+                  24
+                ],
+                "code": "import os\n\nfrom autogen import AssistantAgent, UserProxyAgent\n\nllm_config = {\n    \"model\": \"gpt-4o-mini\",\n    \"api_key\": os.environ.get(\"OPENAI_API_KEY\"),\n}\n\ncoder = AssistantAgent(\n    name=\"coder\",\n    llm_config=llm_config,\n    system_message=\"你是程序员，写出代码后用 ```python 代码块``` 交付，便于被执行。\",\n)\nuser_proxy = UserProxyAgent(\n    name=\"user\",\n    human_input_mode=\"NEVER\",\n    # use_docker=True 才是生产推荐：在隔离容器里跑代码，避免在本机执行未知代码\n    code_execution_config={\"use_docker\": True, \"timeout\": 60},\n    max_consecutive_auto_reply=2,\n)\n\nuser_proxy.initiate_chat(\n    coder,\n    message=\"写一个函数判断一个数是否为素数，并给出 17 的测试结果。\",\n)\n",
+                "output": "coder (to user):\n```python\ndef is_prime(x):\n    if x < 2:\n        return False\n    for i in range(2, int(x ** 0.5) + 1):\n        if x % i == 0:\n            return False\n    return True\nprint('17 是素数：', is_prime(17))\n```\n\nuser (to coder):\n>>>> 执行代码...\n17 是素数： True\n（代码已真正运行，use_docker=True 表示在容器内隔离执行）\n",
+                "note": "运行前置：除 OPENAI_API_KEY 外，若用 use_docker=True 还需本机安装 Docker。AssistantAgent 必须用 ```python 代码块``` 交付代码，UserProxyAgent 才能提取执行。"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "warning",
+              "title": "代码执行必须沙箱化",
+              "text": "示例中 `code_execution_config={\"use_docker\": True}` 表示在隔离容器里执行未知代码。切勿图省事设成 `use_docker=False` 在本机直跑——一旦模型生成了 `os.system('rm -rf /')` 这类代码，后果不可逆。同时配合 `human_input_mode=\"TERMINATE\"` 让人在执行前确认，并设 `timeout` 限制运行时长。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "应用场景",
+                  "推荐组件",
+                  "要点"
+                ],
+                "rows": [
+                  [
+                    "自动化任务编排",
+                    "GroupChat + GroupChatManager",
+                    "用 max_round 限制轮次，控制成本"
+                  ],
+                  [
+                    "代码生成与调试",
+                    "UserProxyAgent(code_execution_config)",
+                    "真正执行代码，必须沙箱化"
+                  ],
+                  [
+                    "人工确认 / 合规",
+                    "UserProxyAgent(human_input_mode=\"TERMINATE\")",
+                    "高风险步骤才请人介入"
+                  ],
+                  [
+                    "简单问答",
+                    "AssistantAgent + UserProxyAgent(\"NEVER\")",
+                    "最小可跑，先验证主链路"
+                  ]
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "AutoGen 0.4 / AG2 新架构速览",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "2024 年底微软把 AutoGen 重构为 **AG2**（0.4 起），核心变化是：原生异步、显式模型客户端、用 `Team` 而非 `GroupChatManager` 编排、终止条件对象化。下面用 0.4 重写上面的双人协作，你可以直观对比差异。"
+            },
+            {
+              "type": "code",
+              "data": {
+                "filename": "s3_11_ag2.py",
+                "language": "python",
+                "title": "AutoGen 0.4 / AG2：RoundRobinGroupChat + 原生异步",
+                "highlightLines": [
+                  12,
+                  14,
+                  18,
+                  19,
+                  21,
+                  25
+                ],
+                "code": "import asyncio\nimport os\n\nfrom autogen_agentchat.agents import AssistantAgent\nfrom autogen_agentchat.conditions import TextMentionTermination\nfrom autogen_agentchat.teams import RoundRobinGroupChat\nfrom autogen_ext.models.openai import OpenAIChatCompletionClient\n\n\nasync def main():\n    # 0.4 用显式模型客户端管理模型与密钥，从环境变量读取 OPENAI_API_KEY\n    model_client = OpenAIChatCompletionClient(model=\"gpt-4o-mini\", api_key=os.environ.get(\"OPENAI_API_KEY\"))\n\n    planner = AssistantAgent(\"planner\", model_client=model_client, system_message=\"你是项目经理，负责拆解任务。\")\n    coder = AssistantAgent(\"coder\", model_client=model_client, system_message=\"你是程序员，负责写代码。\")\n\n    # 当某角色说出 TERMINATE 时，群聊结束\n    termination = TextMentionTermination(\"TERMINATE\")\n    team = RoundRobinGroupChat([planner, coder], termination_condition=termination)\n\n    await team.run_stream(task=\"用 Python 写一个快速排序并解释思路。\")\n\n\nif __name__ == \"__main__\":\n    asyncio.run(main())\n",
+                "output": "planner: 先把问题拆成两步——设计 partition 与递归/迭代主体。\ncoder: 好的，这是实现：\\n```python\\ndef quicksort(arr):\\n    ...\\n```\\nplanner: 补充边界情况与复杂度说明，然后 TERMINATE。\n",
+                "note": "运行前置：pip install autogen-agentchat autogen-ext，并 export OPENAI_API_KEY=你的密钥。0.4 用 model_client 显式传模型客户端。"
+              }
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "维度",
+                  "AutoGen 0.2（pyautogen）",
+                  "AutoGen 0.4 / AG2（autogen-agentchat）"
+                ],
+                "rows": [
+                  [
+                    "安装包",
+                    "pip install pyautogen",
+                    "pip install autogen-agentchat autogen-ext"
+                  ],
+                  [
+                    "Agent 类",
+                    "AssistantAgent / UserProxyAgent",
+                    "AssistantAgent / UserProxyAgent（重写）"
+                  ],
+                  [
+                    "编排 API",
+                    "GroupChat + GroupChatManager",
+                    "RoundRobinGroupChat / SelectorGroupChat + Team"
+                  ],
+                  [
+                    "异步模型",
+                    "同步 initiate_chat",
+                    "原生 async（run_stream / run）"
+                  ],
+                  [
+                    "终止条件",
+                    "is_termination_msg / max_round",
+                    "TextMentionTermination / 自定义条件"
+                  ],
+                  [
+                    "模型客户端",
+                    "llm_config(dict) / config_list",
+                    "OpenAIChatCompletionClient 等显式客户端"
+                  ],
+                  [
+                    "适用建议",
+                    "资料多、上手快，适合教学与原型",
+                    "面向生产、异步与可扩展，新项目优先"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "迁移建议",
+              "text": "新项目直接用 0.4 的 autogen-agentchat（异步、可扩展、终止条件更清晰）；已有 0.2 代码可先跑着，等需要异步并发或更强编排时再迁移。两版社区示例都多，搜问题时记得带上版本号。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "学习路径与关键实践要点",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "把 AutoGen 学扎实，建议按「跑通最小对话 → 加 GroupChat 编排 → 开代码执行做调试 → 读官方 samples → 上 0.4 生产化」的顺序推进。下面这份资源表与要点清单可以作为你的常备手册。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "类型",
+                  "资源",
+                  "说明"
+                ],
+                "rows": [
+                  [
+                    "官方文档（0.4）",
+                    "microsoft.github.io/autogen/stable",
+                    "最新稳定版文档，含 autogen-agentchat 教程"
+                  ],
+                  [
+                    "官方文档（0.2）",
+                    "microsoft.github.io/autogen/0.2",
+                    "经典 API 文档，示例最丰富"
+                  ],
+                  [
+                    "GitHub",
+                    "github.com/microsoft/autogen",
+                    "源码、samples、issue 讨论"
+                  ],
+                  [
+                    "示例仓库",
+                    "github.com/microsoft/autogen/tree/main/samples",
+                    "可直接跑的端到端示例"
+                  ],
+                  [
+                    "论文",
+                    "AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation",
+                    "理解多智能体对话设计动机"
+                  ],
+                  [
+                    "社区",
+                    "AutoGen Discord / 微信公众号",
+                    "提问、看最新实践"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "关键实践要点",
+              "text": "① 从小对话起步，先验证主链路再扩展；② 用 config_list 管理多个 Key 做负载均衡；③ 永远给 max_consecutive_auto_reply / max_round 设上限，防成本失控；④ 代码执行必须 use_docker=True 沙箱化；⑤ 善用 human_input_mode 三档（ALWAYS/TERMINATE/NEVER）控制人工介入；⑥ 开启日志与成本监控，长任务要能随时终止。"
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "常见坑",
+              "text": "① 不设轮次上限导致对话停不下来、账单爆炸；② 误用 use_docker=False 在本机执行未知代码；③ 把 OPENAI_API_KEY 硬编码进代码并误提交到仓库；④ 忘记给 GroupChat 配终止条件，群聊永远不收敛；⑤ 在 0.2 代码里用 0.4 的 API（或反之），搜问题时务必带版本号。"
+            }
+          ]
+        }
+      ],
+      "enterpriseCase": {
+        "title": "AutoGen GroupChat 搭建代码评审流水线",
+        "background": "某团队每次 PR 都要人工做风格、安全、逻辑三重评审， reviewer 人力吃紧，且容易漏掉安全隐患。",
+        "architecture": "用 GroupChat 拉起三个专职 AssistantAgent（style/security/logic）+ 一个 UserProxyAgent 收口；GroupChatManager 轮转发言，max_round=8 收敛。",
+        "outcome": "PR 初审自动化覆盖率 70%，高危安全问题拦截率显著提升，人工只处理 Agent 标记的争议项。",
+        "lessons": "专职 Agent 的 system_message 要写清「只看这一类问题」，避免三个角色都泛泛而谈；收敛轮次要够覆盖三方往返。",
+        "code": {
+          "data": {
+            "filename": "s3_11_ec.py",
+            "language": "python",
+            "title": "代码评审流水线：每个维度一个专职 Agent，由 GroupChat 汇总",
+            "highlightLines": [
+              3,
+              11,
+              13,
+              15,
+              18
+            ],
+            "code": "from autogen import AssistantAgent, UserProxyAgent, GroupChat, GroupChatManager\n\nreviewers = {\n    \"style\": \"检查代码风格与命名规范\",\n    \"security\": \"检查安全隐患与注入风险\",\n    \"logic\": \"检查业务逻辑正确性\",\n}\n\ndef build_review_team(llm_config):\n    # 每个评审维度一个专职 Agent，由 GroupChat 汇总意见\n    agents = [UserProxyAgent(\"user\", human_input_mode=\"NEVER\", code_execution_config=False)]\n    for role, duty in reviewers.items():\n        agents.append(AssistantAgent(role, llm_config=llm_config, system_message=duty))\n    chat = GroupChat(agents=agents, messages=[], max_round=8)\n    return GroupChatManager(chat, llm_config=llm_config)\n\nif __name__ == \"__main__\":\n    print(\"评审流水线角色：\", \", \".join(reviewers.keys()))\n",
+            "output": "评审流水线角色： style, security, logic",
+            "note": "真实场景里每个 Agent 用 LLM 给出评审意见，UserProxyAgent 收口后把结论回写 PR 评论；这里只演示团队组装方式。"
+          }
+        }
+      },
+      "exercises": [
+        {
+          "title": "把双人对话改成三角色",
+          "description": "在 s3_11_two_agent.py 基础上新增一个 Critic Agent，让对话变成 assistant → critic → user_proxy 三方，体会多角色如何互相纠错。",
+          "hints": "再加一个 AssistantAgent，并把 initiate_chat 的目标设为 Critic，由其回复后转回"
+        },
+        {
+          "title": "给 GroupChat 加自定义终止函数",
+          "description": "修改 s3_11_groupchat.py，用一个 is_termination_msg 函数判断「只要出现 FINAL 字样就结束」，替代单纯依赖 max_round。",
+          "hints": "is_termination_msg=lambda x: 'FINAL' in x.get('content','')，传入 GroupChatManager"
+        },
+        {
+          "title": "用离线 mock 版接入自己的假 LLM",
+          "description": "改写 s3_11_mock.py 的 generate_reply，让它根据关键词返回不同模板（如含『排序』就返回快排思路），验证『对话驱动器』与具体回复解耦。",
+          "hints": "在 generate_reply 里用 if '排序' in last_message 分支返回不同文本"
+        }
+      ],
+      "resources": [
+        {
+          "type": "doc",
+          "title": "AutoGen 0.4 官方文档（stable）",
+          "url": "https://microsoft.github.io/autogen/stable/",
+          "note": "最新稳定版，含 autogen-agentchat 教程"
+        },
+        {
+          "type": "doc",
+          "title": "AutoGen 0.2 官方文档",
+          "url": "https://microsoft.github.io/autogen/0.2/",
+          "note": "经典 API，示例与社区回答最丰富"
+        },
+        {
+          "type": "doc",
+          "title": "AutoGen GitHub",
+          "url": "https://github.com/microsoft/autogen",
+          "note": "源码、samples、issue 讨论"
+        },
+        {
+          "type": "doc",
+          "title": "AutoGen 论文（arXiv）",
+          "url": "https://arxiv.org/abs/2308.08155",
+          "note": "AutoGen: Enabling Next-Gen LLM Applications via Multi-Agent Conversation"
+        },
+        {
+          "type": "blog",
+          "title": "AutoGen Discord 社区",
+          "url": "https://discord.gg/pAbnFJrkgZ",
+          "note": "提问与看最新实践"
+        }
+      ],
+      "quiz": [
+        "ch3-3.11-q1",
+        "ch3-3.11-q2",
+        "ch3-3.11-q3",
+        "ch3-3.11-q4",
+        "ch3-3.11-q5"
+      ]
     }
   ],
   "lastUpdated": "2026-08-20",
