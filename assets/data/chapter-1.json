@@ -702,19 +702,63 @@
     {
       "id": "1.2",
       "title": "LLM 工作原理基础",
-      "subtitle": "理解 Token、Context Window、采样参数等 LLM 核心概念",
+      "subtitle": "理解 LLM 的输入处理、模型结构与训练/推理流程，并掌握 Token、上下文窗口、采样参数等核心概念",
       "estimatedMinutes": 20,
       "difficulty": 1,
       "objectives": [
-        "理解 Token 是模型的「原子单位」，能估算任意文本的 Token 数与成本",
-        "掌握 Temperature / Top-p 对输出随机性的影响，能按任务选参数",
-        "能写出一个结构清晰的 System Prompt，并理解上下文窗口与长文本截断风险"
+        "能用一句话说清 LLM 的本质（基于上下文的下一个 token 概率模型）",
+        "理解 LLM 的四阶段工作流：输入处理（分词/嵌入/位置编码）、模型结构（Transformer 自注意力）、训练（下一词预测）、推理（自回归生成）",
+        "理解 Token 是模型的「原子单位」并会估算成本，掌握 Temperature/Top-p 对输出随机性的影响，能写出结构清晰的 System Prompt"
       ],
       "content": [
         {
           "type": "knowledgePoint",
-          "title": "Token 与分词机制",
+          "title": "LLM 是怎么工作的：一句话看懂",
           "content": [
+            {
+              "type": "paragraph",
+              "text": "大语言模型（LLM）本质上是一个「基于上下文预测下一个 token 的概率模型」。它并不像人一样「理解」文字含义，而是在海量文本上学会了「看到前文，猜测下一个最可能出现的词」这一统计规律。你输入的每一句话，对它来说都是一串用于「续写」的上下文。"
+            },
+            {
+              "type": "mermaid",
+              "data": {
+                "title": "LLM 端到端工作流程",
+                "code": "flowchart LR\n  A[输入文本] --> B[分词 Tokenization]\n  B --> C[嵌入 Embedding 与位置编码]\n  C --> D[N层 Transformer 自注意力加前馈]\n  D --> E[下一个 Token 概率分布]\n  E --> F{解码策略}\n  F -->|采样或贪心| G[选出 1 个 Token]\n  G --> H[拼回输入]\n  H --> D\n  G -->|遇到结束符| I[输出完成]"
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "note",
+              "title": "核心认知",
+              "text": "理解 LLM 只需抓住四个阶段：① 输入处理（文字变数字）② 模型结构（Transformer 如何计算）③ 训练（模型怎么学会）④ 推理（模型怎么生成）。下面逐节展开。"
+            },
+            {
+              "type": "list",
+              "items": [
+                "**输入处理**：把文字切成分词、映射成向量、加入位置信息",
+                "**模型结构**：由多层 Transformer 块组成，核心是自注意力",
+                "**训练**：在海量文本上做「下一词预测」，用反向传播更新参数",
+                "**推理**：自回归地逐个生成 token，直到输出结束"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "输入处理：文字 → Token → 向量",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "模型不能直接读字符，文本要先经过「输入处理」变成它可以计算的数值张量。这一步包含三个子过程：分词、嵌入、位置编码。"
+            },
+            {
+              "type": "paragraph",
+              "text": "**嵌入（Embedding）**：分词得到的只是词的「序号」，模型再把每个 token 映射成一个高维向量。语义相近的词，其向量在空间中距离也相近——这正是模型能「懂」语义的起点。"
+            },
+            {
+              "type": "paragraph",
+              "text": "**位置编码（Positional Encoding）**：Transformer 本身不天然知道词序，所以还要额外加入位置信息，告诉模型「猫追狗」和「狗追猫」是不同的。三者合起来，文字才变成带语义和顺序的数字序列。"
+            },
             {
               "type": "paragraph",
               "text": "**Token** 是大语言模型处理文本的最小单位。模型不是逐字符或逐词处理文本，而是将文本切分为 Token 序列。理解 Token 对 Agent 开发至关重要——它决定了 API 调用成本、上下文窗口使用和响应速度。"
@@ -750,66 +794,106 @@
         },
         {
           "type": "knowledgePoint",
-          "title": "Context Window（上下文窗口）",
+          "title": "模型结构：Transformer 与自注意力",
           "content": [
             {
               "type": "paragraph",
-              "text": "**Context Window** 是模型一次能处理的最大 Token 数。它决定了 Agent 能\\\"记住\\\"多少对话历史、能处理多长的文档。Context Window 越大，Agent 能处理的任务越复杂，但成本也越高。"
+              "text": "现代主流 LLM 几乎都基于 **Transformer 架构**（更准确地说，是其中的 Decoder 部分）。它抛弃了早期 RNN「逐词串行」的做法，改用「自注意力」一次性看到整个序列。"
+            },
+            {
+              "type": "paragraph",
+              "text": "**自注意力（Self-Attention）** 是核心：序列中每个 token 都会和序列里所有 token 计算一遍「相关性权重」，再按权重把其他 token 的信息聚合到自己身上。这让模型能直接捕捉任意两个词之间的长距离依赖——「它」究竟指代前文的哪个人，靠注意力权重决定。"
+            },
+            {
+              "type": "paragraph",
+              "text": "一个 **Transformer 块** = 自注意力子层 + 前馈神经网络（FFN）子层，每个子层外都包着「残差连接 + 层归一化」。模型由几十到上百个这样的块堆叠而成；层数越深、隐藏维度越大、注意力头数越多，模型的容量和表达能力越强。"
+            },
+            {
+              "type": "mermaid",
+              "data": {
+                "title": "单个 Transformer 块的计算流程",
+                "code": "flowchart TD\n  X[输入向量] --> SA[自注意力 Self-Attention]\n  SA --> A1[加残差]\n  A1 --> N1[层归一化]\n  N1 --> FF[前馈网络 FFN]\n  FF --> A2[加残差]\n  A2 --> N2[层归一化]\n  N2 --> Y[输出向量]"
+              }
+            },
+            {
+              "type": "list",
+              "items": [
+                "**可并行**：所有 token 同时计算注意力，训练远快于 RNN",
+                "**长程依赖**：任意两词直接相连，不受距离衰减",
+                "**全局感受野**：每个 token 都能「看到」整段上下文"
+              ]
+            },
+            {
+              "type": "callout",
+              "variant": "tip",
+              "title": "规模决定能力",
+              "text": "模型的「大小」通常用参数量、层数、隐藏维度、注意力头数衡量。预训练把语言与世界知识「压缩」进这些参数里——这也是为什么更大的模型通常更强，但也更贵、更慢。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "训练：模型是怎么「学会」的",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**预训练（Pre-training）** 是一种「自监督」学习：把海量文本切成片段，给模型看前文的若干个 token，让它预测「下一个 token 是什么」（next-token prediction）。因为「下一个词」本身就藏在文本里，所以不需要人工标注——数据自己就是答案。"
+            },
+            {
+              "type": "paragraph",
+              "text": "训练时用**交叉熵损失**衡量模型预测的分布与「真实下一个词」的差距，再通过**反向传播**和**梯度下降**不断调整模型的上百亿个参数，让「正确词」的概率越来越高。这一过程在 GPU 集群上跑数周，消耗海量算力。"
+            },
+            {
+              "type": "paragraph",
+              "text": "经过大规模预训练，模型把语言规律和世界知识「压缩」进了参数中；但要注意，它学到的是统计规律而非真正的因果推理，且知识有**截止日期**（训练数据之后的事它不知道）。"
+            },
+            {
+              "type": "callout",
+              "variant": "info",
+              "title": "知识截止 → RAG 的动机",
+              "text": "正因为模型知识停在训练截止日，且会「自信地编」，工程上才需要用 RAG（检索增强生成）给它注入实时/私有资料（详见第 2.8 节）。"
             },
             {
               "type": "table",
               "data": {
                 "headers": [
-                  "模型",
-                  "Context Window",
-                  "适用场景",
-                  "每百万 Token 成本(输入)"
+                  "维度",
+                  "训练 Training",
+                  "推理 Inference"
                 ],
                 "rows": [
                   [
-                    "**GPT-5**",
-                    "400K",
-                    "复杂 Agent、长文档处理",
-                    "$1.25"
+                    "目标",
+                    "从海量文本学习语言与知识",
+                    "用已学模型完成具体任务"
                   ],
                   [
-                    "**GPT-5-mini**",
-                    "400K",
-                    "简单任务、高性价比",
-                    "$0.25"
+                    "监督信号",
+                    "下一个词（自监督，无需标注）",
+                    "用户 Prompt（任务指令）"
                   ],
                   [
-                    "**Claude Sonnet 4.6**",
-                    "1M",
-                    "超长文档、代码理解",
-                    "$3.0"
+                    "是否更新参数",
+                    "是（反向传播+梯度下降）",
+                    "否（参数冻结）"
                   ],
                   [
-                    "**Claude Opus 4.8**",
-                    "1M",
-                    "复杂推理",
-                    "$5.0"
+                    "并行性",
+                    "可大规模并行训练",
+                    "自回归，逐 token 串行生成"
                   ],
                   [
-                    "**Gemini 3.5 Pro**",
-                    "1M-2M",
-                    "超大规模文档",
-                    "$1.25"
+                    "资源消耗",
+                    "极高（集群、数周）",
+                    "较低，但随输出长度线性增长"
                   ],
                   [
-                    "**Llama 4 405B**",
-                    "128K",
-                    "开源替代",
-                    "自部署成本"
+                    "产物",
+                    "训练好的模型权重",
+                    "一段生成文本"
                   ]
                 ]
               }
-            },
-            {
-              "type": "callout",
-              "variant": "danger",
-              "title": "Context Window 陷阱",
-              "text": "Context Window = 128K 不等于你可以随意塞入 128K 内容。当输入 Token 越多，模型的注意力会分散（Lost in the Middle 问题），响应质量反而下降。实际建议：尽量控制在 32K 以内，超出部分用 RAG 检索而非全量塞入。"
             }
           ]
         },
@@ -884,6 +968,91 @@
               "variant": "tip",
               "title": "Agent 参数选择建议",
               "text": "Agent 的核心 LLM 调用（工具选择、推理）建议 **Temperature=0** 保证决策一致性；面向用户的最终回答生成可用 **Temperature=0.7** 增加自然度。代码生成必须 **Temperature=0**。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "推理：模型是怎么「生成」的",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**推理（Inference）** 就是「用训练好的模型去生成文本」。它采用**自回归（auto-regressive）**方式：把用户的上文喂给模型 → 模型输出「下一个 token」的概率分布 → 按解码策略选出一个 token → 把它拼回输入 → 再预测再下一个，如此循环，直到模型输出特殊的「结束」标记。"
+            },
+            {
+              "type": "paragraph",
+              "text": "**解码策略**决定生成的随机性：贪心解码（greedy）永远选概率最高的词，结果确定但容易重复啰嗦；采样（sampling）则按 Temperature / Top-p 从分布里随机取词，更自然、更多样。具体参数怎么选，见下一节「采样参数」。"
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "易错点：没有终止条件",
+              "text": "自回归是一个「循环」，必须设定最大步数（max_steps）或明确的结束符，否则可能无限生成、烧光 token 与费用。这正是第 1.1 节「最小可运行 Agent」里 range(5) 护栏的意义。"
+            }
+          ]
+        },
+        {
+          "type": "knowledgePoint",
+          "title": "Context Window（上下文窗口）",
+          "content": [
+            {
+              "type": "paragraph",
+              "text": "**Context Window** 是模型一次能处理的最大 Token 数。它决定了 Agent 能\\\"记住\\\"多少对话历史、能处理多长的文档。Context Window 越大，Agent 能处理的任务越复杂，但成本也越高。"
+            },
+            {
+              "type": "table",
+              "data": {
+                "headers": [
+                  "模型",
+                  "Context Window",
+                  "适用场景",
+                  "每百万 Token 成本(输入)"
+                ],
+                "rows": [
+                  [
+                    "**GPT-5**",
+                    "400K",
+                    "复杂 Agent、长文档处理",
+                    "$1.25"
+                  ],
+                  [
+                    "**GPT-5-mini**",
+                    "400K",
+                    "简单任务、高性价比",
+                    "$0.25"
+                  ],
+                  [
+                    "**Claude Sonnet 4.6**",
+                    "1M",
+                    "超长文档、代码理解",
+                    "$3.0"
+                  ],
+                  [
+                    "**Claude Opus 4.8**",
+                    "1M",
+                    "复杂推理",
+                    "$5.0"
+                  ],
+                  [
+                    "**Gemini 3.5 Pro**",
+                    "1M-2M",
+                    "超大规模文档",
+                    "$1.25"
+                  ],
+                  [
+                    "**Llama 4 405B**",
+                    "128K",
+                    "开源替代",
+                    "自部署成本"
+                  ]
+                ]
+              }
+            },
+            {
+              "type": "callout",
+              "variant": "danger",
+              "title": "Context Window 陷阱",
+              "text": "Context Window = 128K 不等于你可以随意塞入 128K 内容。当输入 Token 越多，模型的注意力会分散（Lost in the Middle 问题），响应质量反而下降。实际建议：尽量控制在 32K 以内，超出部分用 RAG 检索而非全量塞入。"
             }
           ]
         },
