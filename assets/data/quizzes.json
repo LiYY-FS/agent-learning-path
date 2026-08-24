@@ -4819,6 +4819,342 @@
         }
       ],
       "explanation": "use_docker=True 在隔离容器执行未知代码，避免本机被恶意/错误代码破坏；密钥应走环境变量，绝不硬编码；高风险执行还可配合 human_input_mode=TERMINATE 人工确认。"
+    },
+    {
+      "id": "ch4-4.9-q1",
+      "chapter": "ch4",
+      "section": "4.9",
+      "type": "single",
+      "difficulty": 2,
+      "question": "当任务「角色清晰、可顺序执行」时，下列哪个框架最省力？",
+      "options": [
+        {
+          "key": "A",
+          "text": "CrewAI（声明角色与任务即可）",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "LangGraph（必须手写状态图）"
+        },
+        {
+          "key": "C",
+          "text": "Semantic Kernel"
+        },
+        {
+          "key": "D",
+          "text": "都需要大量手写调度"
+        }
+      ],
+      "explanation": "CrewAI 用 Role/Goal/Backstory + Task + Crew 声明即所得，顺序执行几乎不写编排代码；LangGraph 适合需要严格 DAG 的复杂控制流。"
+    },
+    {
+      "id": "ch4-4.9-q2",
+      "chapter": "ch4",
+      "section": "4.9",
+      "type": "single",
+      "difficulty": 2,
+      "question": "关于「先单 Agent 跑通再拆多 Agent」的原则，下列说法正确的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "多 Agent 复杂度是单 Agent 数倍，能单则单",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "一开始就上 5 个 Agent 效率最高"
+        },
+        {
+          "key": "C",
+          "text": "框架越新越好，优先追新"
+        },
+        {
+          "key": "D",
+          "text": "多 Agent 一定能提升效果"
+        }
+      ],
+      "explanation": "多 Agent 带来通信、协调、成本与调试的成倍复杂度；应先验证单 Agent 主链路，再在真卡住处拆第二个 Agent。"
+    },
+    {
+      "id": "ch4-4.10-q1",
+      "chapter": "ch4",
+      "section": "4.10",
+      "type": "single",
+      "difficulty": 2,
+      "question": "在 CrewAI 中，负责「定义专职角色人设」的核心组件是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "Agent（Role/Goal/Backstory）",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "Task"
+        },
+        {
+          "key": "C",
+          "text": "Crew"
+        },
+        {
+          "key": "D",
+          "text": "Process"
+        }
+      ],
+      "explanation": "Agent 用 role/goal/backstory 三段式定义人设；Task 绑定到某个 Agent；Crew 把角色与任务编成团队并执行。"
+    },
+    {
+      "id": "ch4-4.10-q2",
+      "chapter": "ch4",
+      "section": "4.10",
+      "type": "single",
+      "difficulty": 3,
+      "question": "CrewAI 的 Process.sequential 与 Process.hierarchical 主要区别是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "前者固定顺序，后者由经理 Agent 动态派活",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "两者完全相同"
+        },
+        {
+          "key": "C",
+          "text": "前者需要 API Key，后者不需要"
+        },
+        {
+          "key": "D",
+          "text": "前者只能有一个 Agent"
+        }
+      ],
+      "explanation": "sequential 按 tasks 列表顺序执行；hierarchical 引入经理 Agent 动态决定下一个执行谁，更灵活但更贵（多一次 LLM 调用）。"
+    },
+    {
+      "id": "ch4-4.11-q1",
+      "chapter": "ch4",
+      "section": "4.11",
+      "type": "single",
+      "difficulty": 3,
+      "question": "LangGraph Supervisor 模式中，决定「下一个执行哪个 worker」的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "supervisor 节点（通常调用 LLM 判断）",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "固定写死的列表顺序"
+        },
+        {
+          "key": "C",
+          "text": "用户手动选择"
+        },
+        {
+          "key": "D",
+          "text": "随机分配"
+        }
+      ],
+      "explanation": "Supervisor 模式由一个主管节点读 State 后动态决定下一跳（真实里用 LLM 分类）；这与 CrewAI 的固定顺序、Agents SDK 的 handoff 都不同。"
+    },
+    {
+      "id": "ch4-4.11-q2",
+      "chapter": "ch4",
+      "section": "4.11",
+      "type": "single",
+      "difficulty": 3,
+      "question": "LangGraph 条件边的返回值必须满足什么要求？",
+      "options": [
+        {
+          "key": "A",
+          "text": "必须是已注册的节点名或 END",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "可以是任意字符串"
+        },
+        {
+          "key": "C",
+          "text": "必须是数字"
+        },
+        {
+          "key": "D",
+          "text": "不需要返回值"
+        }
+      ],
+      "explanation": "条件边把 supervisor 返回的字符串映射到具体节点，拼写错误（非已注册节点名/END）会在 compile 阶段报错，是常见坑。"
+    },
+    {
+      "id": "ch4-4.12-q1",
+      "chapter": "ch4",
+      "section": "4.12",
+      "type": "single",
+      "difficulty": 2,
+      "question": "OpenAI Agents SDK 中，让一个 Agent 把对话交给另一个 Agent 的机制叫？",
+      "options": [
+        {
+          "key": "A",
+          "text": "handoff",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "GroupChat"
+        },
+        {
+          "key": "C",
+          "text": "Supervisor"
+        },
+        {
+          "key": "D",
+          "text": "blackboard"
+        }
+      ],
+      "explanation": "handoff 是 Agents SDK 的核心编排原语：当前 Agent 主动把对话转交给更合适的 Agent，上下文自动带入。"
+    },
+    {
+      "id": "ch4-4.12-q2",
+      "chapter": "ch4",
+      "section": "4.12",
+      "type": "single",
+      "difficulty": 3,
+      "question": "关于 OpenAI Agents SDK 的 tracing，下列说法正确的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "默认开启，离线/合规场景应显式关闭或自托管",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "默认关闭，需手动开启"
+        },
+        {
+          "key": "C",
+          "text": "完全不支持"
+        },
+        {
+          "key": "D",
+          "text": "只能在云端使用"
+        }
+      ],
+      "explanation": "Agents SDK 的 tracing 默认开启并可能上报 OpenAI 平台；离线或合规场景要用 set_tracing_disabled(True) 或自托管导出器。"
+    },
+    {
+      "id": "ch4-4.13-q1",
+      "chapter": "ch4",
+      "section": "4.13",
+      "type": "single",
+      "difficulty": 3,
+      "question": "多 Agent 系统上线前，最不该忽视的评估维度是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "任务成功率、Token 成本、延迟、可复现性、错误传播",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "只看「是否跑通」即可"
+        },
+        {
+          "key": "C",
+          "text": "只看模型参数量"
+        },
+        {
+          "key": "D",
+          "text": "只看代码行数"
+        }
+      ],
+      "explanation": "多 Agent 除「做对」外还要看协作质量与系统代价：成本、延迟、可复现、错误是否跨节点传播，缺一不可。"
+    },
+    {
+      "id": "ch4-4.13-q2",
+      "chapter": "ch4",
+      "section": "4.13",
+      "type": "single",
+      "difficulty": 3,
+      "question": "防止多 Agent「无限循环烧钱」最有效的手段是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "给 max_round / recursion_limit / 步数设上限",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "用更多 Agent 互相监督"
+        },
+        {
+          "key": "C",
+          "text": "关闭日志"
+        },
+        {
+          "key": "D",
+          "text": "增大模型上下文"
+        }
+      ],
+      "explanation": "无限循环是多 Agent 头号成本陷阱；务必给群聊轮次、图递归深度、自定义步数设硬上限，并配置终止条件。"
+    },
+    {
+      "id": "ch4-4.14-q1",
+      "chapter": "ch4",
+      "section": "4.14",
+      "type": "single",
+      "difficulty": 2,
+      "question": "本专题推荐的学习路径，第一阶段应该是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "先建立多 Agent 直觉并精通单 Agent",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "直接上 5 个 Agent 的复杂系统"
+        },
+        {
+          "key": "C",
+          "text": "先学最难的 LangGraph"
+        },
+        {
+          "key": "D",
+          "text": "先部署到生产"
+        }
+      ],
+      "explanation": "路径是「基础认知→单 Agent 精通→框架工具箱→架构设计→实战→生产治理」；先跑熟单 Agent 再拆多 Agent，避免调试崩溃。"
+    },
+    {
+      "id": "ch4-4.14-q2",
+      "chapter": "ch4",
+      "section": "4.14",
+      "type": "single",
+      "difficulty": 3,
+      "question": "关于多 Agent 的「常见误区」，下列说法错误的是？",
+      "options": [
+        {
+          "key": "A",
+          "text": "多 Agent 一定能提升效果，越多越好",
+          "correct": true
+        },
+        {
+          "key": "B",
+          "text": "应给循环设上限、代码执行沙箱化"
+        },
+        {
+          "key": "C",
+          "text": "API Key 不应硬编码"
+        },
+        {
+          "key": "D",
+          "text": "应做全链路可观测"
+        }
+      ],
+      "explanation": "「越多越好」正是最大误区：多 Agent 复杂度成倍增长，能单则单；其余选项都是正确实践。"
     }
   ],
   "chapterQuizzes": [

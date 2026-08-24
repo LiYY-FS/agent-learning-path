@@ -202,8 +202,8 @@
       "id": "ch4",
       "number": 4,
       "title": "多 Agent 系统设计",
-      "subtitle": "掌握多 Agent 协作架构，能设计复杂 Agent 系统",
-      "estimatedHours": 15,
+      "subtitle": "掌握多 Agent 协作架构与主流框架，能设计、实现并治理生产级多 Agent 系统",
+      "estimatedHours": 30,
       "difficulty": 4,
       "sections": [
         {
@@ -253,10 +253,46 @@
           "title": "Computer Use 与浏览器自动化",
           "estimatedMinutes": 25,
           "difficulty": 4
+        },
+        {
+          "id": "4.9",
+          "title": "主流多智能体框架全景与选型",
+          "estimatedMinutes": 30,
+          "difficulty": 3
+        },
+        {
+          "id": "4.10",
+          "title": "CrewAI 实战：角色化 Crews 与 Flows",
+          "estimatedMinutes": 45,
+          "difficulty": 3
+        },
+        {
+          "id": "4.11",
+          "title": "LangGraph 多智能体编排实战（Supervisor）",
+          "estimatedMinutes": 50,
+          "difficulty": 4
+        },
+        {
+          "id": "4.12",
+          "title": "OpenAI Agents SDK 多智能体编排（handoff）",
+          "estimatedMinutes": 45,
+          "difficulty": 3
+        },
+        {
+          "id": "4.13",
+          "title": "多智能体评估、可观测性与成本治理",
+          "estimatedMinutes": 40,
+          "difficulty": 4
+        },
+        {
+          "id": "4.14",
+          "title": "多 Agent 专题学习路径与路线图",
+          "estimatedMinutes": 35,
+          "difficulty": 2
         }
       ],
-      "lastUpdated": "2026-08-20",
-      "version": "2026.08.20"
+      "lastUpdated": "2026-08-24",
+      "version": "2026.08.24"
     },
     {
       "id": "ch5",
@@ -397,8 +433,8 @@
       "version": "2026.08.20"
     }
   ],
-  "version": "2026.08.21",
-  "lastUpdated": "2026-08-21",
-  "updatedAt": "2026-08-21T15:05:00+08:00",
-  "description": "AI Agent 开发学习路线：6 章 54 小节，覆盖 LLM、ReAct、RAG、LangChain/LangGraph、OpenAI Agents SDK、LlamaIndex、MCP、Agent Skill、多 Agent、Computer Use 与行业落地。"
+  "version": "2026.08.24",
+  "lastUpdated": "2026-08-24",
+  "updatedAt": "2026-08-24T11:51:00+08:00",
+  "description": "AI Agent 开发学习路线：6 章 60 小节，覆盖 LLM、ReAct、RAG、LangChain/LangGraph、OpenAI Agents SDK、LlamaIndex、MCP、Agent Skill、多 Agent、Computer Use 与行业落地。"
 }
