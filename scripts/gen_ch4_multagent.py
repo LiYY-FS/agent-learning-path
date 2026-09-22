@@ -984,16 +984,15 @@ def main():
             ch["sections"].extend(new_metas)
             ch["estimatedHours"] = 30
             ch["subtitle"] = "掌握多 Agent 协作架构与主流框架，能设计、实现并治理生产级多 Agent 系统"
-            ch["version"] = "2026.08.24"
-            ch["lastUpdated"] = "2026-08-24"
+            ch["version"] = "2026.09.21"
+            ch["lastUpdated"] = "2026-09-21"
             break
-    chapters["description"] = chapters["description"].replace("54 小节", "60 小节")
-    chapters["lastUpdated"] = "2026-08-24"
-    chapters["version"] = "2026.08.24"
-    chapters["updatedAt"] = "2026-08-24T11:51:00+08:00"
+    chapters["lastUpdated"] = "2026-09-21"
+    chapters["version"] = "2026.09.21"
+    chapters["updatedAt"] = "2026-09-21T09:00:00+08:00"
     with open(_CHAPTERS, "w", encoding="utf-8") as f:
         json.dump(chapters, f, ensure_ascii=False, indent=2)
-    print("已更新 chapters.json（ch4 追加 4.9–4.14 meta，小节 54→60）")
+    print("已更新 chapters.json（ch4 追加 4.9–4.14 meta，小节同步到 61）")
 
     # 3) quizzes.json：追加题目（section 已在各 section.quiz 反向引用）
     with open(_QUIZ, encoding="utf-8") as f:

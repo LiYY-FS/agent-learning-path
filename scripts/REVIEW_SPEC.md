@@ -36,7 +36,7 @@ python3 scripts/build_data.py          # 重建 data.js，否则改动不会在�
 | `unused-var` | 声明后未使用的变量（含函数作用域内，如 `encoder`、`chart`） |
 | `empty-func` | 只有 `pass` / `...` / 纯 docstring 的空函数体 |
 | `dangling-ref` | `enterpriseCase.code` 字符串引用了全局注册表中不存在的文件名 |
-| `fictional-model` | 虚构模型版本（`gpt-5`、`claude-opus-4-8`、`gemini-3.5`、`llama4` 等） |
+| `fictional-model` | 虚构模型版本（课程版本外的未来模型号，如 `gpt-6`、`claude-opus-5`、`gemini-4`、`llama5` 等） |
 | `placeholder` | 残留 `TODO` / `FIXME` / `此处省略` / `待补充` |
 
 脚本按 `assets/js/utils.js` 的 `buildCodeRegistry` 规则（只收 `{type:'code', data:{filename}}`）

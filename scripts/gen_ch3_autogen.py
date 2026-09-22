@@ -651,13 +651,12 @@ def main():
                 "difficulty": 3,
             })
             break
-    chapters["description"] = chapters["description"].replace("53 小节", "54 小节")
-    chapters["lastUpdated"] = "2026-08-21"
-    chapters["version"] = "2026.08.21"
-    chapters["updatedAt"] = "2026-08-21T15:05:00+08:00"
+    chapters["lastUpdated"] = "2026-09-21"
+    chapters["version"] = "2026.09.21"
+    chapters["updatedAt"] = "2026-09-21T09:00:00+08:00"
     with open(_CHAPTERS, "w", encoding="utf-8") as f:
         json.dump(chapters, f, ensure_ascii=False, indent=2)
-    print("✅ 已更新 chapters.json（ch3 追加 3.11 meta，小节计数 53→54）")
+    print("✅ 已更新 chapters.json（ch3 追加 3.11 meta，小节计数同步到 61）")
 
     # 3) quizzes.json：追加 3.11 题目，并已在 section.quiz 中反向引用
     with open(_QUIZ, encoding="utf-8") as f:

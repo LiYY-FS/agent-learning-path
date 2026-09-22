@@ -25,16 +25,14 @@ import sys
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA_DIR = os.path.join(ROOT, 'assets', 'data')
 
-# 已知真实存在的模型名（截至知识范围内可验证）
+# 已知真实存在的模型名（截至 2026-09-21 课程版本）
 FICTIONAL_PATTERNS = [
-    r'gpt-5(?![\w.-])',
     r'gpt-6',
-    r'claude-opus-4-[5-9]',
+    r'claude-opus-4-[9]|claude-opus-5',
     r'claude-\d+\.\d+-opus-2',
-    r'gemini-3',
     r'gemini-[4-9]',
-    r'llama-?4',
-    r'deepseek-v[4-9]',
+    r'llama-?5',
+    r'deepseek-v[5-9]',
     r'qwen-?[4-9]',
 ]
 
@@ -247,6 +245,16 @@ def check_highlights(block):
     return issues
 
 
+def textify(value):
+    if isinstance(value, str):
+        return value
+    if isinstance(value, (list, tuple)):
+        return "\n".join(textify(v) for v in value)
+    if value is None:
+        return ""
+    return str(value)
+
+
 def audit_file(path, known=None):
     with open(path, encoding='utf-8') as f:
         chapter = json.load(f)
@@ -274,7 +282,7 @@ def audit_file(path, known=None):
         # highlightLines 校验（任意语言都适用：高亮行必须非空/非纯注释/在范围内）
         issues += check_highlights(block)
 
-        blob = src + '\n' + (block.get('output') or '') + '\n' + (block.get('note') or '')
+        blob = textify(src) + '\n' + textify(block.get('output')) + '\n' + textify(block.get('note'))
         for p in FICTIONAL_PATTERNS:
             m = re.search(p, blob, re.I)
             if m:

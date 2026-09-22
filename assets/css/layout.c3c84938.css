@@ -131,7 +131,7 @@
 }
 
 .sidebar__section {
-  margin-bottom: var(--space-lg);
+  margin-bottom: 168px;
 }
 
 .sidebar__section-title {
@@ -417,7 +417,11 @@
 
 /* === 侧边栏版本信息 === */
 .sidebar__meta {
-  margin-top: var(--space-md);
+  position: absolute;
+  left: var(--space-lg);
+  right: var(--space-lg);
+  bottom: var(--space-lg);
+  margin: 0;
   padding: var(--space-sm);
   border: 1px solid var(--border-muted);
   border-radius: var(--radius-md);
@@ -447,4 +451,3 @@
   }
   .sidebar__meta-value { text-align: left; }
 }
-
